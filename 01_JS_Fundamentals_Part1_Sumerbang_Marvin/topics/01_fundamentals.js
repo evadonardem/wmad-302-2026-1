@@ -2,6 +2,7 @@ import console from 'node:console';
 
 export function evaluateAyudaEligibility(citizen) {
   // TODO: Task 1 - Evaluate Ayuda Eligibility using ?? and logical operators
+  return citizen.isSeniorPWD || (citizen.isLowIncome && (citizen.dependentCount ?? 0) >= 3);
 }
 
 export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
