@@ -7,9 +7,22 @@ export function initRouteStatusMonitor() {
   if (!syncBtn) return;
 
   syncBtn.addEventListener('click', () => {
-    // TODO:
-    // 1. Loop through routeList items
-    // 2. Count active (data-status="active") vs delayed items
-    // 3. Update activeStat and delayedStat text content
+      let active = 0;
+    let delayed = 0;
+
+    for (let i = 0; i < routeList.length; i++) {
+
+      if (routeList[i].getAttribute('data-status') === 'active') {
+        active++;
+      }
+
+      if (routeList[i].getAttribute('data-status') === 'delayed') {
+        delayed++;
+      }
+    }
+
+    activeStat.textContent = active;
+    delayedStat.textContent = delayed;
+
   });
 }
