@@ -1,12 +1,56 @@
 import console from 'node:console';
 
 export function summarizeSariSariSales(transactions) {
-  // TODO: Filter out 'voided'/'refunded' and reduce by category
+      // Remove voided and refunded transactions
+    const validTransactions = transactions.filter(function(transaction) {
+        return transaction.status !== 'voided' &&
+               transaction.status !== 'refunded';
+    });
+
+   
+    const summary = validTransactions.reduce(function(result, transaction) {
+
+        const category = transaction.category;
+        const amount = transaction.amount;
+
+       
+        if (result[category] === undefined) {
+            result[category] = 0;
+        }
+
+        result[category] = result[category] + amount;
+
+        return result;
+
+    }, {});
+
+    return summary;
 }
+  // TODO: Filter out 'voided'/'refunded' and reduce by category
 
 export function extractUniqueBarangays(riders) {
-  // TODO: Extract all barangays, deduplicate via Set, and sort alphabetically
+  
+    // Create an empty array
+    const barangays = [];
+
+   
+    riders.forEach(function(rider) {
+
+        rider.coveredBarangays.forEach(function(barangay) {
+            barangays.push(barangay);
+        });
+
+    });
+
+   
+    const uniqueBarangays = [...new Set(barangays)];
+
+    uniqueBarangays.sort();
+
+    return uniqueBarangays;
 }
+
+
 
 export function runDataStructuresTests() {
   const txs = [

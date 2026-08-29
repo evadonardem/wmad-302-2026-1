@@ -20,15 +20,15 @@ export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
 
     let total;
 
-    // Senior/PWD gets 20% discount
+
     if (isSeniorOrPWD) {
         total = price * 0.80;
     } else {
-        // Regular customer gets 12% VAT
+      
         total = price * 1.12;
     }
 
-    // Round to 2 decimal places
+    
     return Number(total.toFixed(2));
   // TODO: Task 2 - Compute bill returning rounded Number (e.g., Number(total.toFixed(2)))
 }
