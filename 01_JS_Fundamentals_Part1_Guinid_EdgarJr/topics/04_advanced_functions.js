@@ -1,11 +1,37 @@
 import console from 'node:console';
 
 export function memoize(fn) {
-  // TODO: Cache evaluation results in a local object closure
+  const cache = {};
+  return function(...args) {
+    const key = JSON.stringify(args);
+    if (key in cache) {
+      return cache[key];
+    }
+    const result = fn(...args);
+    cache[key] = result;
+    return result;
+  };
 }
 
 export function createJeepneyFareCalculator(baseFare = 13, discountRate = 0.20) {
-  // TODO: Return closure (distanceKm, isStudentOrSenior) calculating fare
+  return function(distanceKm, isStudentOrSenior = false) 
+  {
+    let fare;
+    if (distanceKm <= 4) 
+    {
+      fare = baseFare;
+    }
+    else
+    {
+      fare = baseFare + (distanceKm - 4) * 1.75;
+    }
+    if (isStudentOrSenior) 
+    {
+      fare *= (1 - discountRate);
+    }
+
+    return Math.round(fare * 100) / 100;
+  };
 }
 
 export function runAdvancedFunctionsTests() {
