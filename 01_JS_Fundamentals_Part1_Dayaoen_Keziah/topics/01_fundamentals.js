@@ -5,8 +5,21 @@ export function evaluateAyudaEligibility(citizen) {
   return (citizen.isSeniorPWD ?? false) || (citizen.isLowIncome && (citizen.dependentCount ?? 0) > 0);
 }
 
-export function computnode topics/01_fundamentals.jseJollibeeBill(rawPrice, isSeniorOrPWD) {
+export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
   // TODO: Task 2 - Compute bill returning rounded Number (e.g., Number(total.toFixed(2)))
+  const price = Number(rawPrice);
+  if (isNaN(price)) {
+    return 0;
+  }
+
+  let total;
+  if (isSeniorOrPWD) {
+    total = price * 0.8; // Apply 20% discount
+  } else {
+    total = price * 1.12; // Apply 12% VAT
+  }
+
+  return Number(total.toFixed(2));
 }
 
 export function runFundamentalsTests() {
