@@ -2,10 +2,20 @@ import console from 'node:console';
 
 export function evaluateAyudaEligibility(citizen) {
   // TODO: Task 1 - Evaluate Ayuda Eligibility using ?? and logical operators
+  const dependents = citizen?.dependentCount ?? 0;
+  return Boolean(citizen?.isSeniorPWD) || (Boolean(citizen?.isLowIncome) && dependents >= 3);
 }
 
 export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
   // TODO: Task 2 - Compute bill returning rounded Number (e.g., Number(total.toFixed(2)))
+ if (typeof rawPrice !== 'number' || Number.isNaN(rawPrice) || rawPrice <= 0) {
+    return 0;
+  }
+  const total = isSeniorOrPWD === true 
+    ? rawPrice * 0.8 
+    : rawPrice * 1.12;
+
+  return Number(total.toFixed(2));
 }
 
 export function runFundamentalsTests() {
