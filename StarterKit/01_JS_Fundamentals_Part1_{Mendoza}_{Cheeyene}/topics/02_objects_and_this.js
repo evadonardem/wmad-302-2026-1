@@ -5,10 +5,31 @@ export function GCashAccount(accountName, initialBalance = 0) {
   this.balance = initialBalance;
 
   // TODO: Implement cashIn(amount), sendMoney(amount, recipient), and getBalance()
+  this.cashIn = function(amount) {
+    this.balance += amount;
+    return this;
+  };
+
+  this.sendMoney = function(amount, recipient) {
+    const fee = 15;
+    const total = amount + fee;
+
+    if (this.balance < total) {
+      throw new Error('Insufficient GCash Balance');
+    }
+
+    this.balance -= total;
+    return this;
+  };
+
+  this.getBalance = function() {
+    return `₱${this.balance.toFixed(2)}`;
+  };
 }
 
 export function getBarangayName(resident) {
   // TODO: Use optional chaining resident?.address?.barangay?.name
+  return resident?.address?.barangay?.name ?? 'Unregistered Barangay';
 }
 
 export function runObjectsTests() {
@@ -24,6 +45,8 @@ export function runObjectsTests() {
   }
 
   console.assert(getBarangayName({ address: { barangay: { name: 'Bakakeng Central' } } }) === 'Bakakeng Central', 'Reads valid barangay');
+
   console.assert(getBarangayName({}) === 'Unregistered Barangay', 'Handles missing property gracefully');
+
   console.log('  └─ Module 02 assertions passed.');
 }
