@@ -2,9 +2,10 @@ import console from 'node:console';
 
 export function evaluateAyudaEligibility(citizen) {
   // TODO: Task 1 - Evaluate Ayuda Eligibility using ?? and logical operators
+  return (citizen.isSeniorPWD ?? false) || (citizen.isLowIncome && (citizen.dependentCount ?? 0) > 0);
 }
 
-export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
+export function computnode topics/01_fundamentals.jseJollibeeBill(rawPrice, isSeniorOrPWD) {
   // TODO: Task 2 - Compute bill returning rounded Number (e.g., Number(total.toFixed(2)))
 }
 
@@ -20,3 +21,5 @@ export function runFundamentalsTests() {
   console.assert(computeJollibeeBill('invalid', false) === 0, 'Invalid price returns 0');
   console.log('  └─ Module 01 assertions passed.');
 }
+
+runFundamentalsTests();
