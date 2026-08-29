@@ -1,10 +1,35 @@
 import console from 'node:console';
 
 export function evaluateAyudaEligibility(citizen) {
+   const isSeniorPWD = citizen.isSeniorPWD ?? false;
+    const isLowIncome = citizen.isLowIncome ?? false;
+    const dependentCount = citizen.dependentCount ?? 0;
+
+   if (isSeniorPWD) {
+        return true;
+   }
   // TODO: Task 1 - Evaluate Ayuda Eligibility using ?? and logical operators
 }
 
 export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
+  const price = Number(rawPrice);
+
+    if (isNaN(price) || price < 0) {
+        return 0;
+    }
+
+    let total;
+
+    // Senior/PWD gets 20% discount
+    if (isSeniorOrPWD) {
+        total = price * 0.80;
+    } else {
+        // Regular customer gets 12% VAT
+        total = price * 1.12;
+    }
+
+    // Round to 2 decimal places
+    return Number(total.toFixed(2));
   // TODO: Task 2 - Compute bill returning rounded Number (e.g., Number(total.toFixed(2)))
 }
 
