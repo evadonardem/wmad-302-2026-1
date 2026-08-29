@@ -2,10 +2,41 @@ import console from 'node:console';
 
 export function summarizeSariSariSales(transactions) {
   // TODO: Filter out 'voided'/'refunded' and reduce by category
+   const validTransactions = transactions.filter(function (tx) {
+    return tx.status !== 'voided' && tx.status !== 'refunded';
+  });
+
+  const summary = validTransactions.reduce(function (acc, tx) {
+    const category = tx.category;
+    const amount = tx.amount;
+
+    if (!acc[category]) {
+      acc[category] = 0;
+    }
+
+    acc[category] = acc[category] + amount;
+    return acc;
+  }, {});
+
+  return summary;
 }
 
 export function extractUniqueBarangays(riders) {
   // TODO: Extract all barangays, deduplicate via Set, and sort alphabetically
+  const allBarangays = [];
+
+  riders.forEach(function (rider) {
+    rider.coveredBarangays.forEach(function (barangay) {
+      allBarangays.push(barangay);
+    });
+  });
+
+  const uniqueBarangaysSet = new Set(allBarangays);
+  const uniqueBarangaysArray = Array.from(uniqueBarangaysSet);
+
+  uniqueBarangaysArray.sort();
+
+  return uniqueBarangaysArray;
 }
 
 export function runDataStructuresTests() {
