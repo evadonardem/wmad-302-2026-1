@@ -7,6 +7,11 @@ export function evaluateAyudaEligibility(citizen) {
 
 export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
   // TODO: Task 2 - Compute bill returning rounded Number (e.g., Number(total.toFixed(2)))
+  if (typeof rawPrice !== 'number' || isNaN(rawPrice) || rawPrice <= 0) {
+    return 0;
+  }
+  const total = isSeniorOrPWD ? rawPrice * 0.8 : rawPrice * 1.12;
+  return Number(total.toFixed(2));
 
 }
 
