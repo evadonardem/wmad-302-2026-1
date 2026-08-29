@@ -1,13 +1,23 @@
 import console from 'node:console';
 
 export function memoize(fn) {
-  // TODO: Cache evaluation results in a local object closure
+ const cache = {};
+  return (...args) => {
+    const key = JSON.stringify(args);
+    if (!(key in cache)) {
+      cache[key] = fn(...args);
+    }
+    return cache[key];
+  };
 }
 
 export function createJeepneyFareCalculator(baseFare = 13, discountRate = 0.20) {
-  // TODO: Return closure (distanceKm, isStudentOrSenior) calculating fare
+  return (distance, isDiscounted) => {
+    const extraKm = Math.max(0, distance - 4);
+    const fare = baseFare + (extraKm * 1.75);
+    return isDiscounted ? fare * (1 - discountRate) : fare;
+  };
 }
-
 export function runAdvancedFunctionsTests() {
   let execCount = 0;
   const calc = memoize((a, b) => { execCount++; return a + b; });
