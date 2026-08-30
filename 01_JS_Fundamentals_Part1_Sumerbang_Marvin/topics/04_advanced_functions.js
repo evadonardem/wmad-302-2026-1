@@ -1,7 +1,20 @@
 import console from 'node:console';
 
 export function memoize(fn) {
-  // TODO: Cache evaluation results in a local object closure
+
+  const cache = {};
+
+    return function(...args) {
+        const key = JSON.stringify(args);
+
+        if (key in cache) {
+            return cache[key];
+        }
+
+        cache[key] = fn(...args);
+        return cache[key];
+    };
+
 }
 
 export function createJeepneyFareCalculator(baseFare = 13, discountRate = 0.20) {
