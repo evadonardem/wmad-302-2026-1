@@ -11,10 +11,39 @@ export function initResidentIdGenerator() {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    // TODO:
-    // 1. Validate name length >= 5
-    // 2. Validate purok selection is not empty
-    // 3. Render resident card string to cardsGrid if valid
-    // 4. Reset form fields upon success
+
+    if (errName) errName.textContent = '';
+    if (errPurok) errPurok.textContent = '';
+
+    const nameVal = nameInput ? nameInput.value.trim() : '';
+    const purokVal = purokSelect ? purokSelect.value : '';
+    let isValid = true;
+
+    if (!(nameVal.length >= 5)) {
+      if (errName) errName.textContent = 'Name must be at least 5 characters.';
+      isValid = false;
+    }
+
+    if (!purokVal) {
+      if (errPurok) errPurok.textContent = 'Please select a Purok.';
+      isValid = false;
+    }
+
+    if (!isValid) return;
+
+    const cardHtml = `
+      <div class="resident-card">
+        <h3>🏛️ Barangay Resident Card</h3>
+        <p><strong>Name:</strong> ${nameVal}</p>
+        <p><strong>Zone:</strong> ${purokVal}</p>
+      </div>
+    `;
+
+    if (cardsGrid) {
+      cardsGrid.insertAdjacentHTML('beforeend', cardHtml);
+    }
+
+    form.reset();
+    
   });
 }
