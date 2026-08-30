@@ -8,11 +8,15 @@ export function summarizeSariSariSales(transactions) {
             summary[transaction.category] = (summary[transaction.category] || 0) + transaction.amount;
             return summary;
         }, {});
-        
+
 }
 
 export function extractUniqueBarangays(riders) {
-  // TODO: Extract all barangays, deduplicate via Set, and sort alphabetically
+  
+  const barangays = riders.flatMap(rider => rider.coveredBarangays);
+
+    return [...new Set(barangays)].sort();
+    
 }
 
 export function runDataStructuresTests() {
