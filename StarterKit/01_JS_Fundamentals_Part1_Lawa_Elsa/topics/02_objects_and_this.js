@@ -3,12 +3,29 @@ import console from 'node:console';
 export function GCashAccount(accountName, initialBalance = 0) {
   this.accountName = accountName;
   this.balance = initialBalance;
+// TODO: Implement cashIn(amount), sendMoney(amount, recipient), and getBalance()
+  this.cashIn = function (amount) {
+    this.balance += amount;
+    return this;
+  };
 
-  // TODO: Implement cashIn(amount), sendMoney(amount, recipient), and getBalance()
+  this.sendMoney = function (amount, recipient) {
+    const totalDeduction = amount + 15;
+    if (this.balance < totalDeduction) {
+      throw new Error('Insufficient GCash Balance');
+    }
+    this.balance -= totalDeduction;
+    return this;
+  };
+
+  this.getBalance = function () {
+    return `₱${this.balance.toFixed(2)}`;
+  };
 }
 
 export function getBarangayName(resident) {
-  // TODO: Use optional chaining resident?.address?.barangay?.name
+  return resident?.address?.barangay?.name ?? 'Unregistered Barangay';
+
 }
 
 export function runObjectsTests() {
