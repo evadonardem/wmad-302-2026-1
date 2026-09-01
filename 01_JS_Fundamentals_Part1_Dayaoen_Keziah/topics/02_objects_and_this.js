@@ -5,10 +5,31 @@ export function GCashAccount(accountName, initialBalance = 0) {
   this.balance = initialBalance;
 
   // TODO: Implement cashIn(amount), sendMoney(amount, recipient), and getBalance()
+  this.cashIn = function(amount) {
+    if (amount <= 0) {
+      throw new Error('Cash-in amount must be positive');
+    }
+    this.balance += amount;
+    return this; // Enable method chaining
+  };
+
+  this.sendMoney = function(amount, recipient) {
+    const fee = 15; // Fixed transaction fee
+    if (amount + fee > this.balance) {
+      throw new Error('Insufficient GCash Balance');
+    }
+    this.balance -= (amount + fee);
+    return this; // Enable method chaining
+  };
+
+  this.getBalance = function() {
+    return `₱${this.balance.toFixed(2)}`;
+  };
 }
 
 export function getBarangayName(resident) {
   // TODO: Use optional chaining resident?.address?.barangay?.name
+  return resident?.address?.barangay?.name ?? 'Unregistered Barangay';
 }
 
 export function runObjectsTests() {
