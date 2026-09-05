@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>e-Barangay Disaster & Ayuda Portal</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="header">
+        <h1>e-Barangay Portal</h1>
+        <p>Disaster Emergency & Ayuda Management System</p>
+      </header>
+
+      <main class="container">
+        <!-- Ayuda Application Form -->
+        <section class="card">
+          <h2>Resident Registration</h2>
+          <form id="ayuda-form">
+            <div class="form-group">
+              <label for="name">Full Name</label>
+              <input type="text" id="name" required placeholder="Juan Dela Cruz" />
+            </div>
+
+            <div class="form-group">
+              <label for="prov-select">Province</label>
+              <select id="prov-select" required>
+                <option value="">Select Province...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="city-select">City / Municipality</label>
+              <select id="city-select" required>
+                <option value="">Select City/Municipality...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="monthly-income">Monthly Income (₱)</label>
+              <input type="number" id="monthly-income" required placeholder="9500" />
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label><input type="checkbox" id="is-senior" /> Senior Citizen</label>
+              <label><input type="checkbox" id="is-pwd" /> Person with Disability (PWD)</label>
+            </div>
+
+            <div class="form-group">
+              <label for="dependent-count">Number of Dependents</label>
+              <input type="number" id="dependent-count" value="0" min="0" />
+            </div>
+
+            <button type="submit" class="btn primary">Evaluate & Register</button>
+          </form>
+        </section>
+
+        <!-- Relief Packer POS Register -->
+        <section class="card">
+          <h2>Relief Package POS Register</h2>
+          <div id="pos-container">
+            <!-- TODO: Render POS register and progress bar here -->
+          </div>
+          <div class="pos-controls" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            <input type="text" id="item-name" placeholder="Item Name (e.g., Rice 5kg)" style="flex: 2;" />
+            <input type="number" id="item-price" placeholder="Price (₱)" style="flex: 1;" />
+            <button type="button" id="add-item-btn" class="btn primary" style="width: auto;">Add Item</button>
+          </div>
+        </section>
+
+        <!-- Live Queue Display -->
+        <section class="card">
+          <h2>Registered Queue</h2>
+          <div id="queue-container">
+            <!-- TODO: Render resident cards here -->
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
