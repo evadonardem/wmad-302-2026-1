@@ -20,7 +20,12 @@ export function renderResidentCards(container, residents) {
 }
 
 export function renderPOSRegister(container, packerState) {
-  // TODO: Render POS register showing subtotal, budget cap, <progress> bar, and item list with remove buttons.
+ 
+  container.innerHTML = `
+    <h2>POS Register</h2>
+    <p>Total Items: ${packerState.items.length}</p>
+    <p>Total Price: $${packerState.totalPrice.toFixed(2)}</p>
+  `;
 }
 
 export function setupActionDelegation(rootElement, actionMap) {
