@@ -97,5 +97,7 @@ export function saveToOfflineQueue(appData) {
 }
 
 export function removeFromOfflineQueue(id) {
-  // TODO: Remove application from localStorage queue by id
+  const queue = getOfflineQueue();
+  const updatedQueue = queue.filter((item) => item.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedQueue)); 
 }
