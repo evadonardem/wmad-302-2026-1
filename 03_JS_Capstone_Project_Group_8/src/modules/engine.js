@@ -3,14 +3,34 @@
  */
 
 export function evaluateAyudaEligibility(citizen) {
-  // TODO: Implement scoring logic
-  // Rules:
-  // - Senior Citizen (+35 pts)
-  // - PWD (+35 pts)
-  // - Monthly Income < 10,000 (+20 pts)
-  // - Dependents (+5 pts per dependent, capped at max 20 pts)
-  // Priority: score >= 70 -> 'CRITICAL' (approved: true), score >= 40 -> 'HIGH' (approved: true), else -> 'LOW' (approved: false)
-  
+
+  let score = 0;
+
+  if (citizen.isSenior === true) { score += 35; }
+
+  if (citizen.isPWD === true) { score += 35; }
+
+  if (citizen.monthlyIncome < 10000) { score += 20; } 
+
+  const dependentCount = citizen.dependentCount ?? 0;
+  const dependentPoints = Math.min(dependentCount * 5, 20);
+
+  score += dependentPoints;
+
+  let priority;
+  let approved;
+
+  if (score >= 70) {
+    priority = 'CRITICAL';
+    approved = true;
+    } else if (score >= 40) {
+      priority = 'HIGH';
+      approved = true;
+      } else {
+        priority = 'LOW';
+        approved = false;
+        }
+    
   return { priority: 'LOW', score: 0, approved: false };
 }
 
