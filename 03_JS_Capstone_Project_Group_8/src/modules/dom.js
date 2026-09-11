@@ -9,9 +9,14 @@ export function sanitizeHTML(str) {
 }
 
 export function renderResidentCards(container, residents) {
-  // TODO: Render resident cards into container. 
-  // Handle empty state if residents array is empty.
-  // Include data-action="remove-resident" and data-id attributes on delete buttons.
+  container.innerHTML = residents.map(resident => `
+    <div class="resident-card">
+      <h3>${sanitizeHTML(resident.name)}</h3>
+      <p>Age: ${sanitizeHTML(resident.age.toString())}</p>
+      <p>Address: ${sanitizeHTML(resident.address)}</p>
+    </div>
+  `).join('');
+    
 }
 
 export function renderPOSRegister(container, packerState) {
