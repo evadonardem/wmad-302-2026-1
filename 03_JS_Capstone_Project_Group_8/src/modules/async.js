@@ -91,7 +91,9 @@ export function getOfflineQueue() {
 }
 
 export function saveToOfflineQueue(appData) {
-  // TODO: Save application object to localStorage queue
+  const queue = getOfflineQueue();
+  queue.push(appData);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
 }
 
 export function removeFromOfflineQueue(id) {
