@@ -29,5 +29,10 @@ export function renderPOSRegister(container, packerState) {
 }
 
 export function setupActionDelegation(rootElement, actionMap) {
-  // TODO: Implement event delegation on rootElement for elements with [data-action].
+  rootElement.addEventListener('click', (event) => {
+    const action = event.target.dataset.action;
+    if (action && actionMap[action]) {
+      actionMap[action](event);
+    }
+  });
 }
