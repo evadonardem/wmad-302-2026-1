@@ -35,12 +35,47 @@ export function evaluateAyudaEligibility(citizen) {
 }
 
 export function createReliefPacker(budgetCap = 1000) {
-  // TODO: Implement closure/factory function returning an object with methods:
-  // - addItem(name, price): checks budget cap, adds item if valid
-  // - removeItem(index): removes item by index and adjusts total
-  // - getTotal(): returns current total price
-  // - getItems(): returns array of items (copy)
-  // - getBudgetCap(): returns budget cap
+  
+  let items = [];
+  let total = 0;
+
+  function addItem(name, price) {
+    if (total + price > budgetCap) {
+      return {
+        success: false,
+        reason: "Budget limit exceeded"
+      };
+    }
+    items.push({
+      name: name,
+      price: price
+      });
+
+      total += price;
+      return {
+        success: true
+      };
+  }
+
+  function removeItem(index) {
+    if (index < 0 || index >= items.length) {
+      return;
+    }
+    total -= items[index].price;
+    items.splice(index, 1);
+  }
+
+  function getTotal() {
+    return total;
+  }
+
+  function getItems() {
+    return items;
+  }
+
+  function getBudgetCap() {
+    return budgetCap;
+  }
   
   return {
     addItem: (name, price) => ({ success: false, reason: "Not implemented" }),
