@@ -1,11 +1,42 @@
 /**
  * [ROLE C] Async & Storage Module - Student Starter Template
  */
+const STORAGE_KEY = "ebarangay_offline_applications";
 
 export async function fetchProvinces() {
-  // TODO: Fetch provinces from https://psgc.gitlab.io/api/provinces.json
-  // Include offline fallback array.
-  return [];
+  
+  const fallbackProvinces = [
+    {
+      code: "140000000",
+      name: "Cordillera Administrative Region"
+    },
+    {
+      code: "150000000",
+      name: "Bangsamoro Autonomous Region in Muslim Mindanao"
+    }
+  ];
+
+  try {
+    const response = await fetch(
+      "https://psgc.gitlab.io/api/provinces.json"
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch provinces");
+    }
+
+    const provinces = await response.json();
+
+    return provinces.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  } catch (error) {
+    console.log("Using offline province data.");
+
+    return fallbackProvinces.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }
 }
 
 export async function fetchCitiesMunicipalities(provinceCode) {
