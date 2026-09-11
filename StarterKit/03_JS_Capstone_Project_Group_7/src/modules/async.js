@@ -5,6 +5,23 @@
 const OFFLINE_QUEUE_KEY = 'ebarangay_offline_applications';
 
 
+// Offline fallback for cities/municipalities
+function getOfflineCities(provinceCode) {
+  return [
+    {
+      code: `${provinceCode}-OFFLINE-1`,
+      name: 'Offline City/Municipality 1'
+    },
+    {
+      code: `${provinceCode}-OFFLINE-2`,
+      name: 'Offline City/Municipality 2'
+    }
+  ].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+}
+
+
 // Fetch all provinces from PSGC API
 export async function fetchProvinces() {
   try {
@@ -63,7 +80,9 @@ export async function fetchCitiesMunicipalities(provinceCode) {
     );
 
     if (!response.ok) {
-      throw new Error('Failed to fetch cities/municipalities');
+      throw new Error(
+        'Failed to fetch cities/municipalities'
+      );
     }
 
     const cities = await response.json();
@@ -74,11 +93,11 @@ export async function fetchCitiesMunicipalities(provinceCode) {
 
   } catch (error) {
     console.warn(
-      'Unable to fetch cities/municipalities.',
+      'Unable to fetch cities/municipalities. Using offline fallback.',
       error
     );
 
-    return [];
+    return getOfflineCities(provinceCode);
   }
 }
 
@@ -86,7 +105,8 @@ export async function fetchCitiesMunicipalities(provinceCode) {
 // Get applications saved for offline use
 export function getOfflineQueue() {
   try {
-    const storedData = localStorage.getItem(OFFLINE_QUEUE_KEY);
+    const storedData =
+      localStorage.getItem(OFFLINE_QUEUE_KEY);
 
     if (!storedData) {
       return [];
