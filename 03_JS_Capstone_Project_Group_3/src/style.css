@@ -1,17 +1,17 @@
 /* [STYLING] e-Barangay Theme & Layout - Starter Template */
 
 :root {
-  --primary-color: #0f766e;
-  --primary-hover: #115e59;
-  --bg-color: #f4f6f8;
+  --primary-color: #664930;
+  --primary-hover: #4e3724;
+  --bg-color: #FFDBBB;
   --card-bg: #ffffff;
   --text-main: #1f2937;
   --text-muted: #6b7280;
-  --border-color: #d1d5db;
+  --border-color: #CCBEB1;
   --radius: 8px;
-  --critical-color: #dc2626;
-  --high-color: #d97706;
-  --low-color: #2563eb;
+  --critical-color: #ef4444;
+  --high-color: #f59e0b;
+  --low-color: #10b981;
 }
 
 body {
@@ -102,17 +102,31 @@ body {
   border-left: 6px solid var(--border-color);
 }
 
+.resident-card[data-priority="CRITICAL"] { border-left-color: var(--critical-color); }
+.resident-card[data-priority="HIGH"] { border-left-color: var(--high-color); }
+.resident-card[data-priority="LOW"] { border-left-color: var(--low-color); }
+
 .badge {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: bold;
-  color: white;
 }
 
-.badge.critical { background: var(--critical-color); }
-.badge.high { background: var(--high-color); }
-.badge.low { background: var(--low-color); }
+.badge.critical { 
+  background: #fee2e2; 
+  color: #991b1b; 
+}
+
+.badge.high { 
+  background: #fef3c7; 
+  color: #92400e; 
+}
+
+.badge.low { 
+  background: #d1fae5; 
+  color: #065f46; 
+}
 
 .empty-state {
   color: var(--text-muted);
