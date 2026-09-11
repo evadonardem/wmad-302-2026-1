@@ -1,17 +1,22 @@
 :root {
   --primary-color: #0f766e;
   --primary-hover: #115e59;
+  --accent-color: #f59e0b;
   --bg-color: #f4f6f8;
   --card-bg: #ffffff;
   --text-main: #1f2937;
   --text-muted: #6b7280;
   --border-color: #d1d5db;
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
   --radius: 12px;
   --critical-color: #dc2626;
   --high-color: #d97706;
   --low-color: #2563eb;
   --shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
-  --font-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-base: 'Trebuchet MS', 'Gill Sans', sans-serif;
 }
 
 * {
@@ -131,15 +136,15 @@ body {
   margin-bottom: 1rem;
 }
 
-.resident-card[data-priority='CRITICAL'] {
+.resident-card[data-priority="CRITICAL"] {
   border-left-color: var(--critical-color);
 }
 
-.resident-card[data-priority='HIGH'] {
+.resident-card[data-priority="HIGH"] {
   border-left-color: var(--high-color);
 }
 
-.resident-card[data-priority='LOW'] {
+.resident-card[data-priority="LOW"] {
   border-left-color: var(--low-color);
 }
 
