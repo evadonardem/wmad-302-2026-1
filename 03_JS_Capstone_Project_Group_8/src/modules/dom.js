@@ -12,8 +12,8 @@ export function renderResidentCards(container, residents) {
   container.innerHTML = residents.map(resident => `
     <div class="resident-card">
       <h3>${sanitizeHTML(resident.name)}</h3>
-      <p>Age: ${sanitizeHTML(resident.age.toString())}</p>
-      <p>Address: ${sanitizeHTML(resident.address)}</p>
+      <p>Priority: ${sanitizeHTML(resident.priority)}</p>
+      <p>Score: ${sanitizeHTML(resident.score.toString())}</p>
     </div>
   `).join('');
     
