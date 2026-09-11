@@ -76,8 +76,18 @@ export async function fetchCitiesMunicipalities(provinceCode) {
 }
 
 export function getOfflineQueue() {
-  // TODO: Retrieve stored applications from localStorage key 'ebarangay_offline_applications'
-  return [];
+  
+   const savedData = localStorage.getItem(STORAGE_KEY);
+
+  if (!savedData) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(savedData);
+  } catch (error) {
+    return [];
+  }
 }
 
 export function saveToOfflineQueue(appData) {
