@@ -40,8 +40,39 @@ export async function fetchProvinces() {
 }
 
 export async function fetchCitiesMunicipalities(provinceCode) {
-  // TODO: Fetch cities/municipalities for the given province code from PSGC API with offline fallback.
-  return [];
+  
+  const fallbackCities = [
+    {
+      code: "144400000",
+      name: "La Trinidad"
+    },
+    {
+      code: "141100000",
+      name: "Baguio City"
+    }
+  ];
+
+  try {
+    const response = await fetch(
+      `https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities.json`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch cities/municipalities");
+    }
+
+    const cities = await response.json();
+
+    return cities.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  } catch (error) {
+    console.log("Using offline city/municipality data.");
+
+    return fallbackCities.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }
 }
 
 export function getOfflineQueue() {
