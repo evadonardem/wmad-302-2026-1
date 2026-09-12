@@ -1,13 +1,13 @@
 /* [STYLING] e-Barangay Theme & Layout - Starter Template */
 
 :root {
-  --primary-color: #664930;
-  --primary-hover: #4e3724;
-  --bg-color: #FFDBBB;
+  --primary-color: #F00588;
+  --primary-hover: #c4046d;
+  --bg-color: #F7B2D6;
   --card-bg: #ffffff;
-  --text-main: #1f2937;
+  --text-main: #010A08;
   --text-muted: #6b7280;
-  --border-color: #CCBEB1;
+  --border-color: #e092bd;
   --radius: 8px;
   --critical-color: #ef4444;
   --high-color: #f59e0b;
