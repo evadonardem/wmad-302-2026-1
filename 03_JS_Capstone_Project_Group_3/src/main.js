@@ -4,7 +4,7 @@
 
 import { evaluateAyudaEligibility, createReliefPacker } from './modules/engine.js';
 import { renderResidentCards, renderPOSRegister, setupActionDelegation } from './modules/dom.js';
-import { fetchProvinces, fetchCitiesMunicipalities, getOfflineQueue, saveToOfflineQueue, removeFromOfflineQueue } from './modules/async.js';
+import { fetchProvinces, fetchCitiesMunicipalities, fetchBarangays, getOfflineQueue, saveToOfflineQueue, removeFromOfflineQueue } from './modules/async.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log("e-Barangay Portal Initialized.");
@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const provinceSelect = document.getElementById('prov-select');
   const citySelect = document.getElementById('city-select');
+  const barangaySelect = document.getElementById('barangay-select');
   const applicationForm = document.getElementById('ayuda-form');
   const queueContainer = document.getElementById('queue-container');
   const posContainer = document.getElementById('pos-container');
@@ -20,23 +21,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   const itemNameInput = document.getElementById('item-name');
   const itemPriceInput = document.getElementById('item-price');
 
-  let provincesData = [];
-
-  // 1. Populate Provinces on Load
+  // 1. Cascading Province -> City -> Barangay Dropdowns
   if (provinceSelect) {
-    provincesData = await fetchProvinces();
+    const provincesData = await fetchProvinces();
     provinceSelect.innerHTML = '<option value="">Select Province...</option>' + 
       provincesData.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
 
     provinceSelect.addEventListener('change', async (e) => {
       const provinceCode = e.target.value;
       citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
+      barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
       
       if (!provinceCode) return;
 
       const cities = await fetchCitiesMunicipalities(provinceCode);
       citySelect.innerHTML = '<option value="">Select City/Municipality...</option>' + 
         cities.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+    });
+
+    citySelect.addEventListener('change', async (e) => {
+      const cityCode = e.target.value;
+      barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
+
+      if (!cityCode) return;
+
+      const barangays = await fetchBarangays(cityCode);
+      barangaySelect.innerHTML = '<option value="">Select Barangay...</option>' + 
+        barangays.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
     });
   }
 
@@ -52,21 +63,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   refreshUI();
 
-  // 2. Handle Resident Registration Submission
+  // 2. Handle Form Submission
   if (applicationForm) {
     applicationForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
       const name = document.getElementById('name').value;
-      const provinceCode = provinceSelect.value;
-      const cityCode = citySelect.value;
       
-      // Get human-readable text for province and city
       const selectedProvinceOpt = provinceSelect.options[provinceSelect.selectedIndex];
       const selectedCityOpt = citySelect.options[citySelect.selectedIndex];
+      const selectedBarangayOpt = barangaySelect.options[barangaySelect.selectedIndex];
       
       const province = selectedProvinceOpt ? selectedProvinceOpt.text : '';
       const city = selectedCityOpt ? selectedCityOpt.text : '';
+      const barangay = selectedBarangayOpt ? selectedBarangayOpt.text : '';
 
       const monthlyIncome = parseFloat(document.getElementById('monthly-income').value) || 0;
       const isSenior = document.getElementById('is-senior').checked;
@@ -85,6 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         name,
         province,
         city,
+        barangay,
         monthlyIncome,
         ...evaluation
       };
@@ -92,6 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveToOfflineQueue(newApplication);
       applicationForm.reset();
       citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
+      barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
       refreshUI();
     });
   }
@@ -116,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // 4. Action Delegation (matching the action names in dom.js)
+  // 4. Action Delegation
   setupActionDelegation(document.body, {
     'remove-pos-item': (event, trigger) => {
       const index = parseInt(trigger.getAttribute('data-index'), 10);

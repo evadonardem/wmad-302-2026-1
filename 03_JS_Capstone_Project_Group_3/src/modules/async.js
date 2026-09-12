@@ -24,6 +24,17 @@ const MOCK_CITIES = {
   ],
 };
 
+const MOCK_BARANGAYS = {
+  '141101000': [
+    { code: '141101001', name: 'Poblacion' },
+    { code: '141101002', name: 'Session Road Area' }
+  ],
+  '141102000': [
+    { code: '141102001', name: 'Puguis' },
+    { code: '141102002', name: 'Balili' }
+  ]
+};
+
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -59,6 +70,20 @@ export async function fetchCitiesMunicipalities(provinceCode) {
   } catch (error) {
     console.warn('Unable to load cities/municipalities from PSGC. Using mock data.', error);
     return sortByName([...(MOCK_CITIES[provinceCode] || [])]);
+  }
+}
+
+export async function fetchBarangays(cityCode) {
+  if (!cityCode) return [];
+
+  try {
+    const barangays = await fetchJson(
+      `${PSGC_API}/cities-municipalities/${encodeURIComponent(cityCode)}/barangays.json`,
+    );
+    return sortByName(barangays);
+  } catch (error) {
+    console.warn('Unable to load barangays from PSGC. Using mock data.', error);
+    return sortByName([...(MOCK_BARANGAYS[cityCode] || [])]);
   }
 }
 

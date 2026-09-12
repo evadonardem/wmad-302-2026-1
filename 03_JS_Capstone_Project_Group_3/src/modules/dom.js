@@ -23,6 +23,7 @@ export function renderResidentCards(container, residents) {
       const name = sanitizeHTML(resident.name || 'Unknown resident');
       const province = sanitizeHTML(resident.province || 'N/A');
       const city = sanitizeHTML(resident.city || 'N/A');
+      const barangay = sanitizeHTML(resident.barangay || 'N/A');
       const score = sanitizeHTML(String(resident.score ?? 0));
       const id = sanitizeHTML(String(resident.id ?? ''));
       const approvedText = resident.approved ? 'Approved' : 'Pending';
@@ -32,7 +33,7 @@ export function renderResidentCards(container, residents) {
           <div class="resident-header">
             <div>
               <h3>${name}</h3>
-              <p>${province} • ${city}</p>
+              <p>Brgy. ${barangay}, ${city}, ${province}</p>
             </div>
             <span class="badge ${priority.toLowerCase()}">${priority}</span>
           </div>

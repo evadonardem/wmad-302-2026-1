@@ -10,7 +10,7 @@
     <div id="app">
       <header class="header">
         <h1>AgapBarangay</h1>
-        <p>Quick Response & Ayuda System</p>
+        <p>Quick Response & Ayuda Portal</p>
       </header>
 
       <main class="container">
@@ -38,6 +38,13 @@
             </div>
 
             <div class="form-group">
+              <label for="barangay-select">Barangay</label>
+              <select id="barangay-select" required>
+                <option value="">Select Barangay...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label for="monthly-income">Monthly Income (₱)</label>
               <input type="number" id="monthly-income" required placeholder="9500" />
             </div>
@@ -60,7 +67,7 @@
         <section class="card">
           <h2>Relief Package POS Register</h2>
           <div id="pos-container">
-            <!-- TODO: Render POS register and progress bar here -->
+            <!-- Render POS register and progress bar here -->
           </div>
           <div class="pos-controls" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
             <input type="text" id="item-name" placeholder="Item Name (e.g., Rice 5kg)" style="flex: 2;" />
@@ -73,7 +80,7 @@
         <section class="card">
           <h2>Registered Queue</h2>
           <div id="queue-container">
-            <!-- TODO: Render resident cards here -->
+            <!-- Render resident cards here -->
           </div>
         </section>
       </main>
