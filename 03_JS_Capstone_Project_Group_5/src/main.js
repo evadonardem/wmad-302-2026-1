@@ -2,9 +2,6 @@
  * [INTEGRATION] Main Entrypoint Module - Student Starter Template
  */
 
-// TODO: Import required functions from engine.js, dom.js, and async.js
-// TODO: Initialize DOM elements, load initial LocalStorage queue, fetch provinces, setup event listeners for form submission, cascading province/city dropdowns, POS packer, and action delegation.
-
 import {
   evaluateAyudaEligibility,
   createReliefPacker
@@ -20,141 +17,400 @@ import {
 
 import {
   renderResidentCards,
+  renderQueueSummary,
   renderPOSRegister,
   setupActionDelegation
 } from './modules/dom.js';
 
+
 const form = document.getElementById('ayuda-form');
+
 const provinceSelect = document.getElementById('prov-select');
 const citySelect = document.getElementById('city-select');
-const queueContainer = document.getElementById('queue-container');
-const posContainer = document.getElementById('pos-container');
-const addItemButton = document.getElementById('add-item-btn');
-const itemName = document.getElementById('item-name');
-const itemPrice = document.getElementById('item-price');
 
+const queueContainer =
+  document.getElementById('queue-container');
+
+const queueSummary =
+  document.getElementById('queue-summary');
+
+const summaryButton =
+  document.getElementById('summary-btn');
+
+const queueButton =
+  document.getElementById('queue-btn');
+
+const posContainer =
+  document.getElementById('pos-container');
+
+const addItemButton =
+  document.getElementById('add-item-btn');
+
+const itemName =
+  document.getElementById('item-name');
+
+const itemPrice =
+  document.getElementById('item-price');
+
+
+/* Create Relief Packer */
 const reliefPacker = createReliefPacker(1000);
 
+
+/* Load saved residents */
 let residents = getOfflineQueue();
 
+
+/* =========================
+   RENDER FUNCTIONS
+========================= */
+
 function renderQueue() {
-  renderResidentCards(queueContainer, residents);
+  renderResidentCards(
+    queueContainer,
+    residents
+  );
 }
+
+
+function renderSummary() {
+  renderQueueSummary(
+    queueSummary,
+    residents
+  );
+}
+
 
 function renderPOS() {
-  renderPOSRegister(posContainer, reliefPacker);
+  renderPOSRegister(
+    posContainer,
+    reliefPacker
+  );
 }
 
+
+/* =========================
+   LOAD PROVINCES
+========================= */
+
 fetchProvinces().then((provinces) => {
+
   provinces.forEach((province) => {
-    const option = document.createElement('option');
+
+    const option =
+      document.createElement('option');
 
     option.value = province.code;
     option.textContent = province.name;
 
     provinceSelect.appendChild(option);
   });
+
 });
 
-provinceSelect.addEventListener('change', async () => {
-  const provinceCode = provinceSelect.value;
 
-  citySelect.innerHTML =
-    '<option value="">Select City/Municipality...</option>';
+/* =========================
+   PROVINCE → CITY
+========================= */
 
-  if (!provinceCode) {
-    return;
+provinceSelect.addEventListener(
+  'change',
+  async () => {
+
+    const provinceCode =
+      provinceSelect.value;
+
+    citySelect.innerHTML =
+      '<option value="">Select City/Municipality...</option>';
+
+    if (!provinceCode) {
+      return;
+    }
+
+    const cities =
+      await fetchCitiesMunicipalities(
+        provinceCode
+      );
+
+    cities.forEach((city) => {
+
+      const option =
+        document.createElement('option');
+
+      option.value = city.code;
+      option.textContent = city.name;
+
+      citySelect.appendChild(option);
+    });
+
   }
+);
 
-  const cities = await fetchCitiesMunicipalities(provinceCode);
 
-  cities.forEach((city) => {
-    const option = document.createElement('option');
+/* =========================
+   REGISTER RESIDENT
+========================= */
 
-    option.value = city.code;
-    option.textContent = city.name;
+form.addEventListener(
+  'submit',
+  (e) => {
 
-    citySelect.appendChild(option);
-  });
-});
+    e.preventDefault();
 
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
+    const citizen = {
 
-  const citizen = {
-    id: Date.now(),
-    name: document.getElementById('name').value,
-    province: provinceSelect.value,
-    city: citySelect.value,
-    monthlyIncome: Number(
-      document.getElementById('monthly-income').value
-    ),
-    isSenior: document.getElementById('is-senior').checked,
-    isPWD: document.getElementById('is-pwd').checked,
-    dependentCount: Number(
-      document.getElementById('dependent-count').value
-    )
-  };
+      id: Date.now(),
 
-  const result = evaluateAyudaEligibility(citizen);
+      name:
+        document.getElementById('name').value,
 
-  const resident = {
-    ...citizen,
-    priority: result.priority,
-    score: result.score,
-    approved: result.approved
-  };
+      province:
+        provinceSelect.value,
 
-  residents.push(resident);
-  saveToOfflineQueue(resident);
+      city:
+        citySelect.value,
 
-  renderQueue();
+      monthlyIncome:
+        Number(
+          document.getElementById(
+            'monthly-income'
+          ).value
+        ),
 
-  form.reset();
-  citySelect.innerHTML =
-    '<option value="">Select City/Municipality...</option>';
-});
+      isSenior:
+        document.getElementById(
+          'is-senior'
+        ).checked,
 
-addItemButton.addEventListener('click', () => {
-  const name = itemName.value;
-  const price = Number(itemPrice.value);
+      isPWD:
+        document.getElementById(
+          'is-pwd'
+        ).checked,
 
-  const result = reliefPacker.addItem(name, price);
+      dependentCount:
+        Number(
+          document.getElementById(
+            'dependent-count'
+          ).value
+        )
+    };
 
-  if (!result.success) {
-    alert(result.reason);
-    return;
+
+    /* Calculate eligibility */
+    const result =
+      evaluateAyudaEligibility(citizen);
+
+
+    /* Create resident object */
+    const resident = {
+
+      ...citizen,
+
+      priority:
+        result.priority,
+
+      score:
+        result.score,
+
+      approved:
+        result.approved
+    };
+
+
+    /* Add to memory */
+    residents.push(resident);
+
+
+    /* Save to LocalStorage */
+    saveToOfflineQueue(resident);
+
+
+    /* Update both sections */
+    renderQueue();
+    renderSummary();
+
+
+    /* Reset form */
+    form.reset();
+
+    citySelect.innerHTML =
+      '<option value="">Select City/Municipality...</option>';
+
   }
+);
 
-  itemName.value = '';
-  itemPrice.value = '';
 
-  renderPOS();
-});
+/* =========================
+   SUMMARY BUTTON
+========================= */
 
-setupActionDelegation(queueContainer, {
-  'remove-resident': (id) => {
-    const residentId = Number(id);
+summaryButton.addEventListener(
+  'click',
+  () => {
 
-    residents = residents.filter(
-      (resident) => resident.id !== residentId
+    queueSummary.classList.toggle('show');
+
+    if (queueSummary.classList.contains('show')) {
+
+      renderSummary();
+
+      summaryButton.textContent =
+        'Hide Summary';
+
+    } else {
+
+      summaryButton.textContent =
+        'View Summary';
+    }
+
+  }
+);
+
+
+/* =========================
+   REGISTERED QUEUE BUTTON
+========================= */
+
+queueButton.addEventListener(
+  'click',
+  () => {
+
+    queueContainer.classList.toggle(
+      'queue-hidden'
     );
 
-    removeFromOfflineQueue(residentId);
+    if (
+      queueContainer.classList.contains(
+        'queue-hidden'
+      )
+    ) {
 
-    renderQueue();
+      queueButton.textContent =
+        'View Registered Queue';
+
+    } else {
+
+      queueButton.textContent =
+        'Hide Registered Queue';
+    }
+
   }
-});
+);
 
-setupActionDelegation(posContainer, {
-  'remove-item': (id) => {
-    reliefPacker.removeItem(Number(id));
+
+/* =========================
+   ADD RELIEF ITEM
+========================= */
+
+addItemButton.addEventListener(
+  'click',
+  () => {
+
+    const name =
+      itemName.value;
+
+    const price =
+      Number(itemPrice.value);
+
+
+    const result =
+      reliefPacker.addItem(
+        name,
+        price
+      );
+
+
+    if (!result.success) {
+
+      alert(result.reason);
+      return;
+    }
+
+
+    itemName.value = '';
+    itemPrice.value = '';
+
+
     renderPOS();
+
   }
-});
+);
+
+
+/* =========================
+   REMOVE RESIDENT
+========================= */
+
+setupActionDelegation(
+  queueContainer,
+  {
+
+    'remove-resident': (id) => {
+
+      const residentId =
+        Number(id);
+
+
+      residents =
+        residents.filter(
+          (resident) =>
+            resident.id !== residentId
+        );
+
+
+      removeFromOfflineQueue(
+        residentId
+      );
+
+
+      /* Update both sections */
+      renderQueue();
+      renderSummary();
+
+    }
+
+  }
+);
+
+
+/* =========================
+   REMOVE RELIEF ITEM
+========================= */
+
+setupActionDelegation(
+  posContainer,
+  {
+
+    'remove-item': (id) => {
+
+      reliefPacker.removeItem(
+        Number(id)
+      );
+
+      renderPOS();
+
+    }
+
+  }
+);
+
+
+/* =========================
+   INITIAL RENDER
+========================= */
 
 renderQueue();
+renderSummary();
 renderPOS();
-document.addEventListener('DOMContentLoaded', () => {
-  console.log("e-Barangay Starter Kit Initialized. Happy Coding!");
-});
+
+
+document.addEventListener(
+  'DOMContentLoaded',
+  () => {
+
+    console.log(
+      "e-Barangay Starter Kit Initialized. Happy Coding!"
+    );
+
+  }
+);
