@@ -42,7 +42,7 @@ export function evaluateAyudaEligibility(citizen) {
     approved = false;
   }
 
-  return { priority: 'LOW', score: 0, approved: false };
+  return { priority, score , approved };
 }
 
 export function createReliefPacker(budgetCap = 1000) {
