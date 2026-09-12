@@ -105,9 +105,9 @@ export async function fetchBarangays(
 
   try {
     const response = await fetch(
-      `https://psgc.gitlab.io/api/cities/${encodeURIComponent(
+      `https://psgc.gitlab.io/api/cities-municipalities/${encodeURIComponent(
         cityMunicipalityCode
-      )}/barangays/`
+      )}/barangays.json`
     );
 
     if (!response.ok) {
