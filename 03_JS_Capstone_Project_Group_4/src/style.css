@@ -119,3 +119,24 @@ body {
   text-align: center;
   padding: 1rem;
 }
+
+/* Dagdag na kinakailangang CSS para sa Stat Cards */
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  border-radius: 16px;
+  min-height: 140px;
+}
+
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 212, 191, 0.1);
+  border-radius: 12px;
+  font-size: 20px;
+}

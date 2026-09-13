@@ -19,14 +19,14 @@ export function renderResidentCards(container, residents) {
   container.innerHTML = residents.map(resident => {
     const priorityText = (resident.priority || 'NORMAL').toUpperCase();
     
-    // Pagtukoy sa kulay ng badge batay sa Priority Level
-    let badgeBg = '#6b7280'; // Gray (Normal/Default)
+    
+    let badgeBg = '#6b7280'; 
     let badgeColor = '#ffffff';
 
-    if (priorityText === 'CRITICAL') badgeBg = '#ef4444';      // Red
-    else if (priorityText === 'HIGH') badgeBg = '#f97316';      // Orange
-    else if (priorityText === 'MEDIUM') badgeBg = '#eab308';    // Yellow
-    else if (priorityText === 'LOW') badgeBg = '#22c55e';       // Green
+    if (priorityText === 'CRITICAL') badgeBg = '#ef4444';      
+    else if (priorityText === 'HIGH') badgeBg = '#f97316';      
+    else if (priorityText === 'MEDIUM') badgeBg = '#eab308';    
+    else if (priorityText === 'LOW') badgeBg = '#22c55e';       
 
     const cityName = resident.city ? sanitizeHTML(resident.city) : '';
     const provinceName = resident.province ? sanitizeHTML(resident.province) : '';

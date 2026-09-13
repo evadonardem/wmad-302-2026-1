@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>e-Barangay Disaster & Ayuda Portal</title>
     <link rel="stylesheet" href="./src/style.css" />
+    
+    <style>
+      .stats-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
+        gap: 1rem; 
+        margin-bottom: 1.5rem; 
+      }
+      .stat-card { 
+        background: #fff; 
+        padding: 1rem; 
+        border-radius: 8px; 
+        border: 1px solid #e2e8f0; 
+        text-align: center; 
+      }
+      .stat-card p.label { 
+        font-size: 0.85rem; 
+        color: #64748b; 
+        margin-bottom: 0.25rem; 
+        font-weight: 600; 
+      }
+      .stat-card p.value { 
+        font-size: 1.75rem; 
+        font-weight: 700; 
+        margin: 0; 
+      }
+      .stat-critical { color: #dc2626; }
+      .stat-high { color: #d97706; }
+      .stat-low { color: #059669; }
+      
+      .filter-controls { 
+        display: flex; 
+        gap: 0.75rem; 
+        margin-bottom: 1.5rem; 
+        flex-wrap: wrap; 
+      }
+      .filter-controls input, .filter-controls select { 
+        padding: 0.5rem; 
+        border: 1px solid #cbd5e1; 
+        border-radius: 6px; 
+      }
+      .filter-controls input { flex: 1; min-width: 200px; }
+    </style>
   </head>
   <body>
     <div id="app">
@@ -14,7 +57,44 @@
       </header>
 
       <main class="container">
-        <!-- Ayuda Application Form -->
+        <!-- 1. DASHBOARD MONITORING & FILTERS (PINAKA-ITAAS) -->
+        <section class="card">
+          <h2>Dashboard Overview</h2>
+
+          <!-- Summary Stats -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <p class="label">Total Registered</p>
+              <p id="stat-total" class="value">0</p>
+            </div>
+            <div class="stat-card">
+              <p class="label stat-critical">Critical</p>
+              <p id="stat-critical" class="value stat-critical">0</p>
+            </div>
+            <div class="stat-card">
+              <p class="label stat-high">High / Medium</p>
+              <p id="stat-high" class="value stat-high">0</p>
+            </div>
+            <div class="stat-card">
+              <p class="label stat-low">Low</p>
+              <p id="stat-low" class="value stat-low">0</p>
+            </div>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="filter-controls">
+            <input type="text" id="search-input" placeholder="Search resident by name..." />
+            <select id="filter-priority">
+              <option value="ALL">All Priorities</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- 2. AYUDA APPLICATION FORM -->
         <section class="card">
           <h2>Resident Registration</h2>
           <form id="ayuda-form">
@@ -56,11 +136,11 @@
           </form>
         </section>
 
-        <!-- Relief Packer POS Register -->
+        <!-- 3. RELIEF PACKER POS REGISTER -->
         <section class="card">
           <h2>Relief Package POS Register</h2>
           <div id="pos-container">
-            <!-- TODO: Render POS register and progress bar here -->
+            <!-- Render POS register and progress bar here -->
           </div>
           <div class="pos-controls" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
             <input type="text" id="item-name" placeholder="Item Name (e.g., Rice 5kg)" style="flex: 2;" />
@@ -69,11 +149,14 @@
           </div>
         </section>
 
-        <!-- Live Queue Display -->
+        <!-- 4. LIVE REGISTERED QUEUE CARDS -->
         <section class="card">
           <h2>Registered Queue</h2>
-          <div id="queue-container">
-            <!-- TODO: Render resident cards here -->
+          <!-- Support for both container ID formats used in main.js -->
+          <div id="resident-list-container">
+            <div id="registered-queue">
+              <!-- Render resident cards here -->
+            </div>
           </div>
         </section>
       </main>

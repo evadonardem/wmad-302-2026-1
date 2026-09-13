@@ -5,7 +5,7 @@
 export function evaluateAyudaEligibility(citizen) {
   let score = 0;
 
-  // 1. Income Scoring (Mas mababang income = mas mataas na score)
+  // 1. Income Scoring
   const income = citizen.monthlyIncome ?? 0;
   if (income <= 5000) score += 40;
   else if (income <= 10000) score += 30;
@@ -18,7 +18,7 @@ export function evaluateAyudaEligibility(citizen) {
 
   // 3. Dependents Scoring
   const dependents = citizen.dependentCount ?? 0;
-  score += Math.min(dependents * 5, 20); // Max 20 points for dependents
+  score += Math.min(dependents * 5, 20); 
 
   // 4. Priority Level Assignment
   let priority = 'LOW';

@@ -12,26 +12,59 @@ document.addEventListener('DOMContentLoaded', async () => {
   const reliefPacker = createReliefPacker(1000);
 
   // 1. DOM Declarations (Safe Fallbacks)
-  const forms = document.querySelectorAll('form');
-  const residentForm = document.getElementById('resident-form') || forms[0];
-  const posForm = document.getElementById('pos-form') || forms[1];
-
-  const selects = document.querySelectorAll('select');
-  const provinceSelect = document.getElementById('province-select') || selects[0];
-  const citySelect = document.getElementById('city-select') || selects[1];
+  const residentForm = document.getElementById('ayuda-form');
+  const provinceSelect = document.getElementById('prov-select');
+  const citySelect = document.getElementById('city-select');
 
   const posContainer = document.getElementById('pos-container') || 
                        document.querySelector('.pos-register') || 
                        document.querySelectorAll('main > div, section, .card, div.bg-white')[1];
 
-  const cardsContainer = document.getElementById('resident-cards-container') || 
-                         document.getElementById('registered-queue') || 
-                         document.querySelector('.registered-queue') || 
-                         document.querySelectorAll('main > div, section, .card, div.bg-white')[2];
+  const cardsContainer = document.getElementById('registered-queue') || 
+                         document.getElementById('resident-cards-container') || 
+                         document.querySelector('.registered-queue');
+
+  const searchInput = document.getElementById('search-input');
+  const filterPrioritySelect = document.getElementById('filter-priority');
+
+  // Dashboard Stats Update Function
+  const updateDashboardStats = (queue) => {
+    const total = queue.length;
+    const critical = queue.filter(r => (r.priority && r.priority.toUpperCase() === 'CRITICAL') || r.score >= 80).length;
+    const highMedium = queue.filter(r => {
+      const prio = r.priority ? r.priority.toUpperCase() : '';
+      return prio === 'HIGH' || prio === 'MEDIUM' || (r.score >= 40 && r.score < 80);
+    }).length;
+    const low = queue.filter(r => (r.priority && r.priority.toUpperCase() === 'LOW') || (r.score !== undefined && r.score < 40)).length;
+
+    const statTotalEl = document.getElementById('stat-total');
+    const statCriticalEl = document.getElementById('stat-critical');
+    const statHighEl = document.getElementById('stat-high');
+    const statLowEl = document.getElementById('stat-low');
+
+    if (statTotalEl) statTotalEl.innerText = total;
+    if (statCriticalEl) statCriticalEl.innerText = critical;
+    if (statHighEl) statHighEl.innerText = highMedium;
+    if (statLowEl) statLowEl.innerText = low;
+  };
 
   // Helper Functions
   const refreshResidentList = () => {
-    const queue = getOfflineQueue();
+    let queue = getOfflineQueue();
+    updateDashboardStats(queue);
+
+    // Filter Logic based on Search & Select Inputs
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const selectedPriority = filterPrioritySelect ? filterPrioritySelect.value : 'ALL';
+
+    if (query) {
+      queue = queue.filter(r => r.fullName && r.fullName.toLowerCase().includes(query));
+    }
+
+    if (selectedPriority !== 'ALL') {
+      queue = queue.filter(r => r.priority && r.priority.toUpperCase() === selectedPriority);
+    }
+
     const target = cardsContainer || document.querySelectorAll('main > div, section, .card, div.bg-white')[2];
     if (target && target !== residentForm) {
       renderResidentCards(target, queue);
@@ -45,6 +78,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
+  // Search & Filter Event Listeners
+  if (searchInput) searchInput.addEventListener('input', refreshResidentList);
+  if (filterPrioritySelect) filterPrioritySelect.addEventListener('change', refreshResidentList);
+
   // Initial Loads
   refreshResidentList();
   refreshPOS();
@@ -53,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (provinceSelect) {
     const provinces = await fetchProvinces();
     if (provinces && provinces.length > 0) {
-      provinceSelect.innerHTML = '<option value="">Select Province</option>' + 
+      provinceSelect.innerHTML = '<option value="">Select Province...</option>' + 
         provinces.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
     }
   }
@@ -65,47 +102,43 @@ document.addEventListener('DOMContentLoaded', async () => {
       citySelect.innerHTML = '<option value="">Loading cities...</option>';
       
       if (!provinceCode) {
-        citySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+        citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
         return;
       }
 
       const cities = await fetchCitiesMunicipalities(provinceCode);
       if (cities && cities.length > 0) {
-        citySelect.innerHTML = '<option value="">Select City/Municipality</option>' + 
+        citySelect.innerHTML = '<option value="">Select City/Municipality...</option>' + 
           cities.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
       } else {
-        citySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+        citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
       }
     });
   }
 
   // 2. Evaluate & Register Submission
-  // 2. Evaluate & Register Submission
   if (residentForm) {
     residentForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      // --- HONESTY & CONFIRMATION CHECK ---
       const isHonest = confirm(
         "Information Declaration:\n\n" +
         "Please confirm that all the information provided is accurate, honest, and truthful.\n\n" +
         "Click 'OK' to proceed with the registration."
       );
 
-      // Stop registration if the user cancels
       if (!isHonest) {
         return; 
       }
-      // ------------------------------------
 
       const allInputs = Array.from(residentForm.querySelectorAll('input'));
       const checkboxes = residentForm.querySelectorAll('input[type="checkbox"]');
 
-      const nameInput = allInputs.find(i => i.type === 'text') || allInputs[0];
+      const nameInput = document.getElementById('name') || allInputs.find(i => i.type === 'text') || allInputs[0];
       const numberInputs = allInputs.filter(i => i.type === 'number');
 
-      const incomeInput = numberInputs[0] || allInputs[1];
-      const dependentsInput = numberInputs[1] || allInputs[2];
+      const incomeInput = document.getElementById('monthly-income') || numberInputs[0] || allInputs[1];
+      const dependentsInput = document.getElementById('dependent-count') || numberInputs[1] || allInputs[2];
 
       const citizen = {
         fullName: nameInput?.value.trim() || 'Anonymous',
@@ -136,7 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveToOfflineQueue(applicationRecord);
       refreshResidentList();
 
-      // Success notification after adding to the queue below
+      // Success notification
       alert(`Successfully registered ${citizen.fullName}! You can view their status in the Registered Queue below.`);
 
       // Clear Form Inputs
@@ -146,13 +179,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       checkboxes.forEach(cb => cb.checked = false);
     });
   }
-  // 3. POS Add Item Submission (Direct Button & Container Search)
-  const addItemBtn = document.querySelector('button[type="submit"]:not(#resident-form button)') || 
+
+  // 3. POS Add Item Submission
+  const addItemBtn = document.getElementById('add-item-btn') || 
+                     document.querySelector('button[type="submit"]:not(#ayuda-form button)') || 
                      document.querySelectorAll('button')[1];
 
   if (addItemBtn) {
     addItemBtn.addEventListener('click', (e) => {
-      // Hanapin ang pinakamalapit na POS section/container
       const posSection = addItemBtn.closest('section') || addItemBtn.closest('form') || addItemBtn.closest('div.card');
       if (!posSection) return;
 
@@ -164,8 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const price = parseFloat(priceInput?.value);
 
       if (name && !isNaN(price) && price > 0) {
-        e.preventDefault(); // Pipigilan ang page reload kapag valid
-        
+        e.preventDefault(); 
         const result = reliefPacker.addItem(name, price);
         if (result && result.success === false) {
           alert(result.reason || 'Cannot add item: Exceeds budget cap!');
