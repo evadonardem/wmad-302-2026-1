@@ -1,7 +1,6 @@
 /**
  * [ROLE C] Async & Storage Module - Student Starter Template
  */
-
 const OFFLINE_KEY = 'ebarangay_offline_applications';
 
 export async function fetchProvinces() {
@@ -53,4 +52,12 @@ export function removeFromOfflineQueue(id) {
   const queue = getOfflineQueue();
   const updatedQueue = queue.filter(item => item.id !== id);
   localStorage.setItem(OFFLINE_KEY, JSON.stringify(updatedQueue));
+}
+
+/**
+ * Reports whether the browser currently has a network connection.
+ * New export — used to drive the offline banner in main.js.
+ */
+export function isOnline() {
+  return typeof navigator !== 'undefined' ? navigator.onLine : true;
 }

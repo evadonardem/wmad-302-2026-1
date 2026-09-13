@@ -9,75 +9,133 @@
   <body>
     <div id="app">
       <header class="header">
+         <svg class="header-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 21h18"></path>
+      <path d="M5 21V9l7-6 7 6v12"></path>
+      <path d="M9 21v-6h6v6"></path>
+      <path d="M9 12h.01"></path>
+      <path d="M15 12h.01"></path>
+    </svg>
         <h1>e-Barangay Portal</h1>
         <p>Disaster Emergency & Ayuda Management System</p>
       </header>
 
+      <div id="offline-banner" class="offline-banner" hidden>
+        <span>You're offline. New registrations are being saved on this device.</span>
+      </div>
+
       <main class="container">
+        <!-- Tabs -->
+        <nav class="tabs" role="tablist" aria-label="Portal sections">
+          <button class="tab-btn active" data-tab="registration" role="tab" aria-selected="true">Resident Registration</button>
+          <button class="tab-btn" data-tab="packer" role="tab" aria-selected="false">Relief Packer</button>
+          <button class="tab-btn" data-tab="queue" role="tab" aria-selected="false">Registered Queue</button>
+        </nav>
+
         <!-- Ayuda Application Form -->
-        <section class="card">
+        <section class="card tab-panel" data-tab-panel="registration">
           <h2>Resident Registration</h2>
           <form id="ayuda-form">
-            <div class="form-group">
-              <label for="name">Full Name</label>
-              <input type="text" id="name" required placeholder="Juan Dela Cruz" />
-            </div>
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" required placeholder="Juan Dela Cruz" />
+              </div>
 
-            <div class="form-group">
-              <label for="prov-select">Province</label>
-              <select id="prov-select" required>
-                <option value="">Select Province...</option>
-              </select>
-            </div>
+              <div class="form-group">
+                <label for="prov-select">Province</label>
+                <select id="prov-select" required>
+                  <option value="">Select Province...</option>
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label for="city-select">City / Municipality</label>
-              <select id="city-select" required>
-                <option value="">Select City/Municipality...</option>
-              </select>
-            </div>
+              <div class="form-group">
+                <label for="city-select">City / Municipality</label>
+                <select id="city-select" required>
+                  <option value="">Select City/Municipality...</option>
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label for="monthly-income">Monthly Income (₱)</label>
-              <input type="number" id="monthly-income" required placeholder="9500" />
-            </div>
+              <div class="form-group">
+                <label for="monthly-income">Monthly Income (₱)</label>
+                <input type="number" id="monthly-income" required placeholder="9500" />
+              </div>
 
-            <div class="form-group checkbox-group">
-              <label><input type="checkbox" id="is-senior" /> Senior Citizen</label>
-              <label><input type="checkbox" id="is-pwd" /> Person with Disability (PWD)</label>
-            </div>
+              <div class="form-group">
+                <label for="dependent-count">Number of Dependents</label>
+                <input type="number" id="dependent-count" value="0" min="0" />
+              </div>
 
-            <div class="form-group">
-              <label for="dependent-count">Number of Dependents</label>
-              <input type="number" id="dependent-count" value="0" min="0" />
-            </div>
+              <div class="form-group span-2 checkbox-group">
+                <label><input type="checkbox" id="is-senior" /> Senior Citizen</label>
+                <label><input type="checkbox" id="is-pwd" /> Person with Disability (PWD)</label>
+              </div>
 
-            <button type="submit" class="btn primary">Evaluate & Register</button>
+              <div class="form-group span-2">
+                <button type="submit" class="btn primary">Evaluate & Register</button>
+              </div>
+              <div class="tabs">
+                   <button class="tab tab-registration active">Resident Registration</button>
+                   <button class="tab tab-relief">Relief Packer</button>
+                   <button class="tab tab-queue">Registered Queue</button>
+              </div>
+
+            </div>
           </form>
         </section>
 
         <!-- Relief Packer POS Register -->
-        <section class="card">
+        <section class="card tab-panel" data-tab-panel="packer" hidden>
           <h2>Relief Package POS Register</h2>
           <div id="pos-container">
-            <!-- TODO: Render POS register and progress bar here -->
+            <!-- Rendered by dom.js -->
           </div>
-          <div class="pos-controls" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-            <input type="text" id="item-name" placeholder="Item Name (e.g., Rice 5kg)" style="flex: 2;" />
-            <input type="number" id="item-price" placeholder="Price (₱)" style="flex: 1;" />
-            <button type="button" id="add-item-btn" class="btn primary" style="width: auto;">Add Item</button>
+          <div class="pos-controls">
+            <input type="text" id="item-name" placeholder="Item Name (e.g., Rice 5kg)" />
+            <input type="number" id="item-price" placeholder="Price (₱)" />
+            <button type="button" id="add-item-btn" class="btn primary">Add Item</button>
           </div>
         </section>
 
         <!-- Live Queue Display -->
-        <section class="card">
-          <h2>Registered Queue</h2>
-          <div id="queue-container">
-            <!-- TODO: Render resident cards here -->
+        <section class="card tab-panel" data-tab-panel="queue" hidden>
+          <div class="queue-header">
+            <h2>Registered Queue</h2>
+            <input type="search" id="queue-search" placeholder="Search by name or priority..." />
           </div>
+          <div id="queue-container">
+            <!-- Rendered by dom.js -->
+          </div>
+        </section>
+
+        <!-- Dashboard Overview -->
+        <section class="dashboard" id="dashboard" aria-label="Overview">
+          <div class="stat-card stat-registered">
+             <span class="stat-value" id="stat-total">0</span>
+             <span class="stat-label">Registered</span>
+            </div>
+          <div class="stat-card stat-critical">
+            <span class="stat-value" id="stat-critical">0</span>
+            <span class="stat-label">Critical</span>
+          </div>
+          <div class="stat-card stat-high">
+            <span class="stat-value" id="stat-high">0</span>
+            <span class="stat-label">High</span>
+          </div>
+          <div class="stat-card stat-low">
+            <span class="stat-value" id="stat-low">0</span>
+            <span class="stat-label">Low</span>
+          </div>
+            <div class="stat-card stat-budget">
+             <span class="stat-value" id="stat-budget">0%</span>
+             <span class="stat-label">Relief Budget Used</span>
+            </div>
+  
         </section>
       </main>
     </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
     <script type="module" src="./src/main.js"></script>
   </body>
