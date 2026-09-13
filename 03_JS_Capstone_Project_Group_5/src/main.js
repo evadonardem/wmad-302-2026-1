@@ -151,11 +151,10 @@ provinceSelect.addEventListener(
    REGISTER RESIDENT
 ========================= */
 
-form.addEventListener(
-  'submit',
+form.addEventListener('submit',
   (e) => {
 
-    e.preventDefault();
+    e.preventDefault()
 
     const citizen = {
 
@@ -165,46 +164,32 @@ form.addEventListener(
         document.getElementById('name').value,
 
       province:
-        provinceSelect.value,
+        provinceSelect.options[provinceSelect.selectedIndex]?.textContent || '',
 
       city:
-        citySelect.value,
+        citySelect.options[citySelect.selectedIndex]?.textContent || '',
+  
 
       monthlyIncome:
-        Number(
-          document.getElementById(
-            'monthly-income'
-          ).value
-        ),
+        Number(document.getElementById('monthly-income').value),
 
-      isSenior:
-        document.getElementById(
-          'is-senior'
-        ).checked,
+      isSenior: 
+      document.getElementById('is-senior').checked,
 
       isPWD:
-        document.getElementById(
-          'is-pwd'
-        ).checked,
+      document.getElementById('is-pwd').checked,
 
       dependentCount:
-        Number(
-          document.getElementById(
-            'dependent-count'
-          ).value
-        )
+        Number(document.getElementById('dependent-count' ).value)
     };
 
 
     /* Calculate eligibility */
-    const result =
-      evaluateAyudaEligibility(citizen);
+    const result = evaluateAyudaEligibility(citizen);
 
 
     /* Create resident object */
-    const resident = {
-
-      ...citizen,
+    const resident = {...citizen,
 
       priority:
         result.priority,

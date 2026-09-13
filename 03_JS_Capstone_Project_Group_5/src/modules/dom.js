@@ -45,6 +45,10 @@ export function renderResidentCards(container, residents) {
 
         <h3>${sanitizeHTML(resident.name)}</h3>
 
+        <p>Province: ${sanitizeHTML(resident.province)}</p>
+
+        <p>City/Municipality: ${sanitizeHTML(resident.city)}</p>
+
         <p>Priority: ${sanitizeHTML(resident.priority)}</p>
 
         <!-- Score / Health Bar -->
