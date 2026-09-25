@@ -57,22 +57,36 @@ export async function fetchCitiesMunicipalities(provinceCode) {
 export function getOfflineQueue() {
   // TODO: Retrieve stored applications from localStorage key 'ebarangay_offline_applications'
   const offlineQueue = localStorage.getItem('ebarangay_offline_applications');
-  if(offlineQueue){
-    return JSON.parse(offlineQueue);
+  if (!offlineQueue) return [];
+  try {
+    const parsed = JSON.parse(offlineQueue);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('Corrupted offline queue data, resetting:', err);
+    return [];
   }
-  return [];
 }
 
 export function saveToOfflineQueue(appData) {
   // TODO: Save application object to localStorage queue
   const offlineQueue = getOfflineQueue();
   offlineQueue.push(appData);
-  localStorage.setItem('ebarangay_offline_applications', JSON.stringify(offlineQueue));
+  try {
+    localStorage.setItem('ebarangay_offline_applications', JSON.stringify(offlineQueue));
+  } catch (err) {
+    console.error('Failed to save to offline queue:', err);
+    throw err; // propagate so the caller can inform the user
+  }
 }
 
 export function removeFromOfflineQueue(id) {
   // TODO: Remove application from localStorage queue by id
   const offlineQueue = getOfflineQueue();
   const updatedQueue = offlineQueue.filter(app => app.id !== id);
-  localStorage.setItem('ebarangay_offline_applications', JSON.stringify(updatedQueue));
+  try {
+    localStorage.setItem('ebarangay_offline_applications', JSON.stringify(updatedQueue));
+  } catch (err) {
+    console.error('Failed to remove from offline queue:', err);
+    throw err; // propagate so the caller can inform the user
+  }
 }
