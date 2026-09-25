@@ -2,8 +2,6 @@
  * [ROLE B] DOM & UI Module - Student Starter Template
  */
 
-const nameInput = document.getElementById('name');
-
 
 export function sanitizeHTML(str) {
   const temp = document.createElement('div');
@@ -32,7 +30,7 @@ export function renderResidentCards(container, residents) {
       const income = Number(resident.monthlyIncome) || 0;
 
       return `
-        <article class="resident-card" data-priority="${priority}">
+        <article class="resident-card" data-priority="${priority}" style="border-color: ${priority === 'CRITICAL' ? 'red' : priority === 'HIGH' ? 'orange' : 'blue'};">
           <div class="resident-card-header">
             <strong>${safeName}</strong>
             <span class="badge ${priority.toLowerCase()}">${priority}</span>
@@ -45,6 +43,16 @@ export function renderResidentCards(container, residents) {
             class="btn-delete-queue"
             data-action="remove-resident"
             data-id="${resident.id}"
+
+            style="
+            width: 100px; 
+            height: 30px;
+            border-radius: 5px;
+            background-color: white;
+            transition: background-color 0.3s ease-in-out, color 0.4s ease-in-out;
+            "
+            onmouseover="this.style.backgroundColor='darkred'; this.style.color='white';"
+            onmouseout="this.style.backgroundColor='white'; this.style.color='black';"
           >
             Remove
           </button>

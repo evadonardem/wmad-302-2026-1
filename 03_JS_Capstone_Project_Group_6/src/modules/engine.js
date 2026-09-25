@@ -1,15 +1,10 @@
 /**
  * [ROLE A] Core Engine Module - Student Starter Template
  */
-
-
-const ifSeniorCitizen = document.getElementById('is-senior');
-const ifPWD = document.getElementById('is-pwd');
-const monthlyIncome = document.getElementById('monthly-income');
-const dependentCount = document.getElementById('dependent-count');
-let score = 0;
-
 export function evaluateAyudaEligibility(citizen) {
+  let score = 0;
+  let priority = 'LOW';
+  let approved = false;
   // TODO: Implement scoring logic
   // Rules:
   // - Senior Citizen (+35 pts)
@@ -17,23 +12,24 @@ export function evaluateAyudaEligibility(citizen) {
   // - Monthly Income < 10,000 (+20 pts)
   // - Dependents (+5 pts per dependent, capped at max 20 pts)
   // Priority: score >= 70 -> 'CRITICAL' (approved: true), score >= 40 -> 'HIGH' (approved: true), else -> 'LOW' (approved: false)
-  if (ifSeniorCitizen.checked) {
+  if (citizen.ifSeniorCitizen) {
     score += 35;
   }
-  if (ifPWD.checked) {
+  if (citizen.ifPWD) {
     score += 35;
   }
-  if (parseInt(monthlyIncome.value) < 10000) {
+  if (citizen.monthlyIncome < 10000) {
     score += 20;
+  } else if (citizen.monthlyIncome > 50000 && citizen.dependentCount < 10) {
+    score -= 20;
   }
-  const dependents = parseInt(dependentCount.value);
+  const dependents = citizen.dependentCount;
   score += Math.min(dependents * 5, 20);
-  let priority = 'LOW';
-  let approved = false;
+  
   if (score >= 70) {
     priority = 'CRITICAL';
     approved = true;
-  } else if (score >= 40) {
+  } else if (score > 40) {
     priority = 'HIGH';
     approved = true;
   }
