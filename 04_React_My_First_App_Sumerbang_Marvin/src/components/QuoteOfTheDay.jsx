@@ -8,44 +8,35 @@ export default function QuoteOfTheDay() {
   // - 'quote': Stores the current quote object (default: empty object)
   // - 'tags': Stores an array of all available category tags (default: empty array)
   // - 'selectedTag': Tracks the string name of the active filter tag (default: null)
-  
   const [quote, setQuote] = useState({});
   const [tags, setTags] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
 
   // TODO 2 [Reference Hook]: Create a React mutable reference named 'selectTagRef' to capture the Select element value
-  
   const selectTagRef = useRef(null);
 
   const loadRandomQuote = async () => {
-    // TODO 3 [Async Request Handler]: 
+    // TODO 3 [Async Request Handler]:
     // a. Retrieve the current value from 'selectTagRef' (fallback to empty string if undefined)
     // b. Call 'getRandomQuote(tag)' asynchronously with that tag value
     // c. Update both your 'quote' state and 'selectedTag' state with the returned values
-    
     const tag = selectTagRef.current?.value || '';
     const result = await getRandomQuote(tag);
     setQuote(result);
     setSelectedTag(tag || null);
   };
 
-
-  };
-
   const loadTags = async () => {
     // TODO 4 [Async List Population]: Fetch tags asynchronously using 'getTags()' and store them into your tags state array
-    
     const result = await getTags();
     setTags(result);
   };
 
-
   useEffect(() => {
     // TODO 5 [Component Lifecycle]: Execute both 'loadRandomQuote' and 'loadTags' when the component mounts
-    
-     loadRandomQuote();
+    loadRandomQuote();
     loadTags();
-    }, []);
+  }, []);
 
   return (
     <Card
@@ -68,8 +59,7 @@ export default function QuoteOfTheDay() {
                 - Render an MUI <Chip /> with a unique key
                 - Apply color="success" if 'selectedTag' matches 't', otherwise color="secondary"
                 - Bind label={t} and set custom style margins sx={{ mr: 0.25 }} */}
-            
-               {quote.tags?.map((t, i) => (
+            {quote.tags?.map((t, i) => (
               <Chip
                 key={i}
                 label={t}
@@ -107,15 +97,13 @@ export default function QuoteOfTheDay() {
             >
               <MenuItem value={null}><em>any</em></MenuItem>
               {/* TODO 10 [Select Option Generation]: Map through your 'tags' state array to render a <MenuItem> element for each tag 't' */}
-              
               {tags.map((t, i) => (
                 <MenuItem key={i} value={t}>
                   {t}
                 </MenuItem>
               ))}
-
             </Select>
-            
+
             {/* TODO 11 [Action Trigger Binding]: Attach an interaction listener to trigger 'loadRandomQuote' upon click events */}
             <Button
               onClick={loadRandomQuote}
@@ -127,9 +115,8 @@ export default function QuoteOfTheDay() {
               Next Quote
             </Button>
           </Stack>
-
         </Stack>
       </CardContent>
     </Card>
   );
-
+}
