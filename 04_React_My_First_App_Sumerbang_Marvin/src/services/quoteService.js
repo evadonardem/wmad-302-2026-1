@@ -43,6 +43,6 @@ export const getTags = async () => {
         const response = await axios.get(`${API_URL}/tags`);
   return response.data;
     } catch {
-        return [];
+        return [];   
     }
 }
