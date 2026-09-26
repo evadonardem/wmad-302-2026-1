@@ -14,6 +14,7 @@ export default function QuoteOfTheDay() {
   const [selectedTag, setSelectedTag] = useState(null);
 
   // TODO 2 [Reference Hook]: Create a React mutable reference named 'selectTagRef' to capture the Select element value
+  
   const selectTagRef = useRef(null);
 
   const loadRandomQuote = async () => {
@@ -21,13 +22,23 @@ export default function QuoteOfTheDay() {
     // a. Retrieve the current value from 'selectTagRef' (fallback to empty string if undefined)
     // b. Call 'getRandomQuote(tag)' asynchronously with that tag value
     // c. Update both your 'quote' state and 'selectedTag' state with the returned values
-    // [Your code here]
+    
+    const tag = selectTagRef.current?.value || '';
+    const result = await getRandomQuote(tag);
+    setQuote(result);
+    setSelectedTag(tag || null);
+  };
+
+
   };
 
   const loadTags = async () => {
     // TODO 4 [Async List Population]: Fetch tags asynchronously using 'getTags()' and store them into your tags state array
-    // [Your code here]
+    
+    const result = await getTags();
+    setTags(result);
   };
+
 
   useEffect(() => {
     // TODO 5 [Component Lifecycle]: Execute both 'loadRandomQuote' and 'loadTags' when the component mounts
