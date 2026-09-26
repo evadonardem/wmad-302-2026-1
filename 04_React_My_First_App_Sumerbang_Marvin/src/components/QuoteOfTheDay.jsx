@@ -8,10 +8,13 @@ export default function QuoteOfTheDay() {
   // - 'quote': Stores the current quote object (default: empty object)
   // - 'tags': Stores an array of all available category tags (default: empty array)
   // - 'selectedTag': Tracks the string name of the active filter tag (default: null)
-  // [Your code here]
+  
+  const [quote, setQuote] = useState({});
+  const [tags, setTags] = useState([]);
+  const [selectedTag, setSelectedTag] = useState(null);
 
   // TODO 2 [Reference Hook]: Create a React mutable reference named 'selectTagRef' to capture the Select element value
-  // [Your code here]
+  const selectTagRef = useRef(null);
 
   const loadRandomQuote = async () => {
     // TODO 3 [Async Request Handler]: 
