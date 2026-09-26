@@ -1,11 +1,17 @@
 services:
   app:
     build: .
+    user: "root"
     container_name: "react_my_first_app_dynamic_quote_generator"
     ports:
       - "8081:5173"
     volumes:
       - .:/app
+      - /app/node_modules        
+      - /app/.vite              
+    shm_size: '2gb'              
     stdin_open: true
     tty: true
     command: sh -c "npm install && npm run dev -- --host"
+
+
