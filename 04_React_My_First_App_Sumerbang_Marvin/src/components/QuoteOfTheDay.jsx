@@ -87,12 +87,12 @@ export default function QuoteOfTheDay() {
             textAlign="center"
             sx={{ fontWeight: '400', lineHeight: 1.5 }}
           >
-            ""
+            "{quote.text}"
           </Typography>
 
           {/* TODO 8 [Author Content Mapping]: Bind 'quote.author' after the long dash separator symbol */}
           <Typography variant="subtitle1" textAlign="right" color="text.secondary">
-            — 
+            — {quote.author}
           </Typography>
 
           <Divider />
