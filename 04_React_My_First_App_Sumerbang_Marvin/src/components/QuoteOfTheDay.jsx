@@ -42,8 +42,10 @@ export default function QuoteOfTheDay() {
 
   useEffect(() => {
     // TODO 5 [Component Lifecycle]: Execute both 'loadRandomQuote' and 'loadTags' when the component mounts
-    // [Your code here]
-  }, []);
+    
+     loadRandomQuote();
+    loadTags();
+    }, []);
 
   return (
     <Card
@@ -66,7 +68,15 @@ export default function QuoteOfTheDay() {
                 - Render an MUI <Chip /> with a unique key
                 - Apply color="success" if 'selectedTag' matches 't', otherwise color="secondary"
                 - Bind label={t} and set custom style margins sx={{ mr: 0.25 }} */}
-            {/* [Your code here] */}
+            
+               {quote.tags?.map((t, i) => (
+              <Chip
+                key={i}
+                label={t}
+                color={selectedTag === t ? 'success' : 'secondary'}
+                sx={{ mr: 0.25 }}
+              />
+            ))}
           </Box>
 
           {/* TODO 7 [Text Content Mapping]: Bind 'quote.text' directly inside the quotation marks below */}
