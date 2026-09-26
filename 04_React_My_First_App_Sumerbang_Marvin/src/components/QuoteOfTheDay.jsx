@@ -100,17 +100,25 @@ export default function QuoteOfTheDay() {
           <Stack direction="row" spacing={0.5} justifyContent="space-between" alignItems="center">
             {/* TODO 9 [Controlled Input Integration]: Attach your input reference 'selectTagRef' to this select component */}
             <Select
+              inputRef={selectTagRef}
               fullWidth
               displayEmpty
               size="small"
             >
               <MenuItem value={null}><em>any</em></MenuItem>
               {/* TODO 10 [Select Option Generation]: Map through your 'tags' state array to render a <MenuItem> element for each tag 't' */}
-              {/* [Your code here] */}
+              
+              {tags.map((t, i) => (
+                <MenuItem key={i} value={t}>
+                  {t}
+                </MenuItem>
+              ))}
+
             </Select>
             
             {/* TODO 11 [Action Trigger Binding]: Attach an interaction listener to trigger 'loadRandomQuote' upon click events */}
             <Button
+              onClick={loadRandomQuote}
               fullWidth
               variant="contained"
               startIcon={<Refresh />}
@@ -124,4 +132,4 @@ export default function QuoteOfTheDay() {
       </CardContent>
     </Card>
   );
-}
+
