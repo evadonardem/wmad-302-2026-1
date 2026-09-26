@@ -28,7 +28,9 @@ export const getRandomQuote = async (selectedTag = null) => {
         // TODO 19 [Resilient System Fallbacks]: Return a hardcoded fallback quote object 
         // with custom placeholder messages if an unexpected API or network timeout exception is encountered.
         return {
-            // [Your fallback code here]
+            text: "The best way to predict the future is to create it.",
+            author: "Unknown",
+            tags: ["motivation", "wisdom"]
         };
     }
 };
@@ -38,8 +40,9 @@ export const getTags = async () => {
     // Fetch global category strings from the API endpoint path `${API_URL}/tags` using Axios.
     // Return the response data array on success, or return an empty array fallback inside the catch safety layer.
     try {
-        // [Your code here]
+        const response = await axios.get(`${API_URL}/tags`);
+  return response.data;
     } catch {
-        // [Your code here]
+        return [];
     }
 }
