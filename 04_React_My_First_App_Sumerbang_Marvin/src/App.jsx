@@ -8,12 +8,17 @@ import GeneralSettings from './components/GeneralSettings';
 // TODO 13 [Dynamic Themes]: Complete the theme creation arrow function.
 // It should accept a 'mode' string parameter ('light' or 'dark') and generate an MUI theme object configuration mapping that mode.
 const theme = (mode = 'light') => createTheme({
-  // [Your code here]
+  
+  palette: {
+    mode: mode
+  }
+
 });
 
 function App() {
   // TODO 14 [State Management]: Initialize a boolean React state hook variable named 'isDarkMode' defaulting to false.
-  // [Your code here]
+  
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // TODO 15 [Data Actions Mapping]: Populate the 'actions' configuration array below.
   // Ensure the first action toggle object displays a <LightMode /> icon if 'isDarkMode' is true, or a <DarkMode /> icon if false.
