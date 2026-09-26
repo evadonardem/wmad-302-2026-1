@@ -7,7 +7,21 @@ export default function GeneralSettings({ actions }) {
     // b. Map through the 'actions' prop array to render a nested SpeedDialAction for each individual item
     // c. Configure each action's unique key, icon asset, tooltip title template properties, and custom onClick callback parameters
     return (
-        // [Your code here]
-        <></>
+        
+        <SpeedDial
+      sx={{ position: 'absolute', bottom: 16, right: 16 }}
+      icon={<SpeedDialIcon icon={<Settings />} />}
+      ariaLabel="settings-speed-dial"
+    >
+      {actions.map((action, index) => (
+        <SpeedDialAction
+          key={index}
+          icon={action.icon}
+          tooltipTitle={action.name}
+          onClick={action.onClick}
+        />
+      ))}
+    </SpeedDial>
+    
     );
 }
