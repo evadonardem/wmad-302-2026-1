@@ -20,7 +20,9 @@ function App() {
   // The 'onClick' function must invert the current boolean state value of 'isDarkMode' upon execution.
   const actions = [
     {
-      name: 'Light Mode' , // isDarkMode ? 'Light Mode' : 'Dark Mode',
+      icon: isDarkMode ? <LightMode/> : <DarkMode/>,
+      name: isDarkMode ? 'LightisOn': 'Lights Off' ,// isDarkMode ? 'Light Mode' : 'Dark Mode'
+      onClick: () => setIsDarkmode(currMode => !currMode)
       // [Your code here: Add dynamic icon and state-toggling onClick function]
     },
     { icon: <Palette />, name: 'Theme' },
