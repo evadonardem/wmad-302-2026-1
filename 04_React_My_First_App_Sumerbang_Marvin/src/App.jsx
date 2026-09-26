@@ -25,8 +25,9 @@ function App() {
   // The 'onClick' function must invert the current boolean state value of 'isDarkMode' upon execution.
   const actions = [
     {
-      name: 'Light Mode' , // isDarkMode ? 'Light Mode' : 'Dark Mode',
-      // [Your code here: Add dynamic icon and state-toggling onClick function]
+      name: isDarkMode ? 'Light Mode' : 'Dark Mode',
+      icon: isDarkMode ? <LightMode /> : <DarkMode />,
+      onClick: () => setIsDarkMode(!isDarkMode)
     },
     { icon: <Palette />, name: 'Theme' },
     { icon: <Print />, name: 'Print' },
@@ -36,8 +37,8 @@ function App() {
   return (
     // TODO 16 [Theme Binding Layout]: Wrap the children inside a dynamic ThemeProvider passing the calculated theme mode.
     // Configure the layout context matching: mode should resolve to 'dark' if 'isDarkMode' is true, otherwise 'light'.
-    <>
-      {/* [Your ThemeProvider wrapper structure here] */}
+    
+    <ThemeProvider theme={theme(isDarkMode ? 'dark' : 'light')}>
       <CssBaseline />
       <Container sx={{
         display: 'flex',
@@ -50,7 +51,8 @@ function App() {
         <QuoteOfTheDay />
         <GeneralSettings actions={actions} />
       </Container>
-    </>
+    </ThemeProvider>
+    
   )
 }
 
