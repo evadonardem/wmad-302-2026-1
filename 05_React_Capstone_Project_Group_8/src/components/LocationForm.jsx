@@ -82,7 +82,12 @@ export default function LocationForm({ onSearch }) {
           >
             {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.
                 Use city.code/id for selection key tracking and map city.name directly for option layout configurations. */}
-            {/* [Your code here] */}
+            {cities.map((city) => (
+            <MenuItem key={city.code} value={city.name}>
+            {city.name}
+            </MenuItem>
+            ))}
+            
           </Select>
         </FormControl>
 
