@@ -9,7 +9,10 @@ export default function LocationForm({ onSearch }) {
   // - 'cities': Stores array of filtered sub-municipalities (default: empty array)
   // - 'selectedRegion': String tracking the chosen active region code (default: empty string)
   // - 'selectedCityName': String tracking the actual chosen city text name to feed the search keyword engine (default: empty string)
-  // [Your code here]
+  const [regions, setRegions] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [selectedCityName, setSelectedCityName] = useState('');     
 
   useEffect(() => {
     // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside a mounting side-effect.
