@@ -25,7 +25,18 @@ export const getCitiesMunicipalitiesByRegion = async (regionCode) => {
   // Validate that a truthy regionCode parameter is provided prior to generating network requests.
   // Execute an async GET request hitting the exact trailing-slash path directory.
   // Targeted Path Format: `${PSGC_BASE_URL}/regions/{regionCode}/cities-municipalities/`
-  // [Your code here]
+  if (!regionCode) {
+    return [];
+  }
+  try {
+    const response = await axios.get(
+      `${PSGC_BASE_URL}regions/${regionCode}/cities-municipalities/`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching cities/municipalities:', error);
+    return [];
+  }
 };
 
 export const searchPhotosByLocation = async (locationName) => {
