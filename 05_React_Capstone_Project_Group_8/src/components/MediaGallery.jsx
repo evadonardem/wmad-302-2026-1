@@ -6,8 +6,15 @@ export default function MediaGallery({ photos, loading }) {
   // Pro Tip: Loop a standard array wrapper or mock layout blocks to show a clean visual waiting feedback (e.g. Loading indicator or Skeletons).
   if (loading) {
     return (
-      // [Your loading layout here]
-      <></>
+      <Grid container spacing={3}>
+      {[...Array(6)].map((_, index) => (
+        <Grid item xs={12} sm={6} md={4} key={index}>
+          <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
+          <Skeleton variant="text" sx={{ mt: 1 }} />
+          <Skeleton variant="text" width="60%" />
+        </Grid>
+      ))}
+    </Grid>
     );
   }
 
