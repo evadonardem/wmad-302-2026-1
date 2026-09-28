@@ -28,7 +28,14 @@ export default function LocationForm({ onSearch }) {
     // TODO 2.3 [Reactive Cascading Refresh]: Trigger an asynchronous refresh whenever 'selectedRegion' changes.
     // If selectedRegion is a valid code, call 'getCitiesMunicipalitiesByRegion(selectedRegion)' and load the cities list state.
     // CRITICAL: Reset your 'selectedCityName' tracking states back to an empty string to keep inputs contextually clean!
-    // [Your code here]
+    const loadCities = async () => {
+    if (selectedRegion) {
+      setSelectedCityName('');
+      const data = await getCitiesMunicipalitiesByRegion(selectedRegion);
+      setCities(data);
+    }
+  };
+  loadCities();
   }, [selectedRegion]);
 
   const handleSubmit = (e) => {
