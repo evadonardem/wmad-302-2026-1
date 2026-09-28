@@ -61,7 +61,12 @@ export default function LocationForm({ onSearch }) {
           >
             {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
                 to output item choice options. Use region.code as the structural value and region.name for text displays. */}
-            {/* [Your code here] */}
+            {regions.map((region) => (
+            <MenuItem key={region.code} value={region.code}>
+            {region.name}
+            </MenuItem>
+            ))}
+            
           </Select>
         </FormControl>
 
