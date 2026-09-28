@@ -22,8 +22,11 @@ export default function MediaGallery({ photos, loading }) {
   // Render a clean structural layout text header displaying a simple status report like: "No tourist spots found for this area yet."
   if (!photos || photos.length === 0) {
     return (
-      // [Your empty state boundary here]
-      <></>
+      <Box sx={{ textAlign: 'center', py: 6 }}>
+      <Typography variant="h6" color="text.secondary">
+        No tourist spots found for this area yet.
+      </Typography>
+    </Box>
     );
   }
 
