@@ -17,7 +17,11 @@ export default function LocationForm({ onSearch }) {
   useEffect(() => {
     // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside a mounting side-effect.
     // Set the returned collection smoothly into your local regions state layer.
-    // [Your code here]
+    const loadRegions = async () => {
+    const data = await getRegions();
+    setRegions(data);
+    };
+    loadRegions();
   }, []);
 
   useEffect(() => {
