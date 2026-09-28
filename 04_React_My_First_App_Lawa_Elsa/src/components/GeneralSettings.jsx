@@ -10,10 +10,10 @@ export default function GeneralSettings({ actions }) {
     >
       {actions.map((action) => (
         <SpeedDialAction
-          key={action.name}
-          icon={action.icon}
-          tooltipTitle={action.name}
-          onClick={action.onClick}
+           key={action.name}
+           icon={action.icon}
+           tooltipTitle={action.name}
+           onClick={action.onClick}
         />
       ))}
     </SpeedDial>

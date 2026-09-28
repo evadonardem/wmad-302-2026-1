@@ -22,9 +22,9 @@ export const getRandomQuote = async (selectedTag = null) => {
         // TODO 19 [Resilient System Fallbacks]: Return a hardcoded fallback quote object
         // with custom placeholder messages if an unexpected API or network timeout exception is encountered.
         return {
-            text: 'The only way to do great work is to love what you do.',
-            author: 'Unknown',
-            tags: ['fallback'],
+           text: 'The only way to do great work is to love what you do.',
+           author: 'Unknown',
+           tags: ['fallback'],
         };
     }
 };

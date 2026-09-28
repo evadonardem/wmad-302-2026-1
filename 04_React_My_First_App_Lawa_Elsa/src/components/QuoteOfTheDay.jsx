@@ -69,11 +69,11 @@ export default function QuoteOfTheDay() {
             letterSpacing={2}
             textAlign="center"
             sx={{
-              textAlign:"center",
-              background: 'linear-gradient(135deg, #F72585 3%, #FF6B35 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              textAlign: "center",
+              color: '#caf3ff',
               fontWeight: 700,
+              textShadow: '0px 2px 3px rgba(0,0,0,0.10)', 
+              fontsize: '1.2rem',  
             }}
           >
             Quote of the Day
