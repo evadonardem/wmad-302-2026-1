@@ -11,7 +11,13 @@ export const getRegions = async () => {
   // TODO 1.2 [Regions Retrieval]: Fetch the full array of regions from the PSGC host.
   // Perform an asynchronous GET request using axios, catch errors smoothly, and return the dataset array.
   // Targeted Path Format: `${PSGC_BASE_URL}/regions/`
-  // [Your code here]
+  try {
+    const response = await axios.get(`${PSGC_BASE_URL}regions/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching regions:', error);
+    return [];
+  }
 };
 
 export const getCitiesMunicipalitiesByRegion = async (regionCode) => {
