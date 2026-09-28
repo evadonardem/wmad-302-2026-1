@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // TODO 1.1 [Base Configuration]: Use the fixed PSGC Gitlab API trailing-slash structure format
-const PSGC_BASE_URL = 'https://psgc.gitlab.io/api';
+const PSGC_BASE_URL = '/api-psgc/';
 
 // Vite exposes environment variables on the import.meta.env object
 const PEXELS_API_KEY = import.meta.env.VITE_PEXELS_API_KEY;
