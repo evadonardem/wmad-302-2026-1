@@ -56,7 +56,8 @@ export default function LocationForm({ onSearch }) {
           <Select
             labelId="region-label"
             label="Select Region"
-            // [Your props here]
+            value={selectedRegion}
+            onChange={(e) => setSelectedRegion(e.target.value)}
           >
             {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
                 to output item choice options. Use region.code as the structural value and region.name for text displays. */}
