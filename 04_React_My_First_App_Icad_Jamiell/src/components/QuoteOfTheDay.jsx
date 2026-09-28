@@ -52,7 +52,12 @@ export default function QuoteOfTheDay() {
     >
       <CardContent sx={{ p: 4 }}>
         <Stack spacing={3}>
-          <Typography variant="overline" color="text.secondary" letterSpacing={2} textAlign="center">
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            letterSpacing={2}
+            sx={{ textAlign: 'center' }}
+          >
             Quote of the Day
           </Typography>
 
@@ -76,28 +81,33 @@ export default function QuoteOfTheDay() {
             variant="h5"
             component="p"
             fontStyle="italic"
-            textAlign="center"
-            sx={{ fontWeight: '400', lineHeight: 1.5 }}
+            sx={{ fontWeight: '400', lineHeight: 1.5, textAlign: 'center' }}
           >
             "{quote.text || ''}"
           </Typography>
 
           {/* TODO 8 [Author Content Mapping]: Bind 'quote.author' after the long dash separator symbol */}
-          <Typography variant="subtitle1" textAlign="right" color="text.secondary">
+          <Typography variant="subtitle1" color="text.secondary" sx={{ textAlign: 'right' }}>
             — {quote.author || ''}
           </Typography>
 
           <Divider />
 
-          <Stack direction="row" spacing={0.5} justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{ justifyContent: 'space-between', alignItems: 'center' }}
+          >
             {/* TODO 9 [Controlled Input Integration]: Attach your input reference 'selectTagRef' to this select component */}
             <Select
               fullWidth
               displayEmpty
               size="small"
               inputRef={selectTagRef}
+              value={selectedTag ?? ''}
+              onChange={(event) => setSelectedTag(event.target.value || null)}
             >
-              <MenuItem value={null}><em>any</em></MenuItem>
+              <MenuItem value=""><em>any</em></MenuItem>
               {/* TODO 10 [Select Option Generation]: Map through your 'tags' state array to render a <MenuItem> element for each tag 't' */}
               {tags.map((tag) => (
                 <MenuItem key={tag} value={tag}>{tag}</MenuItem>
