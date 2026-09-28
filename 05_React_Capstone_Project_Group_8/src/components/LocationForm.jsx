@@ -42,7 +42,7 @@ export default function LocationForm({ onSearch }) {
     e.preventDefault();
     // TODO 2.4 [Form Submit Bubble]: Trigger the structural context parent callback routine 'onSearch' 
     // passing through your active 'selectedCityName' value string.
-    // [Your code here]
+    onSearch(selectedCityName);
   };
 
   return (
