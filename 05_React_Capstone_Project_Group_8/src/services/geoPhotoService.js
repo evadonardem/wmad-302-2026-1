@@ -5,6 +5,7 @@ const PSGC_BASE_URL = 'https://psgc.gitlab.io/api';
 
 // Vite exposes environment variables on the import.meta.env object
 const PEXELS_API_KEY = import.meta.env.VITE_PEXELS_API_KEY;
+const PEXELS_BASE_URL = 'https://api.pexels.com/v1/';
 
 export const getRegions = async () => {
   // TODO 1.2 [Regions Retrieval]: Fetch the full array of regions from the PSGC host.
