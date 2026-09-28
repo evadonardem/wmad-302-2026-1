@@ -47,5 +47,27 @@ export const searchPhotosByLocation = async (locationName) => {
   // d. Map through the resulting array and return streamlined objects styled exactly like: 
   //    { id, imageUrl: [large image src URL], photographer, photographerUrl, altText }
   // e. Provide a backup structural object array inside your catch layer shield to handle error edge cases.
-  // [Your code here]
+  const query = `${locationName} tourist spot`;
+  try {
+    const response = await axios.get(`${PEXELS_BASE_URL}search`, {
+      headers: {
+        Authorization: PEXELS_API_KEY
+      },
+      params: {
+        query: query,
+        per_page: 12
+      }
+    });
+    
+    return response.data.photos.map((photo) => ({
+      id: photo.id,
+      imageUrl: photo.src.large,
+      photographer: photo.photographer,
+      photographerUrl: photo.photographer_url,
+      altText: photo.alt || 'Tourist spot image'
+    }));
+  } catch (error) {
+    console.error('Error fetching photos from Pexels:', error);
+    return [];
+  }
 };
