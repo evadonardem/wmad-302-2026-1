@@ -66,7 +66,7 @@ export default function LocationForm({ onSearch }) {
             {region.name}
             </MenuItem>
             ))}
-            
+
           </Select>
         </FormControl>
 
@@ -77,7 +77,8 @@ export default function LocationForm({ onSearch }) {
           <Select
             labelId="city-label"
             label="Select City / Municipality"
-            // [Your props here]
+            value={selectedCityName}
+            onChange={(e) => setSelectedCityName(e.target.value)}
           >
             {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.
                 Use city.code/id for selection key tracking and map city.name directly for option layout configurations. */}
