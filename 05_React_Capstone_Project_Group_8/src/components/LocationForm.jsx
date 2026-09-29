@@ -12,82 +12,83 @@ export default function LocationForm({ onSearch }) {
   const [regions, setRegions] = useState([]);
   const [cities, setCities] = useState([]);
   const [selectedRegion, setSelectedRegion] = useState('');
-  const [selectedCityName, setSelectedCityName] = useState('');     
+  const [selectedCityName, setSelectedCityName] = useState('');
+  // TODO PERF 1: Loading indicator state for cities dropdown
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
 
   useEffect(() => {
     // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside a mounting side-effect.
-    // Set the returned collection smoothly into your local regions state layer.
     const loadRegions = async () => {
-    const data = await getRegions();
-    setRegions(data);
+      const data = await getRegions();
+      setRegions(data);
     };
     loadRegions();
   }, []);
 
   useEffect(() => {
     // TODO 2.3 [Reactive Cascading Refresh]: Trigger an asynchronous refresh whenever 'selectedRegion' changes.
-    // If selectedRegion is a valid code, call 'getCitiesMunicipalitiesByRegion(selectedRegion)' and load the cities list state.
-    // CRITICAL: Reset your 'selectedCityName' tracking states back to an empty string to keep inputs contextually clean!
     const loadCities = async () => {
-    if (selectedRegion) {
+      if (!selectedRegion) return;
+      
       setSelectedCityName('');
-      const data = await getCitiesMunicipalitiesByRegion(selectedRegion);
-      setCities(data);
-    }
-  };
-  loadCities();
+      setCities([]);
+      // TODO PERF 2: Show loading message while fetching
+      setIsLoadingCities(true);
+      
+      try {
+        const data = await getCitiesMunicipalitiesByRegion(selectedRegion);
+        setCities(data);
+      } catch (error) {
+        console.error('Failed to load cities:', error);
+      } finally {
+        // TODO PERF 3: Hide loading when done (success OR error)
+        setIsLoadingCities(false);
+      }
+    };
+    loadCities();
   }, [selectedRegion]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO 2.4 [Form Submit Bubble]: Trigger the structural context parent callback routine 'onSearch' 
-    // passing through your active 'selectedCityName' value string.
     onSearch(selectedCityName);
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%', mb: 4 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+    <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+      <Stack direction="column" spacing={3}>
         
-        <FormControl fullWidth size="small">
+        <FormControl fullWidth>
           <InputLabel id="region-label">Select Region</InputLabel>
-          {/* TODO 2.5 [Controlled Parent Select]: Bind the Select component value to your region state.
-              Implement an onChange handler to update your 'selectedRegion' with 'e.target.value'. */}
           <Select
             labelId="region-label"
             label="Select Region"
             value={selectedRegion}
             onChange={(e) => setSelectedRegion(e.target.value)}
           >
-            {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
-                to output item choice options. Use region.code as the structural value and region.name for text displays. */}
             {regions.map((region) => (
-            <MenuItem key={region.code} value={region.code}>
-            {region.name}
-            </MenuItem>
+              <MenuItem key={region.code} value={region.code}>
+                {region.name}
+              </MenuItem>
             ))}
-
           </Select>
         </FormControl>
 
-        <FormControl fullWidth size="small" disabled={!selectedRegion}>
-          <InputLabel id="city-label">Select City / Municipality</InputLabel>
-          {/* TODO 2.7 [Controlled Child Select]: Bind the Select value to your city state property layout tracker.
-              Capture 'e.target.value' into 'selectedCityName' inside your execution handler block. */}
+        {/* TODO PERF 4: Dynamic label changes to "Loading..." while fetching */}
+        <FormControl fullWidth disabled={!selectedRegion || isLoadingCities}>
+          <InputLabel id="city-label">
+            {isLoadingCities ? '⏳ Loading cities...' : 'Select City / Municipality'}
+          </InputLabel>
           <Select
             labelId="city-label"
-            label="Select City / Municipality"
+            label={isLoadingCities ? '⏳ Loading cities...' : 'Select City / Municipality'}
             value={selectedCityName}
             onChange={(e) => setSelectedCityName(e.target.value)}
           >
-            {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.
-                Use city.code/id for selection key tracking and map city.name directly for option layout configurations. */}
             {cities.map((city) => (
-            <MenuItem key={city.code} value={city.name}>
-            {city.name}
-            </MenuItem>
+              <MenuItem key={city.code} value={city.name}>
+                {city.name}
+              </MenuItem>
             ))}
-            
           </Select>
         </FormControl>
 
@@ -96,10 +97,12 @@ export default function LocationForm({ onSearch }) {
           variant="contained"
           startIcon={<Search />}
           disabled={!selectedCityName}
-          sx={{ textTransform: 'none', px: 4 }}
+          sx={{ textTransform: 'none', py: 1.5, fontSize: '1rem' }}
+          fullWidth
         >
           Search
         </Button>
+        
       </Stack>
     </Box>
   );
