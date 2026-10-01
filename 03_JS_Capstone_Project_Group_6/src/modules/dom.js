@@ -64,10 +64,9 @@ export function renderResidentCards(container, residents) {
 
 export function renderPOSRegister(container, packerState) {
   // TODO: Render POS register showing subtotal, budget cap, <progress> bar, and item list with remove buttons.
+  if (!container) return;
 
-   if (!container) return;
-
-  const { items = [], total = 0, budgetCap = 5000 } = packerState || {};
+  const { items = [], total, budgetCap} = packerState || {};
   const remaining = budgetCap - total;
   const progressValue = Math.min(total, budgetCap);
 
@@ -75,7 +74,7 @@ export function renderPOSRegister(container, packerState) {
     ? items
         .map(
           (item, index) => `
-            <li class="pos-item">
+            <li class="pos-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #ccc;">
               <span class="pos-item-name">${sanitizeHTML(item.name)}</span>
               <span class="pos-item-price">₱${Number(item.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
               <button
@@ -84,6 +83,17 @@ export function renderPOSRegister(container, packerState) {
                 data-action="remove-item"
                 data-index="${index}"
                 aria-label="Remove ${sanitizeHTML(item.name)}"
+
+                style="
+                  background-color: transparent;
+                  border: none;
+                  color: red;
+                  font-size: 1.2rem;
+                  cursor: pointer;
+                  transition: color 0.3s ease-in-out;
+                "
+                onmouseover="this.style.color='darkred';"
+                onmouseout="this.style.color='red';"
               >
                 ✕
               </button>

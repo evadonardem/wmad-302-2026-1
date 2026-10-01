@@ -36,35 +36,51 @@ export function evaluateAyudaEligibility(citizen) {
   return { priority, score, approved};
 }
 
+// Relief Packer Factory Function (Implemented)
 export function createReliefPacker(budgetCap = 1000) {
-  // TODO: Implement closure/factory function returning an object with methods:
-  // - addItem(name, price): checks budget cap, adds item if valid
-  // - removeItem(index): removes item by index and adjusts total
-  // - getTotal(): returns current total price
-  // - getItems(): returns array of items (copy)
-  // - getBudgetCap(): returns budget cap
   const items = [];
-  let total = 0;
-
   return {
-    addItem: (name, price) => {
-      if (total + price <= budgetCap) {
-        items.push({ name, price });
-        total += price;
-        return { success: true };
-      } else {
-        return { success: false, reason: "Budget cap exceeded" };
+    addItem(name, price) {
+      // Validate inputs
+      if (typeof name !== 'string' || name.trim() === '') {
+        return { success: false, reason: 'Item name is required' };
       }
-    },
-    removeItem: (index) => {
-      if (index >= 0 && index < items.length) {
-        total -= items[index].price;
-        items.splice(index, 1);
+      if (typeof price !== 'number' || price <= 0) {
+        return { success: false, reason: 'Price must be a positive number' };
       }
+
+      // Check budget before adding
+      const currentTotal = this.getTotal();
+      if (currentTotal + price > budgetCap) {
+        return {
+          success: false,
+          reason: `Exceeds budget cap (${budgetCap})`
+        };
+      }
+
+      items.push({name, price});
+      return { success: true };
     },
-    
-    getTotal: () => total,
-    getItems: () => [...items], // return a copy of items
-    getBudgetCap: () => budgetCap
+
+    removeItem(index) {
+      if (typeof index !== 'number' || index < 0 || index >= items.length) {
+        return { success: false, reason: 'Invalid item index' };
+      }
+      items.splice(index, 1);
+      return { success: true };
+    },
+
+    getTotal() {
+      return items.reduce((sum, item) => sum + item.price, 0);
+    },
+
+    getItems() {
+      // Return a copy to prevent external mutation of internal state
+      return [...items];
+    },
+
+    getBudgetCap() {
+      return budgetCap;
+    }
   };
 }

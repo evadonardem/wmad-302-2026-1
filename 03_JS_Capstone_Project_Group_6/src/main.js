@@ -12,6 +12,30 @@ import{sanitizeHTML, renderResidentCards, renderPOSRegister, setupActionDelegati
 import{fetchProvinces, fetchCitiesMunicipalities, getOfflineQueue, saveToOfflineQueue, removeFromOfflineQueue} from './modules/async.js';
 
 
+let packer = createReliefPacker(1000);
+function renderPOS() {
+  const posContainer = document.getElementById('pos-container');
+  const item = document.getElementById('item-name').value.trim();
+  const price = parseFloat(document.getElementById('item-price').value);
+  packer.addItem(item, price);
+
+  const packerState = {
+    items: packer.getItems(),
+    total: packer.getTotal(),
+    budgetCap: packer.getBudgetCap()
+  };
+  renderPOSRegister(posContainer, packerState);
+}
+
+document.getElementById('add-item-btn').addEventListener('click', (e) => {
+  e.preventDefault();
+  
+  renderPOS();
+  document.getElementById('item-name').value = '';
+  document.getElementById('item-price').value = '';
+  
+});
+
 
 //From Modules
 function renderQueue() {
@@ -20,8 +44,6 @@ function renderQueue() {
   const sorted = [...residents].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   renderResidentCards(container, sorted);
 }
-
-
 
 //From Async
 async function provinces(){
@@ -80,14 +102,6 @@ async function removeResidentFromQueue(residentId) {
 }
 
 
-
-document.addEventListener('DOMContentLoaded', () => {
-console.log("e-Barangay Starter Kit Initialized. Happy Coding!");
-
-provinces();
-loadOfflineQueue();
-});
-
 document.getElementById("prov-select").addEventListener('change', (e) => {
   CitiesMunicipalities(e.target.value);
 });
@@ -141,10 +155,56 @@ document.getElementById("ayuda-form").addEventListener('submit', (e) => {
 
 setupActionDelegation(document.getElementById('queue-container'), {
   'remove-resident': (trigger) => {
-    const id = Number(trigger.dataset.id); // dataset is always a string — must convert to match the numeric id stored via Date.now()
+    const id = Number(trigger.dataset.id); 
     removeFromOfflineQueue(id);
     renderQueue();
   }
 });
 
-document.addEventListener('DOMContentLoaded', renderQueue);
+setupActionDelegation(document.getElementById('pos-container'), {
+  'remove-item': (trigger) => {
+    const index = Number(trigger.dataset.index);
+    packer.removeItem(index);
+    renderPOS();
+  }
+});
+
+
+document.getElementById('search-queue').addEventListener('input', (e) => {
+  const searchTerm = e.target.value.toLowerCase();
+  const residents = getOfflineQueue();
+  const filtered = residents.filter(resident => resident.name.toLowerCase().includes(searchTerm));
+  renderResidentCards(document.getElementById('queue-container'), filtered);
+});
+
+document.getElementById('critical').addEventListener('click', () => {
+  const residents = getOfflineQueue();
+  const filtered = residents.filter(resident => resident.priority === 'CRITICAL');
+  renderResidentCards(document.getElementById('queue-container'), filtered);
+});
+
+document.getElementById('high').addEventListener('click', () => {
+  const residents = getOfflineQueue();
+  const filtered = residents.filter(resident => resident.priority === 'HIGH');
+  renderResidentCards(document.getElementById('queue-container'), filtered);
+});
+
+document.getElementById('low').addEventListener('click', () => {
+  const residents = getOfflineQueue();
+  const filtered = residents.filter (resident => resident.priority === 'LOW');
+  renderResidentCards(document.getElementById('queue-container'), filtered);
+});
+
+document.getElementById('reset-filter').addEventListener('click', () => {
+  renderQueue();
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+console.log("e-Barangay Starter Kit Initialized. Happy Coding!");
+
+provinces();
+loadOfflineQueue();
+renderQueue();
+renderPOS();
+});
