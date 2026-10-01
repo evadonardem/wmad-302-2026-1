@@ -2,10 +2,19 @@ import console from 'node:console';
 
 export function summarizeSariSariSales(transactions) {
   // TODO: Filter out 'voided'/'refunded' and reduce by category
+   return transactions
+    .filter((t) => t.status !== 'voided' && t.status !== 'refunded')
+    .reduce((summary, t) => {
+      summary[t.category] = (summary[t.category] || 0) + t.amount;
+      return summary;
+    }, {});
 }
 
 export function extractUniqueBarangays(riders) {
-  // TODO: Extract all barangays, deduplicate via Set, and sort alphabetically
+   // TODO: Extract all barangays, deduplicate via Set, and sort alphabetically
+  const all = riders.flatMap((rider) => rider.coveredBarangays);
+  return [...new Set(all)].sort();
+  
 }
 
 export function runDataStructuresTests() {
