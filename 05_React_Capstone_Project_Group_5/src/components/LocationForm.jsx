@@ -11,10 +11,22 @@ export default function LocationForm({ onSearch }) {
   // - 'selectedCityName': String tracking the actual chosen city text name to feed the search keyword engine (default: empty string)
   // [Your code here]
 
+  const [regions, setRegions] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [selectedCityName, setSelectedCityName] = useState('');
+
   useEffect(() => {
     // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside a mounting side-effect.
     // Set the returned collection smoothly into your local regions state layer.
     // [Your code here]
+
+    const loadRegions = async () => {
+      const data = await getRegions();
+      setRegions(data);
+    };
+
+    loadRegions();
   }, []);
 
   useEffect(() => {
@@ -22,6 +34,19 @@ export default function LocationForm({ onSearch }) {
     // If selectedRegion is a valid code, call 'getCitiesMunicipalitiesByRegion(selectedRegion)' and load the cities list state.
     // CRITICAL: Reset your 'selectedCityName' tracking states back to an empty string to keep inputs contextually clean!
     // [Your code here]
+
+    if (selectedRegion) {
+      const loadCities = async () => {
+        const data = await getCitiesMunicipalitiesByRegion(selectedRegion);
+        setCities(data);
+      };
+
+      loadCities();
+    } else {
+      setCities([]);
+    }
+
+    setSelectedCityName('');
   }, [selectedRegion]);
 
   const handleSubmit = (e) => {
@@ -29,6 +54,8 @@ export default function LocationForm({ onSearch }) {
     // TODO 2.4 [Form Submit Bubble]: Trigger the structural context parent callback routine 'onSearch' 
     // passing through your active 'selectedCityName' value string.
     // [Your code here]
+
+    onSearch(selectedCityName);
   };
 
   return (
@@ -43,10 +70,18 @@ export default function LocationForm({ onSearch }) {
             labelId="region-label"
             label="Select Region"
             // [Your props here]
+            value={selectedRegion}
+            onChange={(e) => setSelectedRegion(e.target.value)}
           >
             {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
                 to output item choice options. Use region.code as the structural value and region.name for text displays. */}
             {/* [Your code here] */}
+
+            {regions.map((region) => (
+              <MenuItem key={region.code} value={region.code}>
+                {region.name}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -58,10 +93,18 @@ export default function LocationForm({ onSearch }) {
             labelId="city-label"
             label="Select City / Municipality"
             // [Your props here]
+            value={selectedCityName}
+            onChange={(e) => setSelectedCityName(e.target.value)}
           >
             {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.
                 Use city.code/id for selection key tracking and map city.name directly for option layout configurations. */}
             {/* [Your code here] */}
+
+            {cities.map((city) => (
+              <MenuItem key={city.code || city.id} value={city.name}>
+                {city.name}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
