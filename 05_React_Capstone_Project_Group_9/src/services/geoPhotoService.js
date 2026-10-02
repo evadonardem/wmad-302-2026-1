@@ -38,7 +38,7 @@ export const getCitiesMunicipalitiesByRegion = async (regionCode) => {
 };
 
 export const searchPhotosByLocation = async (locationName) => {
-  // TODO 1.4 [Pexels Query Resolution]
+   // TODO 1.4 [Pexels Query Resolution]
   try {
     // a. Combined keyword string
     const keyword = `${locationName} tourist spot`;
@@ -49,7 +49,7 @@ export const searchPhotosByLocation = async (locationName) => {
       headers: { Authorization: PEXELS_API_KEY },
     });
 
-    // d. Streamlined photo objects
+     // d. Streamlined photo objects
     return response.data.photos.map((photo) => ({
       id: photo.id,
       imageUrl: photo.src.large,
@@ -58,7 +58,7 @@ export const searchPhotosByLocation = async (locationName) => {
       altText: photo.alt || keyword,
     }));
   } catch (error) {
-    // e. Backup empty array so the UI never crashes
+     // e. Backup empty array so the UI never crashes
     console.error('Failed to fetch photos:', error);
     return [];
   }

@@ -118,7 +118,7 @@ export default function App() {
               </IconButton>
             </Box>
 
-            <Typography variant="h3" component="h1" fontWeight="bold" gutterBottom color="#cafffe,#ff00ff">
+            <Typography variant="h3" component="h1" fontWeight="bold" gutterBottom color="#cafffe">
               🇵🇭 Lakbay PH
             </Typography>
             <Typography variant="subtitle1" sx={{ mb: 4, color: 'rgba(255,255,255,0.9)' }}>

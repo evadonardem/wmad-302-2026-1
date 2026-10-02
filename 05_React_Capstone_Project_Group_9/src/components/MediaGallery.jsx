@@ -20,7 +20,7 @@ export default function MediaGallery({ photos, loading }) {
     );
   }
 
-  // TODO 3.2 [Boundary Validation Checks]
+   // TODO 3.2 [Boundary Validation Checks]
   if (!photos || photos.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 6 }}>
@@ -32,7 +32,7 @@ export default function MediaGallery({ photos, loading }) {
   }
 
   return (
-    // TODO 3.3 [Fluid Layout Architecture]
+     // TODO 3.3 [Fluid Layout Architecture]
     <Grid container spacing={3}>
       {/* TODO 3.4 [Card Content Loop Mapping] */}
       {photos.map((photo) => (

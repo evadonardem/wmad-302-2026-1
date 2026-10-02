@@ -76,14 +76,14 @@ export default function LocationForm({ onSearch }) {
 
         <FormControl fullWidth size="small" disabled={!selectedRegion}>
           <InputLabel id="city-label">Select City / Municipality</InputLabel>
-          {/* TODO 2.7 [Controlled Child Select] */}
+          { /* TODO 2.7 [Controlled Child Select] */}
           <Select
             labelId="city-label"
             label="Select City / Municipality"
             value={selectedCityName}
             onChange={(e) => setSelectedCityName(e.target.value)}
           >
-            {/* TODO 2.8 [City Menu Map] */}
+            { /* TODO 2.8 [City Menu Map] */}
             {cities.map((city) => (
               <MenuItem key={city.code} value={city.name}>
                 {city.name}
