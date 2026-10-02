@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, FormControl, InputLabel, Select, MenuItem, Button, Stack } from '@mui/material';
-import { Search } from '@mui/icons-material';
+import {Box,FormControl,InputLabel,Select,MenuItem,Button,Stack,InputAdornment,FormHelperText,} from '@mui/material';
+import { Search, Public, LocationCity } from '@mui/icons-material';
 import { getRegions, getCitiesMunicipalitiesByRegion } from '../services/geoPhotoService';
 
 export default function LocationForm({ onSearch }) {
@@ -15,18 +15,25 @@ export default function LocationForm({ onSearch }) {
   const [cities, setCities] = useState([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedCityName, setSelectedCityName] = useState('');
+  const [citiesLoading, setCitiesLoading] = useState(false);
 
   useEffect(() => {
     // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside a mounting side-effect.
     // Set the returned collection smoothly into your local regions state layer.
     // [Your code here]
 
+    let cancelled = false;
+
     const loadRegions = async () => {
       const data = await getRegions();
-      setRegions(data);
+      if (!cancelled) setRegions(data);
     };
 
     loadRegions();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -35,18 +42,28 @@ export default function LocationForm({ onSearch }) {
     // CRITICAL: Reset your 'selectedCityName' tracking states back to an empty string to keep inputs contextually clean!
     // [Your code here]
 
-    if (selectedRegion) {
-      const loadCities = async () => {
-        const data = await getCitiesMunicipalitiesByRegion(selectedRegion);
-        setCities(data);
-      };
-
-      loadCities();
-    } else {
-      setCities([]);
-    }
-
     setSelectedCityName('');
+    setCities([]);
+
+    if (!selectedRegion) return;
+
+    // 'cancelled' guards against race conditions when the user switches regions quickly
+    let cancelled = false;
+
+    const loadCities = async () => {
+      setCitiesLoading(true);
+      const data = await getCitiesMunicipalitiesByRegion(selectedRegion);
+      if (!cancelled) {
+        setCities(data);
+        setCitiesLoading(false);
+      }
+    };
+
+    loadCities();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedRegion]);
 
   const handleSubmit = (e) => {
@@ -59,10 +76,10 @@ export default function LocationForm({ onSearch }) {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%', mb: 4 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-        
-        <FormControl fullWidth size="small">
+    <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'flex-start' }}>
+
+        <FormControl fullWidth>
           <InputLabel id="region-label">Select Region</InputLabel>
           {/* TODO 2.5 [Controlled Parent Select]: Bind the Select component value to your region state.
               Implement an onChange handler to update your 'selectedRegion' with 'e.target.value'. */}
@@ -72,6 +89,12 @@ export default function LocationForm({ onSearch }) {
             // [Your props here]
             value={selectedRegion}
             onChange={(e) => setSelectedRegion(e.target.value)}
+            startAdornment={
+              <InputAdornment position="start">
+                <Public color="primary" />
+              </InputAdornment>
+            }
+            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
           >
             {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
                 to output item choice options. Use region.code as the structural value and region.name for text displays. */}
@@ -85,7 +108,7 @@ export default function LocationForm({ onSearch }) {
           </Select>
         </FormControl>
 
-        <FormControl fullWidth size="small" disabled={!selectedRegion}>
+        <FormControl fullWidth disabled={!selectedRegion || citiesLoading}>
           <InputLabel id="city-label">Select City / Municipality</InputLabel>
           {/* TODO 2.7 [Controlled Child Select]: Bind the Select value to your city state property layout tracker.
               Capture 'e.target.value' into 'selectedCityName' inside your execution handler block. */}
@@ -95,6 +118,12 @@ export default function LocationForm({ onSearch }) {
             // [Your props here]
             value={selectedCityName}
             onChange={(e) => setSelectedCityName(e.target.value)}
+            startAdornment={
+              <InputAdornment position="start">
+                <LocationCity color={selectedRegion ? 'primary' : 'disabled'} />
+              </InputAdornment>
+            }
+            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
           >
             {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.
                 Use city.code/id for selection key tracking and map city.name directly for option layout configurations. */}
@@ -106,14 +135,16 @@ export default function LocationForm({ onSearch }) {
               </MenuItem>
             ))}
           </Select>
+          {citiesLoading && <FormHelperText>Loading cities…</FormHelperText>}
         </FormControl>
 
         <Button
           type="submit"
           variant="contained"
+          size="large"
           startIcon={<Search />}
           disabled={!selectedCityName}
-          sx={{ textTransform: 'none', px: 4 }}
+          sx={{ px: 4, height: 56, minWidth: { md: 160 }, boxShadow: 3 }}
         >
           Search
         </Button>
