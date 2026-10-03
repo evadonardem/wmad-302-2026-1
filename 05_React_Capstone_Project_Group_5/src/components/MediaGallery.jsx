@@ -1,6 +1,36 @@
 import React, { useState } from 'react';
-import {Box,Card,CardMedia,CardContent,Typography,Link,Skeleton,Chip,Avatar,IconButton,Tooltip,Grow,Stack,Dialog,Snackbar,} from '@mui/material';
-import {Place,OpenInNew,Landscape,Favorite,FavoriteBorder,ZoomIn,Close,ChevronLeft,ChevronRight,ContentCopy,} from '@mui/icons-material';
+import {
+  Box,
+  Card,
+  CardMedia,
+  CardContent,
+  Typography,
+  Link,
+  Skeleton,
+  Chip,
+  Avatar,
+  IconButton,
+  Tooltip,
+  Grow,
+  Stack,
+  Dialog,
+  Snackbar,
+  Button,
+} from '@mui/material';
+import {
+  Place,
+  OpenInNew,
+  Landscape,
+  Favorite,
+  FavoriteBorder,
+  ZoomIn,
+  Close,
+  ChevronLeft,
+  ChevronRight,
+  ContentCopy,
+  Download,
+  DeleteSweep,
+} from '@mui/icons-material';
 
 const FAVORITES_KEY = 'lakbay_favorite_photos';
 
@@ -13,6 +43,15 @@ const gridSx = {
     sm: 'repeat(2, 1fr)',
     md: 'repeat(3, 1fr)',
   },
+};
+
+// Small round button used on top of photos
+const overlayBtnSx = {
+  position: 'absolute',
+  top: 10,
+  bgcolor: 'rgba(0,0,0,0.45)',
+  color: '#fff',
+  '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
 };
 
 export default function MediaGallery({ photos, loading, hasSearched = true, locationName = '' }) {
@@ -48,12 +87,45 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
     }
   };
 
+  // Remove every saved photo at once
+  const clearFavorites = () => {
+    if (!window.confirm('Remove all saved photos?')) return;
+    setFavorites([]);
+    setLightboxIndex(null);
+    try {
+      localStorage.removeItem(FAVORITES_KEY);
+    } catch {
+      // storage unavailable: ignore
+    }
+    setToast('All saved photos cleared');
+  };
+
   const copyLink = async (photo) => {
     try {
       await navigator.clipboard.writeText(photo.imageUrl);
       setToast('Photo link copied');
     } catch {
       setToast('Could not copy the link');
+    }
+  };
+
+  // Download the photo as a file (falls back to opening it in a new tab)
+  const downloadPhoto = async (photo) => {
+    try {
+      const response = await fetch(photo.imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `lakbay-ph-${photo.id}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setToast('Download started');
+    } catch {
+      window.open(photo.imageUrl, '_blank', 'noopener,noreferrer');
+      setToast('Opened the photo in a new tab. Right-click it to save.');
     }
   };
 
@@ -91,7 +163,7 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
     );
   }
 
-  // Toolbar: heading + saved-photos toggle
+  // Toolbar: heading + saved-photos toggle (+ clear all when viewing saved photos)
   const toolbar = (
     <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
       <Typography variant="h5" component="h2">
@@ -99,6 +171,11 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
       </Typography>
       <Chip label={`${displayed.length} photos`} color="primary" size="small" />
       <Box sx={{ flexGrow: 1 }} />
+      {showFavorites && favorites.length > 0 && (
+        <Button size="small" color="error" variant="outlined" startIcon={<DeleteSweep />} onClick={clearFavorites}>
+          Clear all
+        </Button>
+      )}
       {(favorites.length > 0 || showFavorites) && (
         <Chip
           icon={showFavorites ? <Favorite /> : <FavoriteBorder />}
@@ -224,27 +301,36 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
                       e.stopPropagation();
                       toggleFavorite(photo);
                     }}
-                    sx={{
-                      position: 'absolute',
-                      top: 10,
-                      right: 10,
-                      bgcolor: 'rgba(0,0,0,0.45)',
-                      color: isFavorite(photo.id) ? '#ff5a7a' : '#fff',
-                      '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
-                    }}
+                    sx={{ ...overlayBtnSx, right: 10, color: isFavorite(photo.id) ? '#ff5a7a' : '#fff' }}
                   >
                     {isFavorite(photo.id) ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
                   </IconButton>
                 </Tooltip>
 
+                {/* Download button */}
+                <Tooltip title="Download photo">
+                  <IconButton
+                    size="small"
+                    aria-label="download photo"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadPhoto(photo);
+                    }}
+                    sx={{ ...overlayBtnSx, right: 52 }}
+                  >
+                    <Download fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
                 <Chip
                   icon={<Place />}
-                  label={photo.location || locationName}
+                  label={photo.recommended ? `${photo.recommended} · ${photo.location || locationName}` : photo.location || locationName}
                   size="small"
                   sx={{
                     position: 'absolute',
                     bottom: 12,
                     left: 12,
+                    maxWidth: 'calc(100% - 24px)',
                     color: '#fff',
                     bgcolor: 'rgba(0,0,0,0.55)',
                     backdropFilter: 'blur(4px)',
@@ -298,7 +384,7 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
         {/* End Loop */}
       </Box>
 
-      {/* Lightbox: enlarged photo with arrows, keyboard navigation and actions */}
+      {/* Lightbox: enlarged photo with description, arrows, keyboard navigation and actions */}
       <Dialog
         open={Boolean(current)}
         onClose={closeLightbox}
@@ -325,7 +411,7 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
                 component="img"
                 src={current.imageUrl}
                 alt={current.altText}
-                sx={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', display: 'block' }}
+                sx={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', display: 'block' }}
               />
 
               <IconButton
@@ -356,6 +442,20 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
               )}
             </Box>
 
+            {/* Label + description of the photo */}
+            <Box sx={{ px: 2, pt: 2 }}>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 0.5 }}>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {current.category ? `${current.category} · ` : ''}
+                  {current.location || locationName}
+                  {current.recommended ? ` · recommended: ${current.recommended}` : ''}
+                </Typography>
+              </Stack>
+              <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                {current.altText || `Tourist spot in ${current.location || locationName}.`}
+              </Typography>
+            </Box>
+
             <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap sx={{ p: 2 }}>
               <Avatar sx={{ bgcolor: 'primary.main' }}>{current.photographer?.charAt(0)}</Avatar>
               <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -374,17 +474,16 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
                 </Link>
               </Box>
 
-              <Chip
-                icon={<Place />}
-                label={current.location || locationName}
-                size="small"
-                sx={{ color: '#fff', '& .MuiChip-icon': { color: '#fff' }, bgcolor: 'rgba(255,255,255,0.12)' }}
-              />
               <Chip label={`${lightboxIndex + 1} / ${displayed.length}`} size="small" sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.12)' }} />
 
               <Tooltip title={isFavorite(current.id) ? 'Remove from saved' : 'Save photo'}>
                 <IconButton onClick={() => toggleFavorite(current)} sx={{ color: isFavorite(current.id) ? '#ff5a7a' : '#fff' }}>
                   {isFavorite(current.id) ? <Favorite /> : <FavoriteBorder />}
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Download photo">
+                <IconButton onClick={() => downloadPhoto(current)} sx={{ color: '#fff' }}>
+                  <Download />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Copy photo link">

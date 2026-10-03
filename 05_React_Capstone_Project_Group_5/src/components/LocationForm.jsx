@@ -1,7 +1,53 @@
 import React, { useEffect, useState } from 'react';
-import {Box,FormControl,InputLabel,Select,MenuItem,Button,Stack,InputAdornment,FormHelperText,} from '@mui/material';
+import { Box, FormControl, InputLabel, Select, MenuItem, Button, Stack, InputAdornment, FormHelperText, ListSubheader, TextField, } from '@mui/material';
 import { Search, Public, LocationCity } from '@mui/icons-material';
 import { getRegions, getCitiesMunicipalitiesByRegion } from '../services/geoPhotoService';
+
+// ADDED: search filter used by the search bars inside the dropdowns.
+// Names starting with the typed letters come first (ignoring a leading "City of" / "Municipality of"),
+// followed by names that merely contain them. Empty input shows everything.
+const filterByTyping = (options, query) => {
+  const q = query.trim().toLowerCase();
+  if (!q) return options;
+
+  const starts = [];
+  const contains = [];
+
+  options.forEach((option) => {
+    const name = option.name.toLowerCase();
+    const core = name.replace(/^(island garden city of|city of|municipality of)\s+/, '');
+    if (name.startsWith(q) || core.startsWith(q)) starts.push(option);
+    else if (name.includes(q)) contains.push(option);
+  });
+
+  return [...starts, ...contains];
+};
+
+// ADDED: search box shown at the top of a dropdown menu
+const MenuSearchBox = ({ value, onChange, placeholder }) => (
+  <ListSubheader sx={{ bgcolor: 'background.paper', py: 1 }}>
+    <TextField
+      size="small"
+      autoFocus
+      fullWidth
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        // keep typing inside the box (otherwise the menu jumps to items by letter), but let Escape close the menu
+        if (e.key !== 'Escape') e.stopPropagation();
+      }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Search fontSize="small" />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </ListSubheader>
+);
 
 export default function LocationForm({ onSearch }) {
   // TODO 2.1 [State Trackers]: Initialize four separate local state layers:
@@ -16,6 +62,10 @@ export default function LocationForm({ onSearch }) {
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedCityName, setSelectedCityName] = useState('');
   const [citiesLoading, setCitiesLoading] = useState(false);
+
+  // ADDED: what the user typed in each dropdown's search bar
+  const [regionQuery, setRegionQuery] = useState('');
+  const [cityQuery, setCityQuery] = useState('');
 
   useEffect(() => {
     // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside a mounting side-effect.
@@ -75,6 +125,11 @@ export default function LocationForm({ onSearch }) {
     onSearch(selectedCityName);
   };
 
+  // ADDED: lists after applying the search bars. The currently selected item is always kept in the list
+  // (hidden if it does not match the search) so the Select never loses its selected value while filtering.
+  const filteredRegions = filterByTyping(regions, regionQuery);
+  const filteredCities = filterByTyping(cities, cityQuery);
+
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'flex-start' }}>
@@ -89,22 +144,42 @@ export default function LocationForm({ onSearch }) {
             // [Your props here]
             value={selectedRegion}
             onChange={(e) => setSelectedRegion(e.target.value)}
+            onClose={() => setRegionQuery('')}
             startAdornment={
               <InputAdornment position="start">
                 <Public color="primary" />
               </InputAdornment>
             }
-            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+            MenuProps={{ autoFocus: false, PaperProps: { sx: { maxHeight: 320 } } }}
           >
+            {/* ADDED: search bar at the top of the region list */}
+            <MenuSearchBox value={regionQuery} onChange={setRegionQuery} placeholder="Search region…" />
+
             {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
                 to output item choice options. Use region.code as the structural value and region.name for text displays. */}
             {/* [Your code here] */}
 
-            {regions.map((region) => (
-              <MenuItem key={region.code} value={region.code}>
-                {region.name}
-              </MenuItem>
-            ))}
+            {regions
+              .filter((region) => filteredRegions.includes(region) || region.code === selectedRegion)
+              .sort((a, b) => {
+                // keep the best matches (starts-with first) in order
+                const ai = filteredRegions.indexOf(a);
+                const bi = filteredRegions.indexOf(b);
+                return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+              })
+              .map((region) => (
+                <MenuItem
+                  key={region.code}
+                  value={region.code}
+                  sx={filteredRegions.includes(region) ? undefined : { display: 'none' }}
+                >
+                  {region.name}
+                </MenuItem>
+              ))}
+
+            {regionQuery && filteredRegions.length === 0 && (
+              <MenuItem disabled>No matching region</MenuItem>
+            )}
           </Select>
         </FormControl>
 
@@ -118,22 +193,41 @@ export default function LocationForm({ onSearch }) {
             // [Your props here]
             value={selectedCityName}
             onChange={(e) => setSelectedCityName(e.target.value)}
+            onClose={() => setCityQuery('')}
             startAdornment={
               <InputAdornment position="start">
                 <LocationCity color={selectedRegion ? 'primary' : 'disabled'} />
               </InputAdornment>
             }
-            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+            MenuProps={{ autoFocus: false, PaperProps: { sx: { maxHeight: 320 } } }}
           >
+            {/* ADDED: search bar at the top of the city / municipality list */}
+            <MenuSearchBox value={cityQuery} onChange={setCityQuery} placeholder="Search city / municipality…" />
+
             {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.
                 Use city.code/id for selection key tracking and map city.name directly for option layout configurations. */}
             {/* [Your code here] */}
 
-            {cities.map((city) => (
-              <MenuItem key={city.code || city.id} value={city.name}>
-                {city.name}
-              </MenuItem>
-            ))}
+            {cities
+              .filter((city) => filteredCities.includes(city) || city.name === selectedCityName)
+              .sort((a, b) => {
+                const ai = filteredCities.indexOf(a);
+                const bi = filteredCities.indexOf(b);
+                return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+              })
+              .map((city) => (
+                <MenuItem
+                  key={city.code || city.id}
+                  value={city.name}
+                  sx={filteredCities.includes(city) ? undefined : { display: 'none' }}
+                >
+                  {city.name}
+                </MenuItem>
+              ))}
+
+            {cityQuery && filteredCities.length === 0 && (
+              <MenuItem disabled>No matching city / municipality</MenuItem>
+            )}
           </Select>
           {citiesLoading && <FormHelperText>Loading cities…</FormHelperText>}
         </FormControl>

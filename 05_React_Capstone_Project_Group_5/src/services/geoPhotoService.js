@@ -42,7 +42,10 @@ export const getCitiesMunicipalitiesByRegion = async (regionCode) => {
   }
 };
 
-export const searchPhotosByLocation = async (locationName) => {
+// 'perPage' is optional (default 12). The app asks for more photos so it can filter them by place.
+// Pexels allows at most 80 photos per request, so 'total' photos are fetched page by page.
+// 'total' is optional (default 100 = two requests of 50 photos).
+export const searchPhotosByLocation = async (locationName, total = 100) => {
   // TODO 1.4 [Pexels Query Resolution]: Formulate the dynamic target endpoint string URL.
   // a. Create a combined query keyword string: "[locationName] tourist spot".
   // b. Query the structural Pexels endpoint path: 'https://pexels.com[keyword]&per_page=12'.
@@ -58,21 +61,36 @@ export const searchPhotosByLocation = async (locationName) => {
   try {
     const query = `${locationName} tourist spot`;
 
-    const response = await axios.get(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=12`,
-      {
-        headers: {
-          Authorization: PEXELS_API_KEY
-        }
-      }
+    // e.g. total = 100 -> 2 pages of 50 photos
+    const pages = Math.ceil(total / 80);
+    const perPage = Math.ceil(total / pages);
+
+    const responses = await Promise.allSettled(
+      Array.from({ length: pages }, (_, index) =>
+        axios.get('https://api.pexels.com/v1/search', {
+          params: { query, per_page: perPage, page: index + 1 },
+          headers: {
+            Authorization: PEXELS_API_KEY
+          }
+        })
+      )
     );
 
-    return response.data.photos.map((photo) => ({
+    // A page that fails is skipped, the other pages are still used
+    const photos = responses.flatMap((result) => {
+      if (result.status === 'fulfilled') return result.value.data.photos;
+      console.error('Error fetching a page of photos:', result.reason);
+      return [];
+    });
+
+    return photos.map((photo) => ({
       id: photo.id,
       imageUrl: photo.src.large,
       photographer: photo.photographer,
       photographerUrl: photo.photographer_url,
-      altText: photo.alt
+      altText: photo.alt,
+      // Added: the Pexels page link. Its text is used to check which place the photo is from.
+      sourceUrl: photo.url
     }));
   } catch (error) {
     console.error('Error fetching photos:', error);
