@@ -243,7 +243,8 @@ const buttonFitSx = {
 
 const HERO_SPOT_MS = 1000; 
 const HERO_FULL_MS = 7000; 
-const HERO_BACK_MS = 1200; 
+const HERO_BACK_MS = 1200;
+const FEATURED_REFRESH_EVERY = 3; 
 
 function HeroCarousel({ photos }) {
   const theme = useTheme();
@@ -731,7 +732,7 @@ export default function App() {
     const loadHero = async () => {
       const lists = await Promise.all(
         HERO_QUERIES.map(async (query) => {
-          const found = await searchPhotosByLocation(query, 30);
+          const found = await searchPhotosByLocation(query, 25);
           return found.filter((p) => (p.width ? p.width >= 3000 && p.width > p.height : true));
         })
       );
@@ -754,8 +755,11 @@ export default function App() {
     let cancelled = false;
 
     const loadFeatured = async () => {
+      if (featuredRound % FEATURED_REFRESH_EVERY !== 0 && lastFeatured.current.length > 0) {
+        setFeaturedTick(0);
+        return;
+      }
       const regions = await getRegions();
-    
       const fresh = regions.filter((region) => !lastFeatured.current.includes(region.name));
       const picks = shuffle(fresh.length >= 6 ? fresh : regions).slice(0, 6);
 
