@@ -1,79 +1,148 @@
 import React, { useEffect, useState } from 'react';
-import { Box, FormControl, InputLabel, Select, MenuItem, Button, Stack } from '@mui/material';
+import { Box, Autocomplete, TextField, Button, Stack } from '@mui/material';
 import { Search } from '@mui/icons-material';
 import { getRegions, getCitiesMunicipalitiesByRegion } from '../services/geoPhotoService';
 
 export default function LocationForm({ onSearch }) {
-  // TODO 2.1 [State Trackers]: Initialize four separate local state layers:
-  // - 'regions': Stores array of all regions (default: empty array)
-  // - 'cities': Stores array of filtered sub-municipalities (default: empty array)
-  // - 'selectedRegion': String tracking the chosen active region code (default: empty string)
-  // - 'selectedCityName': String tracking the actual chosen city text name to feed the search keyword engine (default: empty string)
-  // [Your code here]
+  // TODO 2.1 [State Trackers]: Store regions, cities, selected region, and selected city.
+  const [regions, setRegions] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedCityName, setSelectedCityName] = useState('');
 
   useEffect(() => {
-    // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside a mounting side-effect.
-    // Set the returned collection smoothly into your local regions state layer.
-    // [Your code here]
+    // TODO 2.2 [Initial Data Populate]: Load all regions when the component starts.
+    getRegions().then((data) => {
+      setRegions(data);
+    });
   }, []);
 
   useEffect(() => {
-    // TODO 2.3 [Reactive Cascading Refresh]: Trigger an asynchronous refresh whenever 'selectedRegion' changes.
-    // If selectedRegion is a valid code, call 'getCitiesMunicipalitiesByRegion(selectedRegion)' and load the cities list state.
-    // CRITICAL: Reset your 'selectedCityName' tracking states back to an empty string to keep inputs contextually clean!
-    // [Your code here]
+    // TODO 2.3 [Reactive Cascading Refresh]: Load cities based on the selected region.
+    if (selectedRegion) {
+      getCitiesMunicipalitiesByRegion(selectedRegion.code).then((data) => {
+        setCities(data);
+      });
+    } else {
+      setCities([]);
+    }
+
+    // Reset the city when the region changes.
+    setSelectedCityName('');
   }, [selectedRegion]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO 2.4 [Form Submit Bubble]: Trigger the structural context parent callback routine 'onSearch' 
-    // passing through your active 'selectedCityName' value string.
-    // [Your code here]
+
+    // TODO 2.4 [Form Submit Bubble]: Send the selected city to the parent component.
+    onSearch(selectedCityName);
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%', mb: 4 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-        
-        <FormControl fullWidth size="small">
-          <InputLabel id="region-label">Select Region</InputLabel>
-          {/* TODO 2.5 [Controlled Parent Select]: Bind the Select component value to your region state.
-              Implement an onChange handler to update your 'selectedRegion' with 'e.target.value'. */}
-          <Select
-            labelId="region-label"
-            label="Select Region"
-            // [Your props here]
-          >
-            {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
-                to output item choice options. Use region.code as the structural value and region.name for text displays. */}
-            {/* [Your code here] */}
-          </Select>
-        </FormControl>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        justifyContent="center"
+      >
 
-        <FormControl fullWidth size="small" disabled={!selectedRegion}>
-          <InputLabel id="city-label">Select City / Municipality</InputLabel>
-          {/* TODO 2.7 [Controlled Child Select]: Bind the Select value to your city state property layout tracker.
-              Capture 'e.target.value' into 'selectedCityName' inside your execution handler block. */}
-          <Select
-            labelId="city-label"
-            label="Select City / Municipality"
-            // [Your props here]
-          >
-            {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.
-                Use city.code/id for selection key tracking and map city.name directly for option layout configurations. */}
-            {/* [Your code here] */}
-          </Select>
-        </FormControl>
+        {/* TODO 2.5 [Controlled Parent Select]: Connect the region autocomplete to its state. */}
+        <Autocomplete
+          fullWidth
+          options={[...regions].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          )}
+          value={selectedRegion}
+          onChange={(e, newValue) => {
+            setSelectedRegion(newValue);
+          }}
+          getOptionLabel={(option) => option.name || ''}
+          isOptionEqualToValue={(option, value) =>
+            option.code === value.code
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Select Region"
+              size="small"
+              InputLabelProps={{
+                ...params.InputLabelProps,
+                shrink: false,
+              }}
+              sx={{
+                '& .MuiInputLabel-root': {
+                  color: '#000000',
+                },
+
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#000000',
+                },
+
+                '& .MuiOutlinedInput-input': {
+                  color: '#000000',
+                },
+              }}
+            />
+          )}
+        />
+
+        {/* TODO 2.7 [Controlled Child Select]: Connect the city autocomplete to its state. */}
+        <Autocomplete
+          fullWidth
+          disabled={!selectedRegion}
+          options={[...cities].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          )}
+          value={
+            cities.find((city) => city.name === selectedCityName) || null
+          }
+          onChange={(e, newValue) => {
+            setSelectedCityName(newValue ? newValue.name : '');
+          }}
+          getOptionLabel={(option) => option.name || ''}
+          isOptionEqualToValue={(option, value) =>
+            option.code === value.code
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Select City / Municipality"
+              size="small"
+              InputLabelProps={{
+                ...params.InputLabelProps,
+                shrink: false,
+              }}
+              sx={{
+                '& .MuiInputLabel-root': {
+                  color: '#000000',
+                },
+
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#000000',
+                },
+
+                '& .MuiOutlinedInput-input': {
+                  color: '#000000',
+                },
+              }}
+            />
+          )}
+        />
 
         <Button
           type="submit"
           variant="contained"
           startIcon={<Search />}
           disabled={!selectedCityName}
-          sx={{ textTransform: 'none', px: 4 }}
+          sx={{
+            textTransform: 'none',
+            px: 4,
+            minWidth: { sm: 120 },
+          }}
         >
           Search
         </Button>
+
       </Stack>
     </Box>
   );
