@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(13, 118, 111, 0.12);
+}
+
+.hero-panel::after {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  right: -100px;
+  top: -110px;
+  background: rgba(239, 131, 84, 0.14);
+  pointer-events: none;
+}
+
+.photo-card {
+  overflow: hidden;
+  border: 1px solid;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.photo-card:hover {
+  transform: translateY(-5px);
+}
+
+.photo-overlay {
+  opacity: 0;
+  background: rgba(10, 45, 43, 0.48);
+  transition: opacity 180ms ease;
+}
+
+.photo-card:hover .photo-overlay {
+  opacity: 1;
+}
