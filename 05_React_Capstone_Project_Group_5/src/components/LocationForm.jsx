@@ -35,7 +35,6 @@ const MenuSearchBox = ({ value, onChange, placeholder }) => (
       onChange={(e) => onChange(e.target.value)}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
-        // keep typing inside the box (otherwise the menu jumps to items by letter), but let Escape close the menu
         if (e.key !== 'Escape') e.stopPropagation();
       }}
       InputProps={{
@@ -62,8 +61,6 @@ export default function LocationForm({ onSearch }) {
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedCityName, setSelectedCityName] = useState('');
   const [citiesLoading, setCitiesLoading] = useState(false);
-
-  // ADDED: what the user typed in each dropdown's search bar
   const [regionQuery, setRegionQuery] = useState('');
   const [cityQuery, setCityQuery] = useState('');
 
@@ -125,8 +122,6 @@ export default function LocationForm({ onSearch }) {
     onSearch(selectedCityName);
   };
 
-  // ADDED: lists after applying the search bars. The currently selected item is always kept in the list
-  // (hidden if it does not match the search) so the Select never loses its selected value while filtering.
   const filteredRegions = filterByTyping(regions, regionQuery);
   const filteredCities = filterByTyping(cities, cityQuery);
 
@@ -152,7 +147,6 @@ export default function LocationForm({ onSearch }) {
             }
             MenuProps={{ autoFocus: false, PaperProps: { sx: { maxHeight: 320 } } }}
           >
-            {/* ADDED: search bar at the top of the region list */}
             <MenuSearchBox value={regionQuery} onChange={setRegionQuery} placeholder="Search region…" />
 
             {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state layer 
@@ -201,7 +195,6 @@ export default function LocationForm({ onSearch }) {
             }
             MenuProps={{ autoFocus: false, PaperProps: { sx: { maxHeight: 320 } } }}
           >
-            {/* ADDED: search bar at the top of the city / municipality list */}
             <MenuSearchBox value={cityQuery} onChange={setCityQuery} placeholder="Search city / municipality…" />
 
             {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state dynamically.

@@ -42,7 +42,20 @@ export const getCitiesMunicipalitiesByRegion = async (regionCode) => {
   }
 };
 
-// 'perPage' is optional (default 12). The app asks for more photos so it can filter them by place.
+export const getProvinceByCode = async (provinceCode) => {
+  if (!provinceCode) {
+    return null;
+  }
+
+  try {
+    const response = await axios.get(`${PSGC_BASE_URL}/provinces/${provinceCode}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching province:', error);
+    return null;
+  }
+};
+
 // Pexels allows at most 80 photos per request, so 'total' photos are fetched page by page.
 // 'total' is optional (default 100 = two requests of 50 photos).
 export const searchPhotosByLocation = async (locationName, total = 100) => {
@@ -89,7 +102,9 @@ export const searchPhotosByLocation = async (locationName, total = 100) => {
       photographer: photo.photographer,
       photographerUrl: photo.photographer_url,
       altText: photo.alt,
-      // Added: the Pexels page link. Its text is used to check which place the photo is from.
+      highResUrl: photo.src.large2x,
+      width: photo.width,
+      height: photo.height,
       sourceUrl: photo.url
     }));
   } catch (error) {

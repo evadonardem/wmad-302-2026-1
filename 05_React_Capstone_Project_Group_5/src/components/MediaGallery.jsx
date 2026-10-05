@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Card,
@@ -16,6 +16,7 @@ import {
   Dialog,
   Snackbar,
   Button,
+  Pagination, // ADDED
 } from '@mui/material';
 import {
   Place,
@@ -33,8 +34,8 @@ import {
 } from '@mui/icons-material';
 
 const FAVORITES_KEY = 'lakbay_favorite_photos';
+const PAGE_SIZE = 9; 
 
-// Responsive CSS grid: 1 column on phones, 2 on tablets, 3 on desktops
 const gridSx = {
   display: 'grid',
   gap: 3,
@@ -66,9 +67,23 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
   const [showFavorites, setShowFavorites] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [toast, setToast] = useState('');
+  const [page, setPage] = useState(0); 
+  const galleryTop = useRef(null);
+
+  useEffect(() => {
+    setPage(0);
+  }, [photos, showFavorites]);
 
   const displayed = showFavorites ? favorites : photos || [];
   const current = lightboxIndex !== null ? displayed[lightboxIndex] : null;
+  const pageCount = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const pageStart = safePage * PAGE_SIZE;
+  const pagePhotos = displayed.slice(pageStart, pageStart + PAGE_SIZE);
+  const changePage = (next) => {
+    setPage(next);
+    galleryTop.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const isFavorite = (id) => favorites.some((item) => item.id === id);
 
@@ -83,11 +98,9 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
     try {
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
     } catch {
-      // storage unavailable: ignore
     }
   };
 
-  // Remove every saved photo at once
   const clearFavorites = () => {
     if (!window.confirm('Remove all saved photos?')) return;
     setFavorites([]);
@@ -95,7 +108,6 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
     try {
       localStorage.removeItem(FAVORITES_KEY);
     } catch {
-      // storage unavailable: ignore
     }
     setToast('All saved photos cleared');
   };
@@ -225,7 +237,7 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
   }
 
   return (
-    <Box>
+    <Box ref={galleryTop} sx={{ scrollMarginTop: 24 }}>
       {toolbar}
 
       {/* TODO 3.3 [Fluid Layout Architecture]: Implement a highly responsive grid container layout matching flexible sizing constraints.
@@ -234,155 +246,176 @@ export default function MediaGallery({ photos, loading, hasSearched = true, loca
         {/* TODO 3.4 [Card Content Loop Mapping]: Loop across the photo elements.
             Configure grid cell sizes dynamically matching view constraints: xs=12, sm=6, md=4 columns */}
         {/* [Your map loop here] */}
-        {displayed.map((photo, index) => (
-          <Grow in timeout={400 + Math.min(index, 8) * 120} key={photo.id}>
-            <Card
-              elevation={0}
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 4,
-                overflow: 'hidden',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                '&:hover': { transform: 'translateY(-6px)', boxShadow: 8 },
-                '&:hover .gallery-img': { transform: 'scale(1.06)' },
-                '&:hover .zoom-hint': { opacity: 1 },
-              }}
-            >
-              {/* Click (or press Enter on) the photo to enlarge it */}
-              <Box
-                role="button"
-                tabIndex={0}
-                aria-label={`Enlarge photo: ${photo.altText}`}
-                onClick={() => setLightboxIndex(index)}
-                onKeyDown={(e) => e.key === 'Enter' && setLightboxIndex(index)}
-                sx={{ position: 'relative', overflow: 'hidden', cursor: 'zoom-in' }}
+        {pagePhotos.map((photo, pageIndex) => {
+          const index = pageStart + pageIndex; // position in the full list (used by the enlarged view)
+          return (
+            <Grow in timeout={400 + Math.min(pageIndex, 8) * 120} key={photo.id}>
+              <Card
+                elevation={0}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  '&:hover': { transform: 'translateY(-6px)', boxShadow: 8 },
+                  '&:hover .gallery-img': { transform: 'scale(1.06)' },
+                  '&:hover .zoom-hint': { opacity: 1 },
+                }}
               >
-                {/* TODO 3.5 [Multimedia Presentation Layer]: Render an MUI <CardMedia /> item block targeting photo image pointers.
-                    Incorporate 'photo.imageUrl' into the media src layer and bind your 'photo.altText' to native asset labels. */}
-                {/* [Your code here] */}
-                <CardMedia
-                  className="gallery-img"
-                  component="img"
-                  height="240"
-                  image={photo.imageUrl}
-                  alt={photo.altText}
-                  loading="lazy"
-                  sx={{ objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                />
-
-                {/* Zoom hint on hover */}
+                {/* Click (or press Enter on) the photo to enlarge it */}
                 <Box
-                  className="zoom-hint"
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: 'rgba(0,0,0,0.25)',
-                    opacity: 0,
-                    transition: 'opacity 0.3s ease',
-                    pointerEvents: 'none',
-                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Enlarge photo: ${photo.altText}`}
+                  onClick={() => setLightboxIndex(index)}
+                  onKeyDown={(e) => e.key === 'Enter' && setLightboxIndex(index)}
+                  sx={{ position: 'relative', overflow: 'hidden', cursor: 'zoom-in' }}
                 >
-                  <ZoomIn sx={{ color: '#fff', fontSize: 48 }} />
-                </Box>
+                  {/* TODO 3.5 [Multimedia Presentation Layer]: Render an MUI <CardMedia /> item block targeting photo image pointers.
+                    Incorporate 'photo.imageUrl' into the media src layer and bind your 'photo.altText' to native asset labels. */}
+                  {/* [Your code here] */}
+                  <CardMedia
+                    className="gallery-img"
+                    component="img"
+                    height="240"
+                    image={photo.imageUrl}
+                    alt={photo.altText}
+                    loading="lazy"
+                    sx={{ objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                  />
 
-                {/* Save / unsave button */}
-                <Tooltip title={isFavorite(photo.id) ? 'Remove from saved' : 'Save photo'}>
-                  <IconButton
-                    size="small"
-                    aria-label="save photo"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(photo);
+                  {/* Zoom hint on hover */}
+                  <Box
+                    className="zoom-hint"
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: 'rgba(0,0,0,0.25)',
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease',
+                      pointerEvents: 'none',
                     }}
-                    sx={{ ...overlayBtnSx, right: 10, color: isFavorite(photo.id) ? '#ff5a7a' : '#fff' }}
                   >
-                    {isFavorite(photo.id) ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
-                  </IconButton>
-                </Tooltip>
-
-                {/* Download button */}
-                <Tooltip title="Download photo">
-                  <IconButton
-                    size="small"
-                    aria-label="download photo"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      downloadPhoto(photo);
-                    }}
-                    sx={{ ...overlayBtnSx, right: 52 }}
-                  >
-                    <Download fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-
-                <Chip
-                  icon={<Place />}
-                  label={photo.recommended ? `${photo.recommended} · ${photo.location || locationName}` : photo.location || locationName}
-                  size="small"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 12,
-                    left: 12,
-                    maxWidth: 'calc(100% - 24px)',
-                    color: '#fff',
-                    bgcolor: 'rgba(0,0,0,0.55)',
-                    backdropFilter: 'blur(4px)',
-                    '& .MuiChip-icon': { color: '#fff' },
-                  }}
-                />
-              </Box>
-
-              <CardContent sx={{ flexGrow: 1, p: 2 }}>
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
-                    {photo.photographer?.charAt(0)}
-                  </Avatar>
-                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography variant="caption" display="block" color="text.secondary">
-                      📸 Captured by:
-                    </Typography>
-                    {/* TODO 3.6 [Attribution Links]: Add an MUI external <Link> layout pointer.
-                        Configure href='photo.photographerUrl' and populate item typography displaying 'photo.photographer'. */}
-                    {/* [Your code here] */}
-                    <Link
-                      href={photo.photographerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      underline="hover"
-                      fontWeight={600}
-                      noWrap
-                      display="block"
-                    >
-                      {photo.photographer}
-                    </Link>
+                    <ZoomIn sx={{ color: '#fff', fontSize: 48 }} />
                   </Box>
-                  <Tooltip title="View photographer profile">
+
+                  {/* Save / unsave button */}
+                  <Tooltip title={isFavorite(photo.id) ? 'Remove from saved' : 'Save photo'}>
                     <IconButton
                       size="small"
-                      color="primary"
-                      component="a"
-                      href={photo.photographerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="open photographer profile"
+                      aria-label="save photo"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(photo);
+                      }}
+                      sx={{ ...overlayBtnSx, right: 10, color: isFavorite(photo.id) ? '#ff5a7a' : '#fff' }}
                     >
-                      <OpenInNew fontSize="small" />
+                      {isFavorite(photo.id) ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
                     </IconButton>
                   </Tooltip>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grow>
-        ))}
+
+                  {/* Download button */}
+                  <Tooltip title="Download photo">
+                    <IconButton
+                      size="small"
+                      aria-label="download photo"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadPhoto(photo);
+                      }}
+                      sx={{ ...overlayBtnSx, right: 52 }}
+                    >
+                      <Download fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Chip
+                    icon={<Place />}
+                    label={photo.recommended ? `${photo.recommended} · ${photo.location || locationName}` : photo.location || locationName}
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      bottom: 12,
+                      left: 12,
+                      maxWidth: 'calc(100% - 24px)',
+                      color: '#fff',
+                      bgcolor: 'rgba(0,0,0,0.55)',
+                      backdropFilter: 'blur(4px)',
+                      '& .MuiChip-icon': { color: '#fff' },
+                    }}
+                  />
+                </Box>
+
+                <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
+                      {photo.photographer?.charAt(0)}
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        📸 Captured by:
+                      </Typography>
+                      {/* TODO 3.6 [Attribution Links]: Add an MUI external <Link> layout pointer.
+                        Configure href='photo.photographerUrl' and populate item typography displaying 'photo.photographer'. */}
+                      {/* [Your code here] */}
+                      <Link
+                        href={photo.photographerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        underline="hover"
+                        fontWeight={600}
+                        noWrap
+                        display="block"
+                      >
+                        {photo.photographer}
+                      </Link>
+                    </Box>
+                    <Tooltip title="View photographer profile">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        component="a"
+                        href={photo.photographerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="open photographer profile"
+                      >
+                        <OpenInNew fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grow>
+          );
+        })}
         {/* End Loop */}
       </Box>
+
+      {/* ADDED: previous / next arrows and page numbers, centered below the photos (10 photos per page) */}
+      {pageCount > 1 && (
+        <Stack alignItems="center" justifyContent="center" spacing={1} sx={{ mt: 4, width: '100%', textAlign: 'center' }}>
+          <Pagination
+            sx={{ '& .MuiPagination-ul': { justifyContent: 'center' } }}
+            count={pageCount}
+            page={safePage + 1}
+            onChange={(e, value) => changePage(value - 1)}
+            color="primary"
+            shape="rounded"
+            size="large"
+          />
+          <Typography variant="caption" color="text.secondary">
+            Page {safePage + 1} of {pageCount} · Photos {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, displayed.length)} of {displayed.length}
+          </Typography>
+        </Stack>
+      )}
 
       {/* Lightbox: enlarged photo with description, arrows, keyboard navigation and actions */}
       <Dialog
