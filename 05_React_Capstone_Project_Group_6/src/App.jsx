@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
-import { Container, CssBaseline, ThemeProvider, createTheme, Typography, Box, IconButton, Paper } from '@mui/material';
-import { LightMode, DarkMode } from '@mui/icons-material';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Container, CssBaseline, ThemeProvider, createTheme, Typography, Box, IconButton,
+  Paper, Autocomplete, TextField, InputAdornment,
+} from '@mui/material';
+import { LightMode, DarkMode, Search } from '@mui/icons-material';
 import LocationForm from './components/LocationForm';
 import MediaGallery from './components/MediaGallery';
-import { searchPhotosByLocation, getPlaceIndex, cleanPlaceName} from './services/geoPhotoService';
+import { searchPhotosByLocation, getPlaceIndex, cleanPlaceName } from './services/geoPhotoService';
 
 
 const DEFAULT_PLACE = 'Philippines';
-function LiveBackground({ photos }) {
+export function LiveBackground({ photos }) {
   const slides = useMemo(() => photos.slice(0, 8), [photos]);
   const [i, setI] = useState(0);
 
   useEffect(() => {
     setI(0);
     if (slides.length < 2) return undefined;
-    const t = setInterval(() => setI((n) => (n + 1) % slides.length), 7000);
+    const t = setInterval(() => setI((n) => (n + 1) % slides.length), 8000);
     return () => clearInterval(t);
   }, [slides]);
 
@@ -29,7 +32,7 @@ function LiveBackground({ photos }) {
           sx={{
             position: 'absolute', inset: 0, backgroundImage: `url(${p.fullUrl})`,
             backgroundSize: 'cover', backgroundPosition: 'center',
-            opacity: n === i ? 1 : 0, transition: 'opacity 1.8s ease',
+            opacity: n === i ? 1 : 0, transition: 'opacity 2s ease-in',
             animation: n === i ? 'kb 9s ease-out forwards' : 'none',
           }}
         />
@@ -38,6 +41,8 @@ function LiveBackground({ photos }) {
     </Box>
   );
 }
+
+
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -111,7 +116,7 @@ export default function App() {
                     <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>
                   ),
                 }}
-                sx={{ bgcolor: 'rgba(255,255,255,.92)', borderRadius: 1, '& input': { color: '#111' }, '& svg': { color: '#444' } }}
+                sx={{border: '1px solid #ccc', borderRadius: 1, '& input': { color: '#ffffff' }, '& svg': { color: '#ffffff' } }}
               />
             )}
           />
@@ -140,7 +145,7 @@ export default function App() {
           elevation={0}
           sx={{
             p: 3, mb: 4, borderRadius: 3, backdropFilter: 'blur(14px)',
-            bgcolor: isDarkMode ? 'rgba(10,25,40,.6)' : 'rgba(255,255,255,.8)',
+            bgcolor: isDarkMode ? 'rgba(10,25,40,.6)' : 'rgba(255, 255, 255, 0.16)',
           }}
         >
           {/* Connect the location selection input modules */}
@@ -150,6 +155,13 @@ export default function App() {
         {/* Connect presentation display layout nodes passing state parameters downstream */}
         <MediaGallery photos={photos} loading={loading} placeName={placeName} />
       </Container>
+
+      
+
+
+
+
+
     </ThemeProvider>
   );
 }

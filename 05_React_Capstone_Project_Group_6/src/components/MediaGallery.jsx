@@ -1,5 +1,8 @@
-import React from 'react';
-import { Box, Grid, Card, CardMedia, CardContent, Typography, Link, Skeleton } from '@mui/material';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Box, Grid, Card, CardMedia, CardContent, CardActionArea, Typography, Link, Skeleton,
+  IconButton, Button, Stack, Divider, Pagination,
+} from '@mui/material';
 import {
   Close, ArrowBackIosNew, ArrowForwardIos, Download, Share,
   ThumbUp, ThumbUpOutlined, Star, StarBorder,
@@ -87,12 +90,12 @@ function Lightbox({ photos, index, placeName, onChange, onClose }) {
           <Typography variant="h5" fontWeight={600}>{photo.altText}</Typography>
           <Divider sx={{ borderColor: 'rgba(255,255,255,.25)' }} />
           <Box>
-            <Typography variant="caption" sx={{ opacity: 0.75 }} display="block">📸 Captured by</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.75 }} display="block">📸 Captured by: </Typography>
             <Link href={photo.photographerUrl} target="_blank" rel="noopener noreferrer" sx={{ color: '#fff', fontWeight: 600 }}>
               {photo.photographer}
             </Link>
           </Box>
-          <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ mt: 1 }}>
+          <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ mt: .5 }}>
             <Button variant="contained" startIcon={<Download />} onClick={download} sx={{ textTransform: 'none' }}>Download</Button>
             <Button variant="outlined" startIcon={<Share />} onClick={share} sx={ghost}>Share</Button>
             <Button variant={likes.has(photo.id) ? 'contained' : 'outlined'}
@@ -115,19 +118,26 @@ function Lightbox({ photos, index, placeName, onChange, onClose }) {
   );
 }
 
-export default function MediaGallery({ photos, loading }) {
+const PER_PAGE = 6;
+export default function MediaGallery({photos, loading, placeName = ''  }) {
   // TODO 3.1 [Loading Skeletal Feedbacks]: If 'loading' prop parameters evaluate true, return a visual helper feedback container.
   // Pro Tip: Loop a standard array wrapper or mock layout blocks to show a clean visual waiting feedback (e.g. Loading indicator or Skeletons).
   const [openIndex, setOpenIndex] = useState(null);
-  useEffect(() => setOpenIndex(null), [photos]);
+  const [page, setPage] = useState(1);
+  
+  useEffect(() => {
+    setOpenIndex(null);
+    setPage(1);
+  }, [photos]);
+
 
   if (loading) {
     return (
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {Array.from({ length: 6 }).map((_, i) => (
           <Grid item xs={12} sm={6} md={4} key={i}>
             <Card elevation={3} sx={{ borderRadius: 2 }}>
-              <Skeleton variant="rectangular" height={240} />
+              <Skeleton variant="rectangular" height={240} width={500} />
               <CardContent><Skeleton width="60%" /></CardContent>
             </Card>
           </Grid>
@@ -147,33 +157,57 @@ export default function MediaGallery({ photos, loading }) {
     );
   }
 
+
+  const totalPages = Math.ceil(photos.length / PER_PAGE);
+  const start = (page - 1) * PER_PAGE;
+  const visiblePhotos = photos.slice(start, start + PER_PAGE);
+  
+
+
   return (
     <>
       {/* TODO 3.3 [Fluid Layout Architecture] */}
       <Grid container spacing={3}>
         {/* TODO 3.4 [Card Content Loop Mapping] */}
-        {photos.map((photo, i) => (
-          <Grid item xs={12} sm={6} md={4} key={photo.id}>
+        {visiblePhotos.map((photo, i) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={photo.id}>
             <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
               {/* TODO 3.5 [Multimedia Presentation Layer] - clickable to enlarge */}
-              <CardActionArea onClick={() => setOpenIndex(i)} aria-label={`Enlarge photo: ${photo.altText}`}>
-                <CardMedia component="img" image={photo.imageUrl} alt={photo.altText} loading="lazy"
-                  sx={{ height: 240, objectFit: 'cover' }} />
+              <CardActionArea onClick={() => setOpenIndex(start + i)} aria-label={`Enlarge photo: ${photo.altText}`}>
+                <CardMedia component="img" image={photo.imageUrl} alt={photo.altText}
+                  loading="lazy"
+                  sx={{ height: 240, width: '100%', objectFit: 'cover' }} />
               </CardActionArea>
 
               <CardContent sx={{ flexGrow: 1, p: 2 }}>
                 <Typography variant="caption" display="block" color="text.secondary">
-                  📸 Captured by:
+                  {"📸 Captured by: "} 
                 </Typography>
                 {/* TODO 3.6 [Attribution Links] */}
                 <Link href={photo.photographerUrl} target="_blank" rel="noopener noreferrer" underline="hover">
                   {photo.photographer}
                 </Link>
-              </CardContent>
+              </CardContent> 
+
             </Card>
           </Grid>
         ))}
       </Grid>
+      
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, value) => setPage(value)}
+            size="large"
+            sx={{
+              '& .MuiPaginationItem-root': { color: '#fff' },
+              '& .Mui-selected': { bgcolor: 'rgba(255,255,255,.25) !important' },
+            }}
+          />
+        </Box>
+      )}
 
       {openIndex !== null && photos[openIndex] && (
         <Lightbox photos={photos} index={openIndex} placeName={placeName}
