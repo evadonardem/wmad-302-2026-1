@@ -1,0 +1,27 @@
+export function initSariSariPOS() {
+  const posContainer = document.getElementById('pos-register');
+  const billTotalEl = document.getElementById('bill-total');
+  let currentTotal = 0;
+
+  if (!posContainer) return;
+
+  // Single-listener event delegation
+  posContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    // TODO:
+    // 1. Read btn.dataset.action ('add' or 'clear')
+    // 2. Update currentTotal state
+    // 3. Update billTotalEl textContent formatted as ₱XX.XX
+
+    if (btn.dataset.action === 'add') {
+      const price = parseFloat(btn.dataset.amount);
+      currentTotal += price;
+    } else if (btn.dataset.action === 'clear') {
+      currentTotal = 0;
+    }
+
+    billTotalEl.textContent = `₱${currentTotal.toFixed(2)}`;
+  });
+}
