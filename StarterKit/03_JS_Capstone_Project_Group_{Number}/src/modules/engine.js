@@ -1,32 +1,84 @@
-/**
- * [ROLE A] Core Engine Module - Student Starter Template
- */
-
 export function evaluateAyudaEligibility(citizen) {
-  // TODO: Implement scoring logic
-  // Rules:
-  // - Senior Citizen (+35 pts)
-  // - PWD (+35 pts)
-  // - Monthly Income < 10,000 (+20 pts)
-  // - Dependents (+5 pts per dependent, capped at max 20 pts)
-  // Priority: score >= 70 -> 'CRITICAL' (approved: true), score >= 40 -> 'HIGH' (approved: true), else -> 'LOW' (approved: false)
-  
-  return { priority: 'LOW', score: 0, approved: false };
+  let score = 0;
+
+  if (citizen.isSenior === true) {
+    score += 35;
+  }
+
+  if (citizen.isPWD === true) {
+    score += 35;
+  }
+
+  if (citizen.monthlyIncome < 10000) {
+    score += 20;
+  }
+
+  const dependents = citizen.dependentCount ?? 0;
+
+  score += Math.min(dependents * 5, 20);
+
+  let priority;
+
+  if (score >= 70) {
+    priority = "CRITICAL";
+  } else if (score >= 40) {
+    priority = "HIGH";
+  } else {
+    priority = "LOW";
+  }
+
+  return {
+    priority,
+    score,
+    approved: score >= 40
+  };
 }
 
 export function createReliefPacker(budgetCap = 1000) {
-  // TODO: Implement closure/factory function returning an object with methods:
-  // - addItem(name, price): checks budget cap, adds item if valid
-  // - removeItem(index): removes item by index and adjusts total
-  // - getTotal(): returns current total price
-  // - getItems(): returns array of items (copy)
-  // - getBudgetCap(): returns budget cap
-  
+  const items = [];
+
+  function getTotal() {
+    return items.reduce(
+      (total, item) => total + item.price,
+      0
+    );
+  }
+
   return {
-    addItem: (name, price) => ({ success: false, reason: "Not implemented" }),
-    removeItem: (index) => {},
-    getTotal: () => 0,
-    getItems: () => [],
-    getBudgetCap: () => budgetCap
+    addItem(name, price) {
+      if (getTotal() + price > budgetCap) {
+        return false;
+      }
+
+      items.push({
+        name,
+        price
+      });
+
+      return true;
+    },
+
+    removeItem(index) {
+      if (
+        index >= 0 &&
+        index < items.length
+      ) {
+        items.splice(index, 1);
+      }
+    },
+
+    getTotal() {
+      return getTotal();
+    },
+
+    getItems() {
+      return items.map((item) => ({
+        ...item
+      }));
+    },
+
+    getBudgetCap() {
+      return budgetCap;
+    }
   };
 }

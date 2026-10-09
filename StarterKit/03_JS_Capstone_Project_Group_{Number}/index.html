@@ -2,83 +2,303 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
     <title>e-Barangay Disaster & Ayuda Portal</title>
-    <link rel="stylesheet" href="./src/style.css" />
+
+    <link
+      rel="stylesheet"
+      href="./src/style.css"
+    />
   </head>
+
   <body>
     <div id="app">
       <header class="header">
         <h1>e-Barangay Portal</h1>
-        <p>Disaster Emergency & Ayuda Management System</p>
+
+        <p>
+          Disaster Emergency & Ayuda Management System
+        </p>
       </header>
 
       <main class="container">
-        <!-- Ayuda Application Form -->
-        <section class="card">
+
+        <section class="card registration-card">
+
           <h2>Resident Registration</h2>
+
           <form id="ayuda-form">
-            <div class="form-group">
-              <label for="name">Full Name</label>
-              <input type="text" id="name" required placeholder="Juan Dela Cruz" />
-            </div>
 
             <div class="form-group">
-              <label for="prov-select">Province</label>
-              <select id="prov-select" required>
-                <option value="">Select Province...</option>
+              <label for="name">
+                Full Name
+              </label>
+
+              <input
+                type="text"
+                id="name"
+                required
+                placeholder="Juan Dela Cruz"
+              />
+            </div>
+
+
+            <div class="form-group">
+              <label for="prov-select">
+                Province
+              </label>
+
+              <select
+                id="prov-select"
+                required
+              >
+                <option value="">
+                  Select Province...
+                </option>
               </select>
             </div>
 
+
             <div class="form-group">
-              <label for="city-select">City / Municipality</label>
-              <select id="city-select" required>
-                <option value="">Select City/Municipality...</option>
+              <label for="city-select">
+                City / Municipality
+              </label>
+
+              <select
+                id="city-select"
+                required
+                disabled
+              >
+                <option value="">
+                  Select City/Municipality...
+                </option>
               </select>
             </div>
 
+
             <div class="form-group">
-              <label for="monthly-income">Monthly Income (₱)</label>
-              <input type="number" id="monthly-income" required placeholder="9500" />
+              <label for="barangay-select">
+                Barangay
+              </label>
+
+              <select
+                id="barangay-select"
+                required
+                disabled
+              >
+                <option value="">
+                  Select Barangay...
+                </option>
+              </select>
             </div>
+
+
+            <div class="form-group">
+              <label for="monthly-income">
+                Monthly Income (₱)
+              </label>
+
+              <input
+                type="number"
+                id="monthly-income"
+                required
+                min="0"
+                placeholder="9500"
+              />
+            </div>
+
 
             <div class="form-group checkbox-group">
-              <label><input type="checkbox" id="is-senior" /> Senior Citizen</label>
-              <label><input type="checkbox" id="is-pwd" /> Person with Disability (PWD)</label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  id="is-senior"
+                />
+
+                Senior Citizen
+              </label>
+
+
+              <label>
+                <input
+                  type="checkbox"
+                  id="is-pwd"
+                />
+
+                Person with Disability (PWD)
+              </label>
+
             </div>
+
 
             <div class="form-group">
-              <label for="dependent-count">Number of Dependents</label>
-              <input type="number" id="dependent-count" value="0" min="0" />
+
+              <label for="dependent-count">
+                Number of Dependents
+              </label>
+
+              <input
+                type="number"
+                id="dependent-count"
+                value="0"
+                min="0"
+              />
+
             </div>
 
-            <button type="submit" class="btn primary">Evaluate & Register</button>
+
+            <button
+              type="submit"
+              class="btn primary"
+            >
+              Evaluate & Register
+            </button>
+
           </form>
+
         </section>
 
-        <!-- Relief Packer POS Register -->
-        <section class="card">
-          <h2>Relief Package POS Register</h2>
-          <div id="pos-container">
-            <!-- TODO: Render POS register and progress bar here -->
-          </div>
-          <div class="pos-controls" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-            <input type="text" id="item-name" placeholder="Item Name (e.g., Rice 5kg)" style="flex: 2;" />
-            <input type="number" id="item-price" placeholder="Price (₱)" style="flex: 1;" />
-            <button type="button" id="add-item-btn" class="btn primary" style="width: auto;">Add Item</button>
-          </div>
-        </section>
+        <section class="card queue-card">
 
-        <!-- Live Queue Display -->
-        <section class="card">
-          <h2>Registered Queue</h2>
+          <div class="queue-header">
+
+            <div>
+              <h2>Registered Queue</h2>
+              <br>
+            </div>
+
+            <span
+              id="queue-count"
+              class="queue-count"
+            >
+              0
+            </span>
+
+          </div>
+
+          <div class="queue-priority-filter">
+
+            <button
+              type="button"
+              class="priority-filter active"
+              data-priority-filter=""
+            >
+              All
+            </button>
+
+
+            <button
+              type="button"
+              class="priority-filter"
+              data-priority-filter="CRITICAL"
+            >
+              CRITICAL
+            </button>
+
+
+            <button
+              type="button"
+              class="priority-filter"
+              data-priority-filter="HIGH"
+            >
+              HIGH
+            </button>
+
+
+            <button
+              type="button"
+              class="priority-filter"
+              data-priority-filter="LOW"
+            >
+              LOW
+            </button>
+
+          </div>
+
+
+          <div class="queue-search">
+
+            <label for="queue-search">
+              Search by Name
+            </label>
+
+            <input
+              type="search"
+              id="queue-search"
+              placeholder="Enter resident name..."
+            />
+
+          </div>
+
+
           <div id="queue-container">
-            <!-- TODO: Render resident cards here -->
           </div>
+
         </section>
+
+
+        <section class="card pos-card">
+
+          <h2>
+            Relief Package POS Register
+          </h2>
+
+
+          <div id="pos-container">
+          </div>
+
+          <div class="pos-add-section">
+
+            <div class="pos-section-title">
+              Add Relief Item
+            </div>
+
+
+            <div class="pos-controls">
+
+              <input
+                type="text"
+                id="item-name"
+                placeholder="Item Name (e.g., Rice 5kg)"
+              />
+
+
+              <input
+                type="number"
+                id="item-price"
+                placeholder="Price (₱)"
+                min="0"
+                step="0.01"
+              />
+
+
+              <button
+                type="button"
+                id="add-item-btn"
+                class="btn primary"
+              >
+                Add Item
+              </button>
+
+            </div>
+
+          </div>
+
+        </section>
+
       </main>
+
     </div>
 
-    <script type="module" src="./src/main.js"></script>
+    <script
+      type="module"
+      src="./src/main.js"
+    ></script>
+
   </body>
 </html>
