@@ -1,7 +1,0 @@
-services:
-  ep01-runner:
-    build: .
-    volumes:
-      - .:/app
-    stdin_open: true
-    tty: true
