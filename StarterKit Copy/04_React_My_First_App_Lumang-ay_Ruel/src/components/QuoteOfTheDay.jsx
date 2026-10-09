@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Stack, Divider, Button, Chip, Box, Select, MenuItem } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import { getRandomQuote, getTags } from '../services/quoteService';
@@ -7,10 +7,9 @@ export default function QuoteOfTheDay() {
   const [quote, setQuote] = useState({});
   const [tags, setTags] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
-  const selectTagRef = useRef(null);
 
   const loadRandomQuote = async () => {
-    const tag = selectTagRef.current?.value ?? '';
+    const tag = selectedTag ?? '';
     const nextQuote = await getRandomQuote(tag || null);
     setQuote(nextQuote);
     setSelectedTag(tag || null);
@@ -75,7 +74,6 @@ export default function QuoteOfTheDay() {
               displayEmpty
               size="small"
               value={selectedTag ?? ''}
-              inputRef={selectTagRef}
               onChange={(event) => {
                 setSelectedTag(event.target.value || null);
               }}
@@ -91,7 +89,7 @@ export default function QuoteOfTheDay() {
               variant="contained"
               startIcon={<Refresh />}
               sx={{ borderRadius: 2, textTransform: 'none' }}
-              onClick={loadRandomQuote}
+              onClick={() => void loadRandomQuote()}
             >
               Next Quote
             </Button>
