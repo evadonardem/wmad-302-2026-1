@@ -1,1 +1,1 @@
-q# Mobile Systems and Technologies
+# Mobile Systems and Technologies
