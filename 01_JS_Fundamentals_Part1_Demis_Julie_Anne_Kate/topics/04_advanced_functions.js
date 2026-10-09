@@ -2,10 +2,27 @@ import console from 'node:console';
 
 export function memoize(fn) {
   // TODO: Cache evaluation results in a local object closure
+  const cache = {};
+  return function (...args) {
+    const key = JSON.stringify(args);
+    if (!(key in cache)) {
+      cache[key] = fn.apply(this, args);
+    }
+    return cache[key];
+  };
 }
 
 export function createJeepneyFareCalculator(baseFare = 13, discountRate = 0.20) {
   // TODO: Return closure (distanceKm, isStudentOrSenior) calculating fare
+  const FREE_KM = 4;
+  const PER_KM = 1.75;
+
+  return (distanceKm, isStudentOrSenior) => {
+    const extraKm = Math.max(0, distanceKm - FREE_KM);
+    const fare = baseFare + extraKm * PER_KM;
+    const total = isStudentOrSenior ? fare * (1 - discountRate) : fare;
+    return Number(total.toFixed(2));
+  };
 }
 
 export function runAdvancedFunctionsTests() {
