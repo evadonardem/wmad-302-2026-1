@@ -5,14 +5,22 @@ export function initSariSariPOS() {
 
   if (!posContainer) return;
 
-  // Single-listener event delegation
   posContainer.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
 
-    // TODO:
-    // 1. Read btn.dataset.action ('add' or 'clear')
-    // 2. Update currentTotal state
-    // 3. Update billTotalEl textContent formatted as ₱XX.XX
+    // 1. Get the action and amount from the button
+    const action = btn.dataset.action;
+    const amount = parseFloat(btn.dataset.amount) || 0; // handle invalid/empty as 0
+
+    // 2. Update total based on action
+    if (action === 'add') {
+      currentTotal += amount;
+    } else if (action === 'clear') {
+      currentTotal = 0;
+    }
+
+    // 3. Update display formatted as ₱XX.XX
+    billTotalEl.textContent = `₱${currentTotal.toFixed(2)}`;
   });
 }
