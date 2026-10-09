@@ -1,0 +1,15 @@
+/* Animated Glowing Gradient Border Effect */
+@keyframes borderGlow {
+  0% {
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 25px rgba(0, 230, 153, 0.5);
+  }
+  50% {
+    border-color: rgba(0, 230, 153, 0.9);
+    box-shadow: 0 0 35px rgba(15, 76, 129, 0.7);
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 25px rgba(0, 230, 153, 0.5);
+  }
+}
