@@ -1,10 +1,24 @@
 import console from 'node:console';
 
 export function evaluateAyudaEligibility(citizen) {
+    const dependents = citizen.dependentCount ?? 0;
+  return citizen.isSeniorPWD === true || (citizen.isLowIncome === true && dependents >= 3);
   // TODO: Task 1 - Evaluate Ayuda Eligibility using ?? and logical operators
 }
 
 export function computeJollibeeBill(rawPrice, isSeniorOrPWD) {
+    if (typeof rawPrice !== 'number' || isNaN(rawPrice) || rawPrice <= 0) {
+    return 0;
+  }
+
+  let total;
+  if (isSeniorOrPWD === true) {
+    total = rawPrice * 0.80; // 20% discount
+  } else {
+    total = rawPrice * 1.12; // 12% VAT
+  }
+
+  return Number(total.toFixed(2));
   // TODO: Task 2 - Compute bill returning rounded Number (e.g., Number(total.toFixed(2)))
 }
 
