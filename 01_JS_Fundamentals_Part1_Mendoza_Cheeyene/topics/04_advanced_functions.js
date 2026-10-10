@@ -2,10 +2,23 @@ import console from 'node:console';
 
 export function memoize(fn) {
   // TODO: Cache evaluation results in a local object closure
+  const cache = {};
+  return function(...args) {
+    const key = JSON.stringify(args);
+    if (!(key in cache)) cache[key] = fn(...args);
+    return cache[key];
+  };
 }
 
 export function createJeepneyFareCalculator(baseFare = 13, discountRate = 0.20) {
   // TODO: Return closure (distanceKm, isStudentOrSenior) calculating fare
+  return function(distanceKm, isStudentOrSenior) {
+    const extraKm = Math.max(0, distanceKm - 4);
+    const extraCharge = extraKm * 1.75;
+    let fare = baseFare + extraCharge;
+    if (isStudentOrSenior) fare *= (1 - discountRate);
+    return Number(fare.toFixed(2));
+  };
 }
 
 export function runAdvancedFunctionsTests() {
@@ -14,7 +27,6 @@ export function runAdvancedFunctionsTests() {
   calc(2, 3);
   calc(2, 3);
   console.assert(execCount === 1, 'Memoized function executed only once for same arguments');
-
   const fareCalc = createJeepneyFareCalculator(13, 0.20);
   console.assert(fareCalc(2, false) === 13.00, '2km trip regular fare is base fare 13');
   console.assert(fareCalc(6, false) === 16.50, '6km trip regular fare is 13 + (2 * 1.75) = 16.50');

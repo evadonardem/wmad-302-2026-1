@@ -2,10 +2,17 @@ import console from 'node:console';
 
 export function summarizeSariSariSales(transactions) {
   // TODO: Filter out 'voided'/'refunded' and reduce by category
+  return transactions
+    .filter(tx => tx.status !== 'voided' && tx.status !== 'refunded')
+    .reduce((acc, tx) => {
+      acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
+      return acc;
+    }, {});
 }
 
 export function extractUniqueBarangays(riders) {
   // TODO: Extract all barangays, deduplicate via Set, and sort alphabetically
+  return [...new Set(riders.flatMap(r => r.coveredBarangays))].sort();
 }
 
 export function runDataStructuresTests() {
@@ -17,7 +24,6 @@ export function runDataStructuresTests() {
   ];
   const summary = summarizeSariSariSales(txs);
   console.assert(summary.snacks === 50 && summary.drinks === 30 && summary.canned === 40, 'Sales summarized correctly');
-
   const riders = [
     { id: 1, coveredBarangays: ['Irisan', 'Loakan'] },
     { id: 2, coveredBarangays: ['Loakan', 'Bakakeng'] }
