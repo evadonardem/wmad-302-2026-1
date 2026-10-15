@@ -3,7 +3,7 @@
     build: .
     container_name: "ebarangay_capstone"
     ports:
-      - "5173:5173"
+      - "8008:5173"
     volumes:
       - .:/app
       - /app/node_modules
