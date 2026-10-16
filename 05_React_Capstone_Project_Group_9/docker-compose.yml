@@ -2,7 +2,7 @@ services:
   app:
     build: .
     user: "root"
-    container_name: "react_ph_tourist_spot_searcher"
+    container_name: "react_ph_tourist_spot_searcher_9"
     ports:
       - "8009:5173"
     volumes:

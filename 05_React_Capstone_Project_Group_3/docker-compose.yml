@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    container_name: "react_ph_tourist_spot_searcher"
+    container_name: "react_ph_tourist_spot_searcher_3"
     ports:
       - "8003:5173"
     volumes:
