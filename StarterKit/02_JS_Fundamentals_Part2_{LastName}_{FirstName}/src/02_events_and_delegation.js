@@ -12,7 +12,18 @@ export function initSariSariPOS() {
 
     // TODO:
     // 1. Read btn.dataset.action ('add' or 'clear')
+     const action = btn.dataset.action;
+
+    if (action === 'add') {
     // 2. Update currentTotal state
+     const amount = parseFloat(btn.dataset.amount) || 0;
+      currentTotal += amount;
+    } else if (action === 'clear') {
+    
+      currentTotal = 0;
+    }
+
     // 3. Update billTotalEl textContent formatted as ₱XX.XX
+    billTotalEl.textContent = `₱${currentTotal.toFixed(2)}`;
   });
 }
