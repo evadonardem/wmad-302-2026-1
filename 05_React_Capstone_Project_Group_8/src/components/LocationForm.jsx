@@ -3,7 +3,7 @@ import { Box, FormControl, InputLabel, Select, MenuItem, Button, Stack } from '@
 import { Search } from '@mui/icons-material';
 import { getRegions, getCitiesMunicipalitiesByRegion } from '../services/geoPhotoService';
 
-export default function LocationForm({ onSearch }) {
+export default function LocationForm({ onSearch, onRegionChange }) {
   // TODO 2.1 [State Trackers]: Initialize four separate local state layers:
   // - 'regions': Stores array of all regions (default: empty array)
   // - 'cities': Stores array of filtered sub-municipalities (default: empty array)
@@ -13,6 +13,7 @@ export default function LocationForm({ onSearch }) {
   const [cities, setCities] = useState([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedCityName, setSelectedCityName] = useState('');
+
   // TODO PERF 1: Loading indicator state for cities dropdown
   const [isLoadingCities, setIsLoadingCities] = useState(false);
 
@@ -46,7 +47,13 @@ export default function LocationForm({ onSearch }) {
       }
     };
     loadCities();
-  }, [selectedRegion]);
+    
+    // Pass region name up to App
+    const regionObj = regions.find(r => r.code === selectedRegion);
+    if (regionObj && onRegionChange) {
+      onRegionChange(regionObj.name);
+    }
+  }, [selectedRegion, regions, onRegionChange]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

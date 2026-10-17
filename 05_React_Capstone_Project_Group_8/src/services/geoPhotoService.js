@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const PSGC_BASE_URL = '/api-psgc/';
+const PSGC_BASE_URL = 'https://psgc.gitlab.io/api/';
 const PEXELS_API_KEY = import.meta.env.VITE_PEXELS_API_KEY;
 const PEXELS_BASE_URL = 'https://api.pexels.com/v1/';
 
@@ -69,7 +69,7 @@ export const searchPhotosByLocation = async (locationName) => {
   try {
     const response = await axios.get(`${PEXELS_BASE_URL}search`, {
       headers: { Authorization: PEXELS_API_KEY },
-      params: { query, per_page: 12 }
+      params: { query, per_page: 80 }
     });
     return response.data.photos.map((photo) => ({
       id: photo.id,
