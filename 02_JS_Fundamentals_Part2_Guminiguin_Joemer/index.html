@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Episode 02: Browser DOM & Events</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🇵🇭 Episode 02: Browser DOM Engine & Event Delegation</h1>
+  </header>
+
+  <main class="grid-container">
+    <!-- MODULE 1 -->
+    <section class="card">
+      <h2>1. Jeepney Terminal Status Monitor</h2>
+      <button id="btn-sync-routes">Sync Terminal Status</button>
+      <ul id="route-list">
+        <li data-status="active">Plaza - Camp 7 (Active)</li>
+        <li data-status="delayed">Plaza - Irisan (Delayed)</li>
+        <li data-status="active">Plaza - Loakan (Active)</li>
+        <li data-status="delayed">Plaza - Asin Road (Full)</li>
+      </ul>
+      <div id="stats-panel">
+        <span id="stat-active">Active Routes: -</span> | 
+        <span id="stat-delayed">Delayed/Full: -</span>
+      </div>
+    </section>
+
+    <!-- MODULE 2 -->
+    <section class="card">
+      <h2>2. Sari-Sari Store POS Register</h2>
+      <p>Running Total: <strong id="bill-total">₱0.00</strong></p>
+      <div id="pos-register" class="pos-grid">
+        <button data-action="add" data-amount="20">+ SkyFlakes (₱20)</button>
+        <button data-action="add" data-amount="35">+ Canned Tuna (₱35)</button>
+        <button data-action="add" data-amount="15">+ Bottled Water (₱15)</button>
+        <button data-action="clear" class="btn-danger">Clear Register</button>
+      </div>
+    </section>
+
+    <!-- MODULE 3 -->
+    <section class="card full-width">
+      <h2>3. Barangay Clearance ID Card Generator</h2>
+      <form id="resident-form" novalidate>
+        <div class="form-group">
+          <label for="res-name">Resident Name:</label>
+          <input type="text" id="res-name" placeholder="Enter full name" />
+          <span class="error-msg" id="err-name"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="res-purok">Purok / Zone:</label>
+          <select id="res-purok">
+            <option value="">-- Select Purok --</option>
+            <option value="Purok 1">Purok 1</option>
+            <option value="Purok 2">Purok 2</option>
+            <option value="Purok 3">Purok 3</option>
+          </select>
+          <span class="error-msg" id="err-purok"></span>
+        </div>
+
+        <button type="submit">Generate ID Card</button>
+      </form>
+
+      <div id="id-cards-grid" class="cards-grid"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
