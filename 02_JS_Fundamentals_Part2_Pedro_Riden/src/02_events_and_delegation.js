@@ -1,0 +1,23 @@
+export function initSariSariPOS() {
+  const posContainer = document.getElementById('pos-register');
+  const billTotalEl = document.getElementById('bill-total');
+  let currentTotal = 0;
+
+  if (!posContainer) return;
+
+  posContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+
+    if (action === 'add') {
+      const amount = Number(btn.dataset.amount) || 0;
+      currentTotal += amount;
+    } else if (action === 'clear') {
+      currentTotal = 0;
+    }
+
+    billTotalEl.textContent = `₱${currentTotal.toFixed(2)}`;
+  });
+}
