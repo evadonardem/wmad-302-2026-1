@@ -7,11 +7,10 @@ import { useFavorites } from '@/favorites';
 import { useTheme } from '@/theme';
 
 export default function QuoteOfTheDay() {
-  // TODO 1 [State Initialization]: Define local state variables for:
-  // - 'quote': Stores the current quote object (default: empty object)
-  // - 'tags': Stores an array of all available category tags (default: empty array)
-  // - 'selectedTag': Tracks the string name of the active filter tag (default: null)
-  // [Your code here]
+  // Todo 1 [State Management]: Create three pieces of state:
+  const [quote, setQuote] = useState({ text: '', author: '', tags: [] }); 
+  const [tags, setTags] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // TODO 2 [Reference Hook]: Create a React mutable reference named 'selectTagRef' that tracks
   // the currently selected filter tag value without triggering a re-render when it changes.
