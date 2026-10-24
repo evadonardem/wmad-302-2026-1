@@ -20,7 +20,18 @@ export default function GeneralSettings({ actions }: { actions: SettingsAction[]
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       {/* TODO 12: Map the 'actions' prop into rows here */}
-      {/* [Your code here] */}
+      {actions.map((action, index) => (
+        <Pressable
+          key={`${action.name}-${index}`}
+          style={styles.actionRow}
+          onPress={action.onPress ?? (() => {})}
+        >
+          {action.icon}
+          <Text style={[styles.actionName, { color: theme.colors.text }]}>
+            {action.name}
+          </Text>
+        </Pressable>
+      ))}
     </View>
   );
 }

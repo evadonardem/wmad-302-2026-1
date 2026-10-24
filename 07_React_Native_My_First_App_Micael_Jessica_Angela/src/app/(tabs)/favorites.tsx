@@ -19,9 +19,35 @@ export default function FavoritesScreen() {
           c. Give each row a remove <Pressable> (Ionicons "trash-outline", styles.removeButton)
              wired to removeFavorite(quote). */}
       {/* [Your code here] */}
-      <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
-        No favorites yet — tap the heart on a quote to save it here.
-      </Text>
+      {favorites.length === 0 ? (
+        <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
+             No favorites yet — tap the heart on a quote to save it here.
+        </Text>
+      ) : (
+        favorites.map((quote) => (
+             <View
+               key={quote.text}
+               style={[styles.row, { backgroundColor: theme.colors.surface }]}
+             >
+               <View style={styles.rowContent}>
+                 <Text style={[styles.rowText, { color: theme.colors.text }]}>
+                   {quote.text}
+                 </Text>
+                 <Text style={[styles.rowAuthor, { color: theme.colors.textSecondary }]}>
+                   — {quote.author}
+                 </Text>
+               </View>
+               <Pressable
+                 style={styles.removeButton}
+                 onPress={() => removeFavorite(quote)}
+                 accessibilityRole="button"
+                 accessibilityLabel="Remove quote from favorites"
+               >
+                 <Ionicons name="trash-outline" size={20} color={theme.colors.textSecondary} />
+               </Pressable>
+             </View>
+        ))
+      )}
     </View>
   );
 }
@@ -49,6 +75,9 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     borderRadius: 12,
+  },
+  rowContent: {
+    flex: 1,
   },
   rowText: {
     flex: 1,
