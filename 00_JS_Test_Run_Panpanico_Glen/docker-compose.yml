@@ -1,0 +1,7 @@
+services:
+  js-runner:
+    build: .
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
