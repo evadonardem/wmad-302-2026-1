@@ -13,16 +13,15 @@ export default function QuoteOfTheDay() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // TODO 2 [Reference Hook]: Create a React mutable reference named 'selectTagRef' that tracks
-  // the currently selected filter tag value without triggering a re-render when it changes.
-  // Initialize it to null (meaning "any" tag). Hint: useRef<string | null>(null)
-  // [Your code here]
+  const selectTagRef = useRef<string | null>(null);
+
 
   const loadRandomQuote = async () => {
     // TODO 3 [Async Request Handler]:
-    // a. Read the current tag value from 'selectTagRef' (fallback to null if undefined)
-    // b. Call 'getRandomQuote(tag)' asynchronously with that value
-    // c. Update both your 'quote' state and 'selectedTag' state with the returned values
-    // [Your code here]
+    const currentTag = selectTagRef.current ?? null;
+    const randomQuote = await getRandomQuote(currentTag);
+    setQuote(randomQuote);
+    setSelectedTag(currentTag);
   };
 
   const loadTags = async () => {
