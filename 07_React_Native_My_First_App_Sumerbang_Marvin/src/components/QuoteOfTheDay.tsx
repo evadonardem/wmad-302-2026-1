@@ -64,8 +64,8 @@ export default function QuoteOfTheDay() {
 </View>
 
       {/* TODO 7 [Text Content Mapping]: Bind 'quote.text' directly inside the quotation marks below */}
-      <Text style={[styles.quoteText, { color: theme.colors.text }]}>
-        {quote?.text ? `"${quote.text}"` : 'Loading...'}
+<     Text style={[styles.quoteText, { color: theme.colors.text }]}>
+        "{quote?.text ?? 'Loading...'}"
       </Text>
 
       {/* TODO 8 [Author Content Mapping]: Bind 'quote.author' after the long dash separator symbol */}
