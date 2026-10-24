@@ -26,7 +26,8 @@ export default function QuoteOfTheDay() {
 
   const loadTags = async () => {
     // TODO 4 [Async List Population]: Fetch tags asynchronously using 'getTags()' and store them into your tags state array
-    // [Your code here]
+    const fetchedTags = await getTags();
+    setTags(fetchedTags);
   };
 
   useEffect(() => {
