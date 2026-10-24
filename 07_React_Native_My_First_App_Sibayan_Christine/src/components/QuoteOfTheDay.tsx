@@ -2,43 +2,80 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { getRandomQuote, getTags } from '@/services/quoteService';
+import { getRandomQuote, getTags, type Quote } from '@/services/quoteService';
 import { useFavorites } from '@/favorites';
 import { useTheme } from '@/theme';
 
 export default function QuoteOfTheDay() {
-  // TODO 1 [State Initialization]: Define local state variables for:
+  // TODO 1 [State Initialization]:
+  // Define local state variables for:
   // - 'quote': Stores the current quote object (default: empty object)
   // - 'tags': Stores an array of all available category tags (default: empty array)
-  // - 'selectedTag': Tracks the string name of the active filter tag (default: null)
-  // [Your code here]
+  // - 'selectedTag': Tracks the active filter tag (default: null)
+  const [quote, setQuote] = useState<Partial<Quote>>({});
+  const [tags, setTags] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // TODO 2 [Reference Hook]: Create a React mutable reference named 'selectTagRef' that tracks
-  // the currently selected filter tag value without triggering a re-render when it changes.
-  // Initialize it to null (meaning "any" tag). Hint: useRef<string | null>(null)
-  // [Your code here]
+  // TODO 2 [Reference Hook]:
+  // Create a mutable reference named 'selectTagRef' that tracks the active filter
+  // without triggering a re-render. Initialize it to null.
+  const selectTagRef = useRef<string | null>(null);
+
+  // TODO 3 [Async Request Handler]:
+  // Read the current tag, request a quote asynchronously, and update quote state.
+  const loadRandomQuoteForTag = async (tag: string | null) => {
+    try {
+      const result = await getRandomQuote(tag);
+      setQuote(result ?? {});
+    } catch (error) {
+      console.error('Failed to load a random quote:', error);
+    }
+  };
 
   const loadRandomQuote = async () => {
-    // TODO 3 [Async Request Handler]:
-    // a. Read the current tag value from 'selectTagRef' (fallback to null if undefined)
-    // b. Call 'getRandomQuote(tag)' asynchronously with that value
-    // c. Update both your 'quote' state and 'selectedTag' state with the returned values
-    // [Your code here]
+    await loadRandomQuoteForTag(selectTagRef.current ?? null);
   };
 
-  const loadTags = async () => {
-    // TODO 4 [Async List Population]: Fetch tags asynchronously using 'getTags()' and store them into your tags state array
-    // [Your code here]
-  };
+  // TODO 4 [Async List Population]:
+  // Fetch tags asynchronously using getTags() and store them in the tags state.
+  // The getTags() call below performs this as part of the initial concurrent request.
 
+  // TODO 5 [Component Lifecycle]:
+  // Fetch the initial random quote and tag list concurrently on component mount.
+  // The cancellation flag prevents state updates if the component unmounts first.
   useEffect(() => {
-    // TODO 5 [Component Lifecycle]: Execute both 'loadRandomQuote' and 'loadTags' when the component mounts
-    // [Your code here]
+    let cancelled = false;
+
+    const initialize = async () => {
+      try {
+        const [initialQuote, availableTags] = await Promise.all([
+          getRandomQuote(null),
+          getTags(),
+        ]);
+
+        if (!cancelled) {
+          setQuote(initialQuote ?? {});
+          setTags(availableTags ?? []);
+          setSelectedTag(null);
+          selectTagRef.current = null;
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to initialize the quote generator:', error);
+        }
+      }
+    };
+
+    void initialize();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const theme = useTheme();
-  // Used by TODO 24 below.
-  const { toggleFavorite } = useFavorites();
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const hasQuote = Boolean(quote.text && quote.author);
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
@@ -46,55 +83,132 @@ export default function QuoteOfTheDay() {
         Quote of the Day
       </Text>
 
+      {/* TODO 6 [Conditional Chip List]:
+          Map through quote.tags and render each tag as a chip.
+          Use a unique key and apply active/inactive styles based on selectedTag. */}
       <View style={styles.tagRow}>
-        {/* TODO 6 [Conditional Chip List]: Map through 'quote.tags'. For each tag 't':
-            - Render a tag chip <View> with a unique key containing a <Text> label={t}
-            - Apply styles.chipActive if 'selectedTag' matches 't', otherwise styles.chipInactive
-            - Give the chip styles.chip for spacing */}
-        {/* [Your code here] */}
+        {quote.tags?.map((tag) => (
+          <View
+            key={tag}
+            style={[
+              styles.chip,
+              selectedTag === tag ? styles.chipActive : styles.chipInactive,
+            ]}
+          >
+            <Text style={styles.chipText}>{tag}</Text>
+          </View>
+        ))}
       </View>
 
-      {/* TODO 7 [Text Content Mapping]: Bind 'quote.text' directly inside the quotation marks below */}
+      {/* TODO 7 [Text Content Mapping]:
+          Display quote.text inside quotation marks. */}
       <Text style={[styles.quoteText, { color: theme.colors.text }]}>
-        {'""'}
+        {quote.text ? `"${quote.text}"` : 'Loading quote...'}
       </Text>
 
-      {/* TODO 8 [Author Content Mapping]: Bind 'quote.author' after the long dash separator symbol */}
+      {/* TODO 8 [Author Content Mapping]:
+          Display quote.author after the long dash separator. */}
       <Text style={[styles.author, { color: theme.colors.textSecondary }]}>
-        —
+        {quote.author ? `— ${quote.author}` : ''}
       </Text>
 
       <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
       <View style={styles.controlsRow}>
-        {/* TODO 9 [Reference-Fed Options]: No dropdown exists in React Native — instead, every
-            filter chip you render below must write the tapped tag into 'selectTagRef.current'
-            (and into your 'selectedTag' state so the colors update) inside its onPress handler.
-            The "any" chip resets both to null. */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {/* Base option: filtering by any tag. Wire its onPress so it clears the selection. */}
-          <Pressable style={styles.filterChip}>
-            <Text style={styles.filterChipText}>any</Text>
+        {/* TODO 9 [Reference-Fed Options]:
+            The "any" chip resets the selected tag reference and state to null.
+            It also requests a quote without a category filter. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          <Pressable
+            style={[
+              styles.filterChip,
+              selectedTag === null && { backgroundColor: theme.colors.primary },
+            ]}
+            onPress={() => {
+              selectTagRef.current = null;
+              setSelectedTag(null);
+              void loadRandomQuoteForTag(null);
+            }}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                { color: selectedTag === null ? '#ffffff' : theme.colors.text },
+              ]}
+            >
+              any
+            </Text>
           </Pressable>
-          {/* TODO 10 [Select Option Generation]: Map through your 'tags' state array to render a
-              filter chip <Pressable> for each tag 't', with label={t} and an onPress handler
-              that updates both 'selectTagRef' and 'selectedTag' (see TODO 9). */}
-          {/* [Your code here] */}
+
+          {/* TODO 10 [Select Option Generation]:
+              Map through the tags array to render a filter chip for every tag.
+              Update both selectTagRef and selectedTag, then fetch a matching quote. */}
+          {tags.map((tag) => (
+            <Pressable
+              key={tag}
+              style={[
+                styles.filterChip,
+                selectedTag === tag && { backgroundColor: theme.colors.primary },
+              ]}
+              onPress={() => {
+                selectTagRef.current = tag;
+                setSelectedTag(tag);
+                void loadRandomQuoteForTag(tag);
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  { color: selectedTag === tag ? '#ffffff' : theme.colors.text },
+                ]}
+              >
+                {tag}
+              </Text>
+            </Pressable>
+          ))}
         </ScrollView>
 
-        {/* TODO 11 [Action Trigger Binding]: Attach an 'onPress' listener to trigger 'loadRandomQuote' */}
-        <Pressable style={[styles.refreshButton, { backgroundColor: theme.colors.primary }]}>
+        {/* TODO 11 [Action Trigger Binding]:
+            Attach an onPress handler to load another quote using the active filter. */}
+        <Pressable
+          style={[styles.refreshButton, { backgroundColor: theme.colors.primary }]}
+          onPress={() => {
+            void loadRandomQuote();
+          }}
+        >
           <Ionicons name="refresh" size={18} color="#ffffff" />
           <Text style={styles.refreshButtonText}>Next Quote</Text>
         </Pressable>
 
-        {/* TODO 24 [Favorite Action]: Render a heart <Pressable style={styles.favoriteButton}> below
-            the Next Quote button that:
-            - shows Ionicons "heart-outline" (or "heart" when the current quote is already favorited —
-              useFavorites() also exposes isFavorite(quote))
-            - onPress calls toggleFavorite(quote) to save/remove the current quote
-            - then jumps to the Favorites tab with router.navigate('/favorites') */}
-        {/* [Your code here] */}
+        {/* TODO 24 [Favorite Action]:
+            - Render a heart icon, filled when the quote is already a favorite.
+            - Call toggleFavorite to add or remove the quote.
+            - Navigate to the Favorites tab using Expo Router. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            isFavorite(quote as Quote)
+              ? 'Remove from favorites'
+              : 'Add to favorites'
+          }
+          disabled={!hasQuote}
+          style={styles.favoriteButton}
+          onPress={() => {
+            if (!hasQuote) return;
+            toggleFavorite(quote as Quote);
+            router.navigate('/favorites');
+          }}
+        >
+          <Ionicons
+            name={isFavorite(quote as Quote) ? 'heart' : 'heart-outline'}
+            size={28}
+            color={theme.colors.primary}
+          />
+        </Pressable>
       </View>
     </View>
   );

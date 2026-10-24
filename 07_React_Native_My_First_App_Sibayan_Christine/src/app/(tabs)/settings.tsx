@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Alert, Platform, Share, StyleSheet, View } from 'react-native';
 import GeneralSettings, { type SettingsAction } from '@/components/GeneralSettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemeMode } from '@/theme';
@@ -14,13 +14,39 @@ export default function SettingsScreen() {
   // (use setIsDarkMode) upon execution.
   const actions: SettingsAction[] = [
     {
-      icon: <Ionicons name="moon" size={22} color={theme.colors.text} />, // isDarkMode ? <Ionicons name="sunny" ... /> : <Ionicons name="moon" ... />
-      name: 'Dark Mode', // isDarkMode ? 'Light Mode' : 'Dark Mode',
-      // [Your code here: Add dynamic icon and state-toggling onPress function]
+      icon: isDarkMode
+        ? <Ionicons name="sunny" size={22} color={theme.colors.text} />
+        : <Ionicons name="moon" size={22} color={theme.colors.text} />,
+      name: isDarkMode ? 'Light Mode' : 'Dark Mode',
+      onPress: () => setIsDarkMode(!isDarkMode),
     },
-    { icon: <Ionicons name="color-palette" size={22} color={theme.colors.text} />, name: 'Theme' },
-    { icon: <Ionicons name="print" size={22} color={theme.colors.text} />, name: 'Print' },
-    { icon: <Ionicons name="share-social" size={22} color={theme.colors.text} />, name: 'Share' },
+    {
+      icon: <Ionicons name="color-palette" size={22} color={theme.colors.text} />,
+      name: isDarkMode ? 'Theme: Dark' : 'Theme: Light',
+      onPress: () => setIsDarkMode(!isDarkMode),
+    },
+    {
+      icon: <Ionicons name="print" size={22} color={theme.colors.text} />,
+      name: 'Print',
+      onPress: () => {
+        if (Platform.OS === 'web') {
+          window.print();
+        } else {
+          Alert.alert('Print', 'Printing is only available on the web version.');
+        }
+      },
+    },
+    {
+      icon: <Ionicons name="share-social" size={22} color={theme.colors.text} />,
+      name: 'Share',
+      onPress: async () => {
+        try {
+          await Share.share({ message: 'Check out my Quote of the Day app!' });
+        } catch {
+          // user cancelled or sharing isn't supported
+        }
+      },
+    },
   ];
 
   return (
