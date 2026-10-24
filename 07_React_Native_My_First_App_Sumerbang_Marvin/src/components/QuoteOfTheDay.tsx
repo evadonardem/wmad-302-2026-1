@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { getRandomQuote, getTags } from '@/services/quoteService';
 import { useFavorites } from '@/favorites';
 import { useTheme } from '@/theme';
+import React from 'react';
 
 export default function QuoteOfTheDay() {
   // Todo 1 [State Management]: Create three pieces of state:
@@ -41,32 +42,30 @@ export default function QuoteOfTheDay() {
   const { toggleFavorite } = useFavorites();
 
   return (
+    
     <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       <Text style={[styles.overline, { color: theme.colors.textSecondary }]}>
         Quote of the Day
       </Text>
 
       <View style={styles.tagRow}>
-        {/* TODO 6 [Conditional Chip List]: Map through 'quote.tags'. For each tag 't':
-            - Render a tag chip <View> with a unique key containing a <Text> label={t}
-            - Apply styles.chipActive if 'selectedTag' matches 't', otherwise styles.chipInactive
-            - Give the chip styles.chip for spacing */}
-        {quote.tags.map((t) => (
-          <View
-            key={t}
-            style={[
-              styles.chip,
-              selectedTag === t ? styles.chipActive : styles.chipInactive
-            ]}
-          >
-            <Text>{t}</Text>
-          </View>
-        ))}
-      </View>
+  {/* TODO 6 [Conditional Chip List] */}
+  {quote?.tags?.map((t) => (
+    <View
+      key={t}
+      style={[
+        styles.chip,
+        (selectedTag === t ? styles.chipActive : styles.chipInactive)
+      ]}
+    >
+      <Text style={styles.chipText}>{t}</Text>
+    </View>
+  ))}
+</View>
 
       {/* TODO 7 [Text Content Mapping]: Bind 'quote.text' directly inside the quotation marks below */}
       <Text style={[styles.quoteText, { color: theme.colors.text }]}>
-        {'""'}
+        {quote?.text ? `"${quote.text}"` : 'Loading...'}
       </Text>
 
       {/* TODO 8 [Author Content Mapping]: Bind 'quote.author' after the long dash separator symbol */}
