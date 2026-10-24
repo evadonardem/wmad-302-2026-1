@@ -32,7 +32,8 @@ export default function QuoteOfTheDay() {
 
   useEffect(() => {
     // TODO 5 [Component Lifecycle]: Execute both 'loadRandomQuote' and 'loadTags' when the component mounts
-    // [Your code here]
+    loadRandomQuote();
+    loadTags();
   }, []);
 
   const theme = useTheme();
@@ -50,7 +51,17 @@ export default function QuoteOfTheDay() {
             - Render a tag chip <View> with a unique key containing a <Text> label={t}
             - Apply styles.chipActive if 'selectedTag' matches 't', otherwise styles.chipInactive
             - Give the chip styles.chip for spacing */}
-        {/* [Your code here] */}
+        {quote.tags.map((t) => (
+          <View
+            key={t}
+            style={[
+              styles.chip,
+              selectedTag === t ? styles.chipActive : styles.chipInactive
+            ]}
+          >
+            <Text>{t}</Text>
+          </View>
+        ))}
       </View>
 
       {/* TODO 7 [Text Content Mapping]: Bind 'quote.text' directly inside the quotation marks below */}
