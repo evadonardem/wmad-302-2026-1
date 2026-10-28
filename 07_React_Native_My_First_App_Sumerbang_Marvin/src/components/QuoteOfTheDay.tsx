@@ -77,11 +77,31 @@ export default function QuoteOfTheDay() {
             filter chip you render below must write the tapped tag into 'selectTagRef.current'
             (and into your 'selectedTag' state so the colors update) inside its onPress handler.
             The "any" chip resets both to null. */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {/* Base option: filtering by any tag. Wire its onPress so it clears the selection. */}
-          <Pressable style={styles.filterChip}>
-            <Text style={styles.filterChipText}>any</Text>
-          </Pressable>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+      {/* Base option: filtering by any tag. Wire its onPress so it clears the selection. */}
+      <Pressable
+      style={[
+      styles.filterChip,
+      selectedTag === null && {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+      },
+    ]}
+    onPress={() => {
+      selectTagRef.current = null;
+      setSelectedTag(null);
+    }}
+  >
+    <Text
+      style={[
+        styles.filterChipText,
+        selectedTag === null && { color: '#ffffff' },
+      ]}
+    >
+      any
+    </Text>
+      </Pressable>
+
           {/* TODO 10 [Select Option Generation]: Map through your 'tags' state array to render a
               filter chip <Pressable> for each tag 't', with label={t} and an onPress handler
               that updates both 'selectTagRef' and 'selectedTag' (see TODO 9). */}
