@@ -29,15 +29,20 @@ export default function TabsLayout() {
   );
 }
 
-    }}>
-      {/* TODO 22 [Tab Screen Registration]: The three screens below are already routed by
-          file name. For EACH <Tabs.Screen /> add an 'options' entry with:
-          - title: a human-readable tab label
-          - tabBarIcon: an Ionicons render function receiving { color, size }
-            (suggested icons: "home", "heart", "settings") */}
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="favorites" options={{ title: 'Favorites' }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
-    </Tabs>
-  );
-}
+          {/* TODO 22 [Tab Screen Registration] */}
+      <><Tabs.Screen
+  name="index"
+  options={{
+    title: 'Home',
+    tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />
+  }} /><Tabs.Screen
+    name="favorites"
+    options={{
+      title: 'Favorites',
+      tabBarIcon: ({ color, size }) => <Ionicons name="heart" size={size} color={color} />
+    }} /><Tabs.Screen
+    name="settings"
+    options={{
+      title: 'Settings',
+      tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />
+    }} /></>
