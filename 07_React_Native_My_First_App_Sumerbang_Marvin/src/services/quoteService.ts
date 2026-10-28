@@ -11,10 +11,10 @@ export type Quote = {
 
 export const getRandomQuote = async (selectedTag: string | null = null) => {
   // TODO 17: Dynamic Endpoint Interpolation
-  let endpoint = `${API_URL}/quotes/random`;
-  if (selectedTag) {
-    endpoint += `?tags=${selectedTag}`;
-  }
+let endpoint = `${API_URL}/quotes/random`;
+if (selectedTag) {
+  endpoint += `?tags=${selectedTag}`;
+}
 
   try {
     // TODO 18: Asynchronous Request Handling
