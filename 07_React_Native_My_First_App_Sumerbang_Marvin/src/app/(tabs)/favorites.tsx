@@ -6,8 +6,7 @@ import React from 'react';
 
 export default function FavoritesScreen() {
   const theme = useTheme();
-  const { favorites, removeFavorite } = useFavorites();
-
+  const { favorites, removeFavorite } = useFavorites({ text: '', author: '', tags: [] });
     return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Your Favorite Quotes</Text>
