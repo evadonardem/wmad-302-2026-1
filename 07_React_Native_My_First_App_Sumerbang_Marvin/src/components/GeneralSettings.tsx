@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '@/theme';
 
@@ -12,15 +12,20 @@ export default function GeneralSettings({ actions }: { actions: SettingsAction[]
   const theme = useTheme();
 
   // TODO 12 [Settings Actions List]: Map through the 'actions' prop array and render an
-  // interactive row for each item using styles.actionRow / styles.actionName:
-  // a. A unique key per row.
-  // b. The item's icon and its name label.
-  // c. Wire the row's onPress to the item's onPress callback (fall back to a no-op when
-  //    no onPress was provided).
+  
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
       {/* TODO 12: Map the 'actions' prop into rows here */}
-      {/* [Your code here] */}
+      {actions.map((action, index) => (
+        <Pressable
+          key={index}
+          style={styles.actionRow}
+          onPress={action.onPress ?? (() => {})}
+        >
+          {action.icon}
+          <Text style={styles.actionName}>{action.name}</Text>
+        </Pressable>
+      ))}
     </View>
   );
 }

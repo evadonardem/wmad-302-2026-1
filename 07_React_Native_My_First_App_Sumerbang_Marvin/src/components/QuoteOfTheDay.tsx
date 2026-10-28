@@ -64,7 +64,7 @@ export default function QuoteOfTheDay() {
 </View>
 
       {/* TODO 7 [Text Content Mapping]: Bind 'quote.text' directly inside the quotation marks below */}
-<     Text style={[styles.quoteText, { color: theme.colors.text }]}>
+  <Text style={[styles.quoteText, { color: theme.colors.text }]}>
         "{quote?.text ?? 'Loading...'}"
       </Text>
 
@@ -148,7 +148,6 @@ export default function QuoteOfTheDay() {
             - onPress calls toggleFavorite(quote) to save/remove the current quote
             - then jumps to the Favorites tab with router.navigate('/favorites') */}
         {/* [Your code here] */}
-      </View>
     </View>
   );
 }
