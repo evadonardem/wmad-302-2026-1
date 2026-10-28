@@ -1,14 +1,34 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/theme';
+import React from 'react';
 
 // TODO 21 [Tab Bar Configuration]: Configure the bottom tab bar inside the empty
-// screenOptions object below. At minimum set:
-// - tabBarActiveTintColor / tabBarInactiveTintColor (pull colors from useTheme() if you like)
-// - headerTitle styling (font weight, colors) to match your theme
+
 export default function TabsLayout() {
+  const theme = useTheme();
+
   return (
     <Tabs screenOptions={{
-      // [Your code here]
+      tabBarActiveTintColor: theme.colors.primary,
+      tabBarInactiveTintColor: theme.colors.textSecondary,
+      headerTitleStyle: {
+        fontWeight: '600',
+        color: theme.colors.text,
+      },
+      headerStyle: {
+        backgroundColor: theme.colors.surface,
+      },
+      tabBarStyle: {
+        backgroundColor: theme.colors.surface,
+        borderTopColor: theme.colors.border,
+      },
+    }}>
+      {/* Your Tabs.Screen entries go here later */}
+    </Tabs>
+  );
+}
+
     }}>
       {/* TODO 22 [Tab Screen Registration]: The three screens below are already routed by
           file name. For EACH <Tabs.Screen /> add an 'options' entry with:
