@@ -70,12 +70,9 @@ export default function QuoteOfTheDay() {
 
       {/* TODO 8 [Author Content Mapping]: Bind 'quote.author' after the long dash separator symbol */}
       <Text style={[styles.author, { color: theme.colors.textSecondary }]}>
-        —
+     — {quote?.author ?? 'Unknown'}
       </Text>
 
-      <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-
-      <View style={styles.controlsRow}>
         {/* TODO 9 [Reference-Fed Options]: No dropdown exists in React Native — instead, every
             filter chip you render below must write the tapped tag into 'selectTagRef.current'
             (and into your 'selectedTag' state so the colors update) inside its onPress handler.
