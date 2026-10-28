@@ -25,15 +25,15 @@ if (selectedTag) {
     author: author,
     tags: tags || []
   };
+  
+} catch (error) {
+  // TODO 19: Resilient System Fallbacks
+  return {
+    text: "An error occurred, but keep pushing forward.",
+    author: "System Fallback",
+    tags: ["fallback", "motivation"]
+  };
 }
-    // TODO 19: Resilient System Fallbacks
-    return {
-      text: "An error occurred, but keep pushing forward.",
-      author: "System Fallback",
-      tags: ["fallback", "motivation"]
-    };
-  }
-};
 
 export const getTags = async () => {
   // TODO 20: Asynchronous List Retrieval
