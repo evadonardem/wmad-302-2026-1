@@ -105,14 +105,41 @@ export default function QuoteOfTheDay() {
           {/* TODO 10 [Select Option Generation]: Map through your 'tags' state array to render a
               filter chip <Pressable> for each tag 't', with label={t} and an onPress handler
               that updates both 'selectTagRef' and 'selectedTag' (see TODO 9). */}
-          {/* [Your code here] */}
+          {tags.map((t) => (
+            <Pressable
+              key={t}
+              style={[
+                styles.filterChip,
+                selectedTag === t && {
+                  backgroundColor: theme.colors.primary,
+                  borderColor: theme.colors.primary,
+                },
+              ]}
+              onPress={() => {
+                selectTagRef.current = t;
+                setSelectedTag(t);
+              }}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedTag === t && { color: '#ffffff' },
+                ]}
+              >
+                {t}
+              </Text>
+            </Pressable>
+          ))}
         </ScrollView>
 
         {/* TODO 11 [Action Trigger Binding]: Attach an 'onPress' listener to trigger 'loadRandomQuote' */}
-        <Pressable style={[styles.refreshButton, { backgroundColor: theme.colors.primary }]}>
-          <Ionicons name="refresh" size={18} color="#ffffff" />
-          <Text style={styles.refreshButtonText}>Next Quote</Text>
-        </Pressable>
+<Pressable
+  style={[styles.refreshButton, { backgroundColor: theme.colors.primary }]}
+  onPress={loadRandomQuote}
+>
+  <Ionicons name="refresh" size={18} color="#ffffff" />
+  <Text style={styles.refreshButtonText}>Next Quote</Text>
+</Pressable>
 
         {/* TODO 24 [Favorite Action]: Render a heart <Pressable style={styles.favoriteButton}> below
             the Next Quote button that:
