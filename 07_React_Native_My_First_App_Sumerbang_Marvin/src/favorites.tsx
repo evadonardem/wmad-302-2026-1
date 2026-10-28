@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { Quote } from '@/services/quoteService';
 
 // Pre-built favorites infrastructure (not part of the assignment).
