@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://vercel.app';
+const API_URL = 'https://quoteslate.vercel.app/api';
 
 export type Quote = {
     text: string;
@@ -8,34 +8,57 @@ export type Quote = {
     tags: string[];
 };
 
+const FALLBACK_QUOTES: Quote[] = [
+    {
+        text: 'The future depends on what you do today.',
+        author: 'Mahatma Gandhi',
+        tags: ['inspiration', 'life'],
+    },
+    {
+        text: 'It always seems impossible until it is done.',
+        author: 'Nelson Mandela',
+        tags: ['inspiration', 'motivation'],
+    },
+    {
+        text: 'What you think, you become. What you feel, you attract. What you imagine, you create.',
+        author: 'Buddha',
+        tags: ['wisdom', 'life'],
+    },
+    {
+        text: 'Great things are done by a series of small things brought together.',
+        author: 'Vincent van Gogh',
+        tags: ['motivation', 'success'],
+    },
+];
+
+const FALLBACK_TAGS = [...new Set(FALLBACK_QUOTES.flatMap((quote) => quote.tags))];
+
 export const getRandomQuote = async (selectedTag: string | null = null) => {
-    // TODO 17 [Dynamic Endpoint Interpolation]: Formulate the dynamic target endpoint string URL.
-    // If a truthy 'selectedTag' value is provided, append '?tags=[selectedTag]' to the base random path URL.
-    // Example Target: 'https://vercel.app/quotes/random?tags=wisdom'
-    const endpoint = '';
+    const endpoint = `${API_URL}/quotes/random${selectedTag ? `?tags=${encodeURIComponent(selectedTag)}` : ''}`;
 
     try {
-        // TODO 18 [Asynchronous Request Handling]:
-        // a. Execute an asynchronous GET network request using Axios targeting your calculated endpoint URL.
-        // b. Extract the 'quote', 'author', and 'tags' properties from the resulting payload object.
-        // c. Return a clean object structured with uniform mapping matching: { text: [extracted quote text], author, tags }
-        // [Your code here]
+        const response = await axios.get<{
+            quote: string;
+            author: string;
+            tags: string[];
+        }>(endpoint, { timeout: 10000 });
+        const { quote, author, tags } = response.data;
+
+        return { text: quote, author, tags };
     } catch {
-        // TODO 19 [Resilient System Fallbacks]: Return a hardcoded fallback quote object
-        // with custom placeholder messages if an unexpected API or network timeout exception is encountered.
-        return {
-            // [Your fallback code here]
-        };
+        const matchingQuotes = selectedTag
+            ? FALLBACK_QUOTES.filter((quote) => quote.tags.includes(selectedTag))
+            : FALLBACK_QUOTES;
+        const quotes = matchingQuotes.length > 0 ? matchingQuotes : FALLBACK_QUOTES;
+        return quotes[Math.floor(Math.random() * quotes.length)];
     }
 };
 
 export const getTags = async () => {
-    // TODO 20 [Asynchronous List Retrieval]:
-    // Fetch global category strings from the API endpoint path `${API_URL}/tags` using Axios.
-    // Return the response data array on success, or return an empty array fallback inside the catch safety layer.
     try {
-        // [Your code here]
+        const response = await axios.get<string[]>(`${API_URL}/tags`, { timeout: 10000 });
+        return response.data;
     } catch {
-        // [Your code here]
+        return FALLBACK_TAGS;
     }
 };

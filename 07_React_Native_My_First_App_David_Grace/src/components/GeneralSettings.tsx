@@ -11,16 +11,21 @@ export type SettingsAction = {
 export default function GeneralSettings({ actions }: { actions: SettingsAction[] }) {
   const theme = useTheme();
 
-  // TODO 12 [Settings Actions List]: Map through the 'actions' prop array and render an
-  // interactive row for each item using styles.actionRow / styles.actionName:
-  // a. A unique key per row.
-  // b. The item's icon and its name label.
-  // c. Wire the row's onPress to the item's onPress callback (fall back to a no-op when
-  //    no onPress was provided).
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      {/* TODO 12: Map the 'actions' prop into rows here */}
-      {/* [Your code here] */}
+    <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      {actions.map((action) => (
+        <Pressable
+          key={action.name}
+          style={({ pressed }) => [
+            styles.actionRow,
+            { backgroundColor: pressed ? `${theme.colors.primary}12` : 'transparent' },
+          ]}
+          onPress={action.onPress ?? (() => { })}
+        >
+          {action.icon}
+          <Text style={[styles.actionName, { color: theme.colors.text }]}>{action.name}</Text>
+        </Pressable>
+      ))}
     </View>
   );
 }
@@ -30,6 +35,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 16,
     padding: 8,
+    borderWidth: 1,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -43,6 +49,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 14,
     borderRadius: 10,
+    minHeight: 58,
   },
   actionName: {
     fontSize: 15,
