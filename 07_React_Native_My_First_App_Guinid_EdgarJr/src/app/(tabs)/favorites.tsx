@@ -19,9 +19,23 @@ export default function FavoritesScreen() {
           c. Give each row a remove <Pressable> (Ionicons "trash-outline", styles.removeButton)
              wired to removeFavorite(quote). */}
       {/* [Your code here] */}
-      <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
-        No favorites yet — tap the heart on a quote to save it here.
-      </Text>
+      {favorites.length === 0 ? (
+        <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
+          No favorites yet — tap the heart on a quote to save it here.
+        </Text>
+      ) : (
+        favorites.map((quote, index) => (
+          <View key={`${quote.text}-${index}`} style={[styles.row, { backgroundColor: theme.colors.surface }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowText, { color: theme.colors.text }]}>{quote.text}</Text>
+              <Text style={[styles.rowAuthor, { color: theme.colors.textSecondary }]}>— {quote.author}</Text>
+            </View>
+            <Pressable style={styles.removeButton} onPress={() => removeFavorite(quote)} accessibilityLabel="Remove favorite quote">
+              <Ionicons name="trash-outline" size={20} color={theme.colors.textSecondary} />
+            </Pressable>
+          </View>
+        ))
+      )}
     </View>
   );
 }
