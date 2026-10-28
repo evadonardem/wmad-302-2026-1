@@ -11,17 +11,24 @@ export default function FavoritesScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Your Favorite Quotes</Text>
 
-      {/* TODO 23 [Favorites List Mapping]: Build the favorites list below:
-          a. Wrap the pre-rendered empty-state message below in a conditional so it only
-             appears when 'favorites' is empty — otherwise show the list instead.
-          b. Otherwise map through 'favorites' and render a row for each quote with a unique key,
-             its text (styles.rowText) and author (styles.rowAuthor).
-          c. Give each row a remove <Pressable> (Ionicons "trash-outline", styles.removeButton)
-             wired to removeFavorite(quote). */}
-      {/* [Your code here] */}
-      <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
-        No favorites yet — tap the heart on a quote to save it here.
-      </Text>
+     
+      {favorites.length === 0 ? (
+        <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
+          No favorites yet — tap the heart on a quote to save it here.
+        </Text>
+      ) : (
+        favorites.map((quote) => (
+          <View key={quote.text} style={[styles.row, { backgroundColor: theme.colors.surface }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowText, { color: theme.colors.text }]}>{`"${quote.text}"`}</Text>
+              <Text style={[styles.rowAuthor, { color: theme.colors.textSecondary }]}>— {quote.author}</Text>
+            </View>
+            <Pressable style={styles.removeButton} onPress={() => removeFavorite(quote)}>
+              <Ionicons name="trash-outline" size={20} color={theme.colors.textSecondary} />
+            </Pressable>
+          </View>
+        ))
+      )}
     </View>
   );
 }
