@@ -11,29 +11,29 @@ export type Quote = {
 
 export const getRandomQuote = async (selectedTag: string | null = null) => {
   // TODO 17: Dynamic Endpoint Interpolation
-let endpoint = `${API_URL}/quotes/random`;
-if (selectedTag) {
-  endpoint += `?tags=${selectedTag}`;
-}
+  let endpoint = `${API_URL}/quotes/random`;
+  if (selectedTag) {
+    endpoint += `?tags=${encodeURIComponent(selectedTag)}`;
+  }
 
   try {
-  // TODO 18: Asynchronous Request Handling
-  const response = await axios.get(endpoint);
-  const { quote, author, tags } = response.data;
-  return {
-    text: quote,
-    author: author,
-    tags: tags || []
-  };
-  
-} catch (error) {
-  // TODO 19: Resilient System Fallbacks
-  return {
-    text: "An error occurred, but keep pushing forward.",
-    author: "System Fallback",
-    tags: ["fallback", "motivation"]
-  };
-}
+    // TODO 18: Asynchronous Request Handling
+    const response = await axios.get(endpoint);
+    const { quote, author, tags } = response.data;
+    return {
+      text: quote,
+      author,
+      tags: tags || [],
+    };
+  } catch (error) {
+    // TODO 19: Resilient System Fallbacks
+    return {
+      text: 'An error occurred, but keep pushing forward.',
+      author: 'System Fallback',
+      tags: ['fallback', 'motivation'],
+    };
+  }
+};
 
 export const getTags = async () => {
   // TODO 20: Asynchronous List Retrieval
