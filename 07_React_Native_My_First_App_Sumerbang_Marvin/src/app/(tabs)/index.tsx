@@ -1,3 +1,4 @@
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import QuoteOfTheDay from '@/components/QuoteOfTheDay';
 import { useTheme } from '@/theme';

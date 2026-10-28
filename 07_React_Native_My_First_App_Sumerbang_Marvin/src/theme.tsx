@@ -1,4 +1,4 @@
-import { createContext, useContext, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import React, { createContext, useContext, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 
 // Pre-built theme infrastructure (not part of the assignment).
 // Students call createTheme() with a palette mode in TODO 13 and wrap their
