@@ -39,7 +39,7 @@ export default function QuoteOfTheDay() {
 
   const theme = useTheme();
   // Used by TODO 24 below.
-  const { toggleFavorite } = useFavorites();
+  const { toggleFavorite, isFavorite } = useFavorites(quote);
 
   return (
     
@@ -141,13 +141,22 @@ export default function QuoteOfTheDay() {
   <Text style={styles.refreshButtonText}>Next Quote</Text>
 </Pressable>
 
-        {/* TODO 24 [Favorite Action]: Render a heart <Pressable style={styles.favoriteButton}> below
-            the Next Quote button that:
-            - shows Ionicons "heart-outline" (or "heart" when the current quote is already favorited —
-              useFavorites() also exposes isFavorite(quote))
-            - onPress calls toggleFavorite(quote) to save/remove the current quote
-            - then jumps to the Favorites tab with router.navigate('/favorites') */}
-        {/* [Your code here] */}
+        {/* TODO 24 [Favorite Action] */}
+{quote && (
+  <Pressable
+    style={styles.favoriteButton}
+    onPress={() => {
+      toggleFavorite(quote);
+      router.navigate('/favorites');
+    }}
+  >
+    <Ionicons
+      name={isFavorite(quote) ? 'heart' : 'heart-outline'}
+      size={24}
+      color={theme.colors.primary}
+    />
+  </Pressable>
+)}
     </View>
   );
 }

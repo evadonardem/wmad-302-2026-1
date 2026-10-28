@@ -42,4 +42,4 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
 }
 
-export const useFavorites = () => useContext(FavoritesContext);
+export const useFavorites = (quote: { text: string; author: string; tags: never[]; }) => useContext(FavoritesContext);
