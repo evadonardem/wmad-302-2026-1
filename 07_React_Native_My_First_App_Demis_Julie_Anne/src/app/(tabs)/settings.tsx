@@ -7,16 +7,14 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const { isDarkMode, setIsDarkMode } = useThemeMode();
 
-  // TODO 15 [Data Actions Mapping]: Populate the 'actions' configuration array below.
-  // Ensure the first action toggle object displays an <Ionicons name="sunny" /> icon if 'isDarkMode'
-  // is true, or an <Ionicons name="moon" /> icon if false.
-  // The 'onPress' function must invert the current boolean state value of 'isDarkMode'
-  // (use setIsDarkMode) upon execution.
+  // TODO 15
   const actions: SettingsAction[] = [
     {
-      icon: <Ionicons name="moon" size={22} color={theme.colors.text} />, // isDarkMode ? <Ionicons name="sunny" ... /> : <Ionicons name="moon" ... />
-      name: 'Dark Mode', // isDarkMode ? 'Light Mode' : 'Dark Mode',
-      // [Your code here: Add dynamic icon and state-toggling onPress function]
+      icon: isDarkMode
+        ? <Ionicons name="sunny" size={22} color={theme.colors.text} />
+        : <Ionicons name="moon" size={22} color={theme.colors.text} />,
+      name: isDarkMode ? 'Light Mode' : 'Dark Mode',
+      onPress: () => setIsDarkMode(!isDarkMode),
     },
     { icon: <Ionicons name="color-palette" size={22} color={theme.colors.text} />, name: 'Theme' },
     { icon: <Ionicons name="print" size={22} color={theme.colors.text} />, name: 'Print' },

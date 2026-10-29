@@ -24,17 +24,17 @@ export default function FavoritesScreen() {
         No favorites yet — tap the heart on a quote to save it here.
       </Text>
     ) : (
-      favorites.map((quote) => (
-        <View key={quote.id} style={[styles.row, { backgroundColor: theme.colors.surface }]}>
+      favorites.map((quote,index) => (
+        <View key={`${quote.text}-${index}`} style={[styles.row, { backgroundColor: theme.colors.surface }]}>
           <Text style={[styles.rowText, { color: theme.colors.text }]}>{quote.text}</Text>
           <Text style={[styles.rowAuthor, { color: theme.colors.textSecondary }]}>
             — {quote.author}
           </Text>
           <Pressable
             onPress={() => removeFavorite(quote)}
-            style={[styles.removeButton, { backgroundColor: theme.colors.error }]}
+            style={[styles.removeButton, { backgroundColor: '#e53935' }]}
           >
-            <Ionicons name="trash-outline" size={20} color={theme.colors.onError} />
+            <Ionicons name="trash-outline" size={20} color= "#ffffff" />
           </Pressable>
         </View>
       ))
