@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'https://vercel.app';
+// NOTE: this must be the full base URL of the quotes API (e.g. https://<your-app>.vercel.app).
+const API_URL = 'https://quoteslate.vercel.app/api';
 
 export type Quote = {
     text: string;
@@ -8,34 +9,37 @@ export type Quote = {
     tags: string[];
 };
 
-export const getRandomQuote = async (selectedTag: string | null = null) => {
-    // TODO 17 [Dynamic Endpoint Interpolation]: Formulate the dynamic target endpoint string URL.
-    // If a truthy 'selectedTag' value is provided, append '?tags=[selectedTag]' to the base random path URL.
-    // Example Target: 'https://vercel.app/quotes/random?tags=wisdom'
-    const endpoint = '';
+export const getRandomQuote = async (selectedTag: string | null = null): Promise<Quote> => {
+    // TODO 17: build the endpoint, appending ?tags=<tag> only when a tag is selected.
+    const endpoint = selectedTag
+        ? `${API_URL}/quotes/random?tags=${encodeURIComponent(selectedTag)}`
+        : `${API_URL}/quotes/random`;
 
     try {
-        // TODO 18 [Asynchronous Request Handling]:
-        // a. Execute an asynchronous GET network request using Axios targeting your calculated endpoint URL.
-        // b. Extract the 'quote', 'author', and 'tags' properties from the resulting payload object.
-        // c. Return a clean object structured with uniform mapping matching: { text: [extracted quote text], author, tags }
-        // [Your code here]
+        // TODO 18: async GET with Axios, then map the payload to { text, author, tags }.
+        const response = await axios.get(endpoint);
+        const { quote, author, tags } = response.data ?? {};
+        if (typeof quote !== 'string') {
+            // The API answered, but not with a quote (e.g. wrong base URL returning HTML).
+            throw new Error('Unexpected API response');
+        }
+        return { text: quote, author: author ?? 'Unknown', tags: tags ?? [] };
     } catch {
-        // TODO 19 [Resilient System Fallbacks]: Return a hardcoded fallback quote object
-        // with custom placeholder messages if an unexpected API or network timeout exception is encountered.
+        // TODO 19: fallback quote when the network/API call fails.
         return {
-            // [Your fallback code here]
+            text: 'Unable to load a quote right now. Please check your connection and try again.',
+            author: 'System',
+            tags: [],
         };
     }
 };
 
-export const getTags = async () => {
-    // TODO 20 [Asynchronous List Retrieval]:
-    // Fetch global category strings from the API endpoint path `${API_URL}/tags` using Axios.
-    // Return the response data array on success, or return an empty array fallback inside the catch safety layer.
+export const getTags = async (): Promise<string[]> => {
+    // TODO 20: fetch the category list, or return an empty array on failure.
     try {
-        // [Your code here]
+        const response = await axios.get(`${API_URL}/tags`);
+        return Array.isArray(response.data) ? response.data : [];
     } catch {
-        // [Your code here]
+        return [];
     }
 };
