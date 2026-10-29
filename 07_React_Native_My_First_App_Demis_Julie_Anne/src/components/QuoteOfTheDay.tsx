@@ -1,38 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { getRandomQuote, getTags, type Quote } from '@/services/quoteService';
 import { useFavorites } from '@/favorites';
-import { useTheme } from '@/theme';
 
-
+const PURPLE = {
+  card: '#4a1d82',
+  chip: '#9c27b0',
+  chipActive: '#2e7d32',
+  button: '#2a00b3',
+  text: '#ffffff',
+  textSoft: '#d9c7f5',
+  border: '#7b4cc2',
+  menu: '#3a1568',
+};
 
 export default function QuoteOfTheDay() {
-  // TODO 1
   const [quote, setQuote] = useState<Quote>({ text: '', author: '', tags: [] });
   const [tags, setTags] = useState<string[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // TODO 2
   const selectTagRef = useRef<string | null>(null);
 
-  const loadRandomQuote = async () => {
-    // TODO 3
-    const tag = selectTagRef.current ?? null;
+  const loadRandomQuote = async (tag: string | null = selectTagRef.current) => {
     const newQuote = await getRandomQuote(tag);
     setQuote(newQuote);
-    setSelectedTag(tag);
   };
 
   const loadTags = async () => {
-    // TODO 4
     const newTags = await getTags();
     setTags(newTags);
   };
 
   useEffect(() => {
-    // TODO 5
     loadRandomQuote();
     loadTags();
   }, []);
@@ -40,111 +42,108 @@ export default function QuoteOfTheDay() {
   const chooseTag = (tag: string | null) => {
     selectTagRef.current = tag;
     setSelectedTag(tag);
+    setMenuOpen(false);
+    loadRandomQuote(tag);
   };
 
-  const theme = useTheme();
   const { toggleFavorite, isFavorite } = useFavorites();
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.overline, { color: theme.colors.textSecondary }]}>
-        Quote of the Day
-      </Text>
+    <View style={styles.card}>
+      <Text style={styles.overline}>Quote of the Day</Text>
 
       <View style={styles.tagRow}>
-        {/* TODO 6 */}
         {quote.tags?.map((t) => (
-          <View
-            key={t}
-            style={[styles.chip, selectedTag === t ? styles.chipActive : styles.chipInactive]}
-          >
+          <View key={t} style={styles.chip}>
             <Text style={styles.chipText}>{t}</Text>
           </View>
         ))}
       </View>
 
-      {/* TODO 7 */}
-      <Text style={[styles.quoteText, { color: theme.colors.text }]}>
-        {`"${quote.text ?? ''}"`}
-      </Text>
+      <Text style={styles.quoteText}>{`"${quote.text ?? ''}"`}</Text>
+      <Text style={styles.author}>{`— ${quote.author ?? ''}`}</Text>
 
-      {/* TODO 8 */}
-      <Text style={[styles.author, { color: theme.colors.textSecondary }]}>
-        {`— ${quote.author ?? ''}`}
-      </Text>
-
-      <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+      <View style={styles.divider} />
 
       <View style={styles.controlsRow}>
-        {/* TODO 9 */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <Pressable
-            style={[
-              styles.filterChip,
-              selectedTag === null && { borderColor: theme.colors.primary },
-            ]}
-            onPress={() => chooseTag(null)}
-          >
-            <Text style={[styles.filterChipText, { color: theme.colors.text }]}>any</Text>
-          </Pressable>
+        {/* one dropdown button for all categories */}
+        <Pressable style={styles.dropdown} onPress={() => setMenuOpen(true)}>
+          <Text style={styles.dropdownText} numberOfLines={1}>
+            {selectedTag ?? 'any'}
+          </Text>
+          <Ionicons name="chevron-down" size={18} color="#ffffff" />
+        </Pressable>
 
-          {/* TODO 10 */}
-          {tags.map((t) => (
-            <Pressable
-              key={t}
-              style={[
-                styles.filterChip,
-                selectedTag === t && { borderColor: theme.colors.primary },
-              ]}
-              onPress={() => chooseTag(t)}
-            >
-              <Text style={[styles.filterChipText, { color: theme.colors.text }]}>{t}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {/* TODO 11 */}
-        <Pressable
-          style={[styles.refreshButton, { backgroundColor: theme.colors.primary }]}
-          onPress={loadRandomQuote}
-        >
+        <Pressable style={styles.refreshButton} onPress={() => loadRandomQuote()}>
           <Ionicons name="refresh" size={18} color="#ffffff" />
           <Text style={styles.refreshButtonText}>Next Quote</Text>
         </Pressable>
-
-        {/* TODO 24 */}
-        <Pressable
-          style={styles.favoriteButton}
-          onPress={() => {
-            toggleFavorite(quote);
-            router.navigate('/favorites');
-          }}
-        >
-          <Ionicons
-            name={quote.text && isFavorite(quote) ? 'heart' : 'heart-outline'}
-            size={28}
-            color="#e53935"
-          />
-        </Pressable>
       </View>
+
+      <Pressable
+        style={styles.favoriteButton}
+        onPress={() => {
+          if (!quote.text) return;
+          toggleFavorite(quote);
+          router.navigate('/favorites');
+        }}
+      >
+        <Ionicons
+          name={quote.text && isFavorite(quote) ? 'heart' : 'heart-outline'}
+          size={28}
+          color="#ff6b8a"
+        />
+      </Pressable>
+
+      {/* category picker */}
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
+          <View style={styles.menu}>
+            <Text style={styles.menuTitle}>Choose a category</Text>
+            <ScrollView>
+              <Pressable
+                style={[styles.menuItem, selectedTag === null && styles.menuItemActive]}
+                onPress={() => chooseTag(null)}
+              >
+                <Text style={styles.menuItemText}>any</Text>
+              </Pressable>
+              {tags.map((t) => (
+                <Pressable
+                  key={t}
+                  style={[styles.menuItem, selectedTag === t && styles.menuItemActive]}
+                  onPress={() => chooseTag(t)}
+                >
+                  <Text style={styles.menuItemText}>{t}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
     padding: 16,
     borderRadius: 12,
     gap: 8,
+    backgroundColor: PURPLE.card,
   },
   overline: {
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    color: PURPLE.textSoft,
   },
   tagRow: {
     flexDirection: 'row',
@@ -155,57 +154,57 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    borderWidth: 1,
-  },
-  chipActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-  chipInactive: {
-    backgroundColor: 'transparent',
-    borderColor: '#9ca3af',
+    backgroundColor: PURPLE.chip,
   },
   chipText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: PURPLE.text,
   },
   quoteText: {
     fontSize: 20,
     fontStyle: 'italic',
     lineHeight: 28,
+    color: PURPLE.text,
   },
   author: {
     fontSize: 14,
     textAlign: 'right',
+    color: PURPLE.textSoft,
   },
   divider: {
     height: 1,
     marginVertical: 8,
+    backgroundColor: PURPLE.border,
   },
   controlsRow: {
-    gap: 12,
+    flexDirection: 'row',
+    gap: 10,
   },
-  filterRow: {
-    gap: 8,
-    paddingVertical: 4,
-  },
-  filterChip: {
+  dropdown: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
+    paddingVertical: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: PURPLE.border,
   },
-  filterChipText: {
-    fontSize: 13,
+  dropdownText: {
+    color: PURPLE.text,
+    fontSize: 14,
+    flexShrink: 1,
   },
   refreshButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
     borderRadius: 8,
+    backgroundColor: PURPLE.button,
   },
   refreshButtonText: {
     color: '#ffffff',
@@ -214,5 +213,39 @@ const styles = StyleSheet.create({
   favoriteButton: {
     alignSelf: 'center',
     padding: 4,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  menu: {
+    width: '100%',
+    maxWidth: 360,
+    maxHeight: 380,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: PURPLE.menu,
+  },
+  menuTitle: {
+    color: PURPLE.textSoft,
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  menuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  menuItemActive: {
+    backgroundColor: PURPLE.chip,
+  },
+  menuItemText: {
+    color: PURPLE.text,
+    fontSize: 15,
   },
 });
