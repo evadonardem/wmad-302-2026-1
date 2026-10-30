@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // TODO 1.1 [Base Configuration]: Set the fixed PSGC Gitlab API trailing-slash base URL constant.
 // Targeted Value: 'https://psgc.gitlab.io/api'
-const PSGC_BASE_URL = '';
+const PSGC_BASE_URL = 'https://psgc.gitlab.io/api';
 
 // Expo only exposes environment variables prefixed with EXPO_PUBLIC_ (loaded from the .env file).
 const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_API_KEY;
