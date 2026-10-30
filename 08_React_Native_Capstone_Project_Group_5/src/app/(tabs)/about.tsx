@@ -54,7 +54,16 @@ export default function AboutScreen() {
           back to the Search tab — the JSX-based counterpart to the imperative router.push calls
           used elsewhere. Style it like a call-to-action (e.g. "Start exploring →"). */}
       <View style={styles.cta}>
-        {/* [Your <Link> here] */}
+        <Link
+          href="/"
+          style={{
+            color: theme.colors.primary,
+            fontSize: 18,
+            fontWeight: '700',
+          }}
+        >
+          Start exploring →
+        </Link>
       </View>
     </ScrollView>
   );

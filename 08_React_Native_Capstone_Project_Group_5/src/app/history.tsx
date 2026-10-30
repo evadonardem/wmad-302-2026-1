@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { List, Text, useTheme } from 'react-native-paper';
 import { useSearchHistory } from '@/searchHistory';
 
 export default function HistoryScreen() {
@@ -13,7 +13,7 @@ export default function HistoryScreen() {
     //   router.navigate({ pathname: '/', params: { q: city } })
     // Use router.navigate (not push) so this history screen is not left sitting underneath
     // the returned stack entry.
-    // [Your code here]
+    router.navigate({ pathname: '/', params: { q: city } });
   };
 
   return (
@@ -25,7 +25,14 @@ export default function HistoryScreen() {
       {/* TODO 5.2 [History List Mapping]: Map through 'entries' (most recent first) and render a
           row per city — Paper <Button>, <List.Item>, or a plain Pressable all work. Each row's
           onPress should call handlePick(entry) with that city. Give each row a unique key. */}
-      {/* [Your code here] */}
+      {entries.map((entry) => (
+        <List.Item
+          key={entry}
+          title={entry}
+          left={(props) => <List.Icon {...props} icon="city" />}
+          onPress={() => handlePick(entry)}
+        />
+      ))}
 
       {entries.length === 0 && (
         <Text variant="bodyMedium" style={[styles.empty, { color: theme.colors.onSurfaceVariant }]}>

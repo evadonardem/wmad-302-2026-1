@@ -22,9 +22,9 @@ export default function SearchScreen() {
   // - 'loading': Toggles the boolean workflow flag while operations are in flight (default: false)
   // - 'refreshing': Toggles while the pull-to-refresh gesture is running (default: false)
   // - 'lastSearchedCity': Remembers the most recent search keyword so pull-to-refresh can re-run it (default: empty string)
-  const loading = false;
-  const refreshing = false;
-  const lastSearchedCity = '';
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastSearchedCity, setLastSearchedCity] = useState('');
 
   // City handed back from the History screen as a route param (see TODO 5.4)
   const { q } = useLocalSearchParams<{ q?: string }>();
@@ -37,11 +37,22 @@ export default function SearchScreen() {
     //    (from usePhotos()).
     // d. Remember 'locationName' inside 'lastSearchedCity' (feeds the pull-to-refresh in TODO 4.6).
     // e. Toggle the 'loading' tracker back to false inside a finally safety wrapper execution tier.
-    // [Your code here]
+    setLoading(true);
+    try {
+      const results = await searchPhotosByLocation(locationName);
+      setPhotos(results);
+      setLastSearchedCity(locationName);
 
-    // TODO 5.1 [History Recording]: Once the search above succeeds, record the searched city
-    // with recordSearch(locationName) from useSearchHistory() so the History screen can list it.
-    // [Your code here]
+      // TODO 5.1 [History Recording]: Once the search above succeeds, record the searched city
+      // with recordSearch(locationName) from useSearchHistory() so the History screen can list it.
+      if (results.length > 0) {
+        recordSearch(locationName);
+      }
+    } catch (error) {
+      console.warn('Search failed:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -50,14 +61,27 @@ export default function SearchScreen() {
     // b. If 'lastSearchedCity' holds a value, re-run 'searchPhotosByLocation(lastSearchedCity)'
     //    and swap the shared photo store with the fresh results via setPhotos(...).
     // c. Flip 'refreshing' back to false inside a finally safety wrapper.
-    // [Your code here]
+    setRefreshing(true);
+    try {
+      if (lastSearchedCity) {
+        const results = await searchPhotosByLocation(lastSearchedCity);
+        setPhotos(results);
+      }
+    } catch (error) {
+      console.warn('Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
     // TODO 5.4 [Param-Driven Re-Search]: When the 'q' search param arrives or changes (the
     // History screen navigates back here with it), and it holds a non-empty value, run the
     // same search flow as TODO 3.8 with that city (locationName = q).
-    // [Your code here]
+    if (q) {
+      handleSearchSubmit(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
   return (

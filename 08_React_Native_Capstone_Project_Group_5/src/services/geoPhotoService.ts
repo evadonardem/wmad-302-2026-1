@@ -36,7 +36,13 @@ export const getRegions = async () => {
   // TODO 1.2 [Regions Retrieval]: Fetch the full array of regions from the PSGC host.
   // Perform an asynchronous GET request using axios targeting `${PSGC_BASE_URL}/regions/`,
   // return the response data array on success, and return an empty array fallback inside the catch safety layer.
-  // [Your code here]
+  try {
+    const response = await axios.get<Region[]>(`${PSGC_BASE_URL}/regions/`);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.warn('Failed to fetch regions:', error);
+    return [];
+  }
 };
 
 export const getCitiesMunicipalitiesByRegion = async (regionCode: string) => {
@@ -45,7 +51,19 @@ export const getCitiesMunicipalitiesByRegion = async (regionCode: string) => {
   // b. Execute an async GET request hitting the exact trailing-slash path directory:
   //    `${PSGC_BASE_URL}/regions/{regionCode}/cities-municipalities/`
   // c. Return the response data array, with an empty array fallback inside the catch layer.
-  // [Your code here]
+  if (!regionCode) {
+    return [];
+  }
+
+  try {
+    const response = await axios.get<City[]>(
+      `${PSGC_BASE_URL}/regions/${regionCode}/cities-municipalities/`,
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.warn(`Failed to fetch cities/municipalities for region ${regionCode}:`, error);
+    return [];
+  }
 };
 
 export const searchPhotosByLocation = async (locationName: string) => {
@@ -59,5 +77,30 @@ export const searchPhotosByLocation = async (locationName: string) => {
   //    styled exactly like: { id, imageUrl: [large image src URL], photographer, photographerUrl, altText }
   // e. Provide a backup empty array (or placeholder photo array) inside your catch layer shield
   //    to handle error edge cases gracefully.
-  // [Your code here]
+  try {
+    const keyword = `${locationName} tourist spot`;
+    // NOTE: the real Pexels search route is https://api.pexels.com/v1/search?query=...
+    // (the URL in the README appendix lost its path when it was pasted).
+    const response = await axios.get(
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(keyword)}&per_page=12`,
+      {
+        headers: {
+          Authorization: PEXELS_API_KEY ?? '',
+        },
+      },
+    );
+
+    const rawPhotos: any[] = response.data?.photos ?? [];
+
+    return rawPhotos.map((photo) => ({
+      id: photo.id,
+      imageUrl: photo.src?.large ?? photo.src?.original ?? '',
+      photographer: photo.photographer ?? 'Unknown',
+      photographerUrl: photo.photographer_url ?? '',
+      altText: photo.alt || `${locationName} tourist spot`,
+    }));
+  } catch (error) {
+    console.warn(`Failed to fetch photos for "${locationName}":`, error);
+    return [];
+  }
 };

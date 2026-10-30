@@ -1,9 +1,12 @@
-import { StyleSheet, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router';
 import { Button, IconButton, Text, useTheme } from 'react-native-paper';
 import * as WebBrowser from 'expo-web-browser';
 import { usePhotos } from '@/photos';
+
+// Search params can arrive as string | string[] — always take the first string.
+const firstParam = (value?: string | string[]) => (Array.isArray(value) ? value[0] : value) ?? '';
 
 export default function PhotoDetailScreen() {
   const theme = useTheme();
@@ -16,17 +19,26 @@ export default function PhotoDetailScreen() {
   // Example: const { id, imageUrl, photographer, photographerUrl, altText } =
   //            useLocalSearchParams<{ id?: string; imageUrl?: string; photographer?: string; photographerUrl?: string; altText?: string }>();
   // NOTE: search params always arrive as strings (or string arrays) — coerce types as needed.
-  const id = '';
-  const imageUrl = '';
-  const photographer = '';
-  const photographerUrl = '';
-  const altText = '';
+  const params = useLocalSearchParams<{
+    id?: string;
+    imageUrl?: string;
+    photographer?: string;
+    photographerUrl?: string;
+    altText?: string;
+  }>();
+  const id = firstParam(params.id);
+  const imageUrl = firstParam(params.imageUrl);
+  const photographer = firstParam(params.photographer);
+  const photographerUrl = firstParam(params.photographerUrl);
+  const altText = firstParam(params.altText);
 
   // TODO 4.8 [Route Guard]: Before rendering anything, check the required params above.
   // If 'imageUrl' or 'photographer' is missing (someone opened the URL directly, or a stale
   // link was tapped), bounce safely back to the Search tab:
   //   return <Redirect href="/" />;
-  // [Your code here]
+  if (!imageUrl || !photographer) {
+    return <Redirect href="/" />;
+  }
 
   // Position of the current photo inside the shared result set (for prev/next)
   const currentIndex = photos.findIndex((p) => String(p.id) === id);
@@ -39,7 +51,25 @@ export default function PhotoDetailScreen() {
     //    router.replace({ pathname: '/photo/[id]', params: { id: String(target.id), imageUrl: target.imageUrl, photographer: target.photographer, photographerUrl: target.photographerUrl, altText: target.altText } })
     // WHY replace instead of push? push would stack every photo on the history stack, so Back
     // would step through each one — replace keeps a single entry so Back closes the modal.
-    // [Your code here]
+    if (currentIndex < 0) {
+      return;
+    }
+
+    const target = photos[currentIndex + offset];
+    if (!target) {
+      return;
+    }
+
+    router.replace({
+      pathname: '/photo/[id]',
+      params: {
+        id: String(target.id),
+        imageUrl: target.imageUrl,
+        photographer: target.photographer,
+        photographerUrl: target.photographerUrl,
+        altText: target.altText,
+      },
+    });
   };
 
   const handleOpenPhotographer = () => {
@@ -56,7 +86,16 @@ export default function PhotoDetailScreen() {
     //    cancellations) must fail gracefully without crashing the screen.
     // Hint: Messenger, WhatsApp, and every other installed app appear inside this sheet —
     // no per-app deep links required.
-    // [Your code here]
+    try {
+      await Share.share({
+        title: 'Tourist Spot',
+        message: `Check out this tourist spot photo by ${photographer}${photographerUrl ? `: ${photographerUrl}` : ''}`,
+        url: photographerUrl || imageUrl,
+      });
+    } catch (error) {
+      // Unsupported platform or user cancellation — ignore gracefully.
+      console.warn('Share failed or was cancelled:', error);
+    }
   };
 
   return (
