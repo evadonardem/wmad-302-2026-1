@@ -43,6 +43,9 @@ export default function PhotoDetailScreen() {
   // Position of the current photo inside the shared result set (for prev/next)
   const currentIndex = photos.findIndex((p) => String(p.id) === id);
 
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < photos.length - 1;
+
   const goToAdjacentPhoto = (offset: number) => {
     // TODO 4.7 [Prev/Next Viewer]: Browse the shared result set without closing the modal:
     // a. Compute the target photo: photos[currentIndex + offset] — guard against out-of-bounds
@@ -118,6 +121,7 @@ export default function PhotoDetailScreen() {
             icon="chevron-left"
             iconColor={theme.colors.onSurface}
             size={28}
+            disabled={!hasPrev}
             onPress={() => goToAdjacentPhoto(-1)}
             accessibilityLabel="Previous photo"
           />
@@ -128,6 +132,7 @@ export default function PhotoDetailScreen() {
             icon="chevron-right"
             iconColor={theme.colors.onSurface}
             size={28}
+            disabled={!hasNext}
             onPress={() => goToAdjacentPhoto(1)}
             accessibilityLabel="Next photo"
           />

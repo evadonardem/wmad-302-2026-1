@@ -79,6 +79,7 @@ export default function SearchScreen() {
     // History screen navigates back here with it), and it holds a non-empty value, run the
     // same search flow as TODO 3.8 with that city (locationName = q).
     if (q) {
+      router.setParams({ q: undefined });
       handleSearchSubmit(q);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,7 +111,7 @@ export default function SearchScreen() {
         }
       >
         <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onBackground }]}>
-          🇵🇭 Lakbay PH
+          Lakbay PH
         </Text>
         <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
           Explore tourist spots across regions, cities, and municipalities in the Philippines
