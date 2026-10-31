@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Chip, Menu, Searchbar, Text, useTheme } from 'react-native-paper';
-import { getCitiesMunicipalitiesByRegion, getRegions, type City, type Region, } from '@/services/geoPhotoService';
+import { getCitiesMunicipalitiesByRegion, getRegions, type City, type Region, type SearchOptions, } from '@/services/geoPhotoService';
 
 type IslandFilter = 'all' | 'luzon' | 'visayas' | 'mindanao';
 
@@ -32,7 +32,8 @@ const MENU_LIST_MAX_HEIGHT = 280;
 export default function LocationForm({
   onSearch,
 }: {
-  onSearch: (cityName: string, regionName?: string) => void;
+  // Third argument: extra details (region code, and 'wholeRegion' when no city was picked)
+  onSearch: (cityName: string, regionName?: string, options?: SearchOptions) => void;
 }) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -100,10 +101,15 @@ export default function LocationForm({
   }, [selectedRegion]);
 
   const handleSubmit = () => {
+    // The region's name travels along so the photo check can also confirm the region
+    const region = regions.find((r) => r.code === selectedRegion);
+    const regionName = region?.regionName || region?.name;
+
     if (selectedCityName) {
-      // The region's name travels along so the photo check can also confirm the region
-      const region = regions.find((r) => r.code === selectedRegion);
-      onSearch(selectedCityName, region?.regionName || region?.name);
+      onSearch(selectedCityName, regionName, { regionCode: selectedRegion });
+    } else if (selectedRegion && regionName) {
+      // No city picked: search the whole region and its different municipalities
+      onSearch(regionName, regionName, { regionCode: selectedRegion, wholeRegion: true });
     }
   };
 
@@ -154,7 +160,10 @@ export default function LocationForm({
 
   // Display labels derived from the current selections (scaffolded)
   const selectedRegionLabel = regions.find((r) => r.code === selectedRegion)?.name ?? 'Select Region';
-  const selectedCityLabel = selectedCityName || 'Select City / Municipality';
+  const selectedCityLabel =
+    selectedCityName || (selectedRegion ? 'All cities / municipalities' : 'Select City / Municipality');
+  const selectedRegionObject = regions.find((r) => r.code === selectedRegion);
+  const selectedRegionDisplay = selectedRegionObject?.regionName || selectedRegionObject?.name;
 
   // Rounded outlined look shared by both menu buttons
   const menuButtonStyle = [
@@ -265,6 +274,15 @@ export default function LocationForm({
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled
             >
+              {/* No city: the search covers the whole region */}
+              <Menu.Item
+                title="All cities / municipalities"
+                leadingIcon="map-marker-multiple"
+                onPress={() => {
+                  setSelectedCityName('');
+                  closeCityMenu();
+                }}
+              />
               {filteredCities.map((city) => (
                 <Menu.Item
                   key={city.code}
@@ -288,7 +306,7 @@ export default function LocationForm({
         <Button
           mode="contained"
           icon="magnify"
-          disabled={!selectedCityName}
+          disabled={!selectedRegion}
           buttonColor={theme.colors.secondary}
           textColor={theme.colors.onSecondary}
           contentStyle={styles.buttonContent}
@@ -299,6 +317,12 @@ export default function LocationForm({
           Search
         </Button>
       </View>
+
+      {selectedRegion && !selectedCityName ? (
+        <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
+          No city chosen: Search shows tourist spots from all of {selectedRegionDisplay} and its municipalities.
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -355,6 +379,10 @@ const styles = StyleSheet.create({
     width: 160,
   },
 
+  hint: {
+    textAlign: 'center',
+    marginTop: 10,
+  },
   menuContent: {
     minWidth: 320,
   },

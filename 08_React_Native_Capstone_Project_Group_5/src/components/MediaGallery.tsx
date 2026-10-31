@@ -77,7 +77,20 @@ function ActionButton({
   );
 }
 
-export default function MediaGallery({ photos, loading }: { photos: Photo[]; loading: boolean }) {
+export default function MediaGallery({
+  photos,
+  loading,
+  recommendations = [],
+  searchedName = '',
+  regionName = '',
+}: {
+  photos: Photo[];
+  loading: boolean;
+  // Fallback photos from other municipalities of the same region (used when 'photos' is empty)
+  recommendations?: Photo[];
+  searchedName?: string;
+  regionName?: string;
+}) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
@@ -127,7 +140,7 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
   useEffect(() => {
     setPage(0);
     setSelected(null);
-  }, [photos, showFavorites]);
+  }, [photos, recommendations, showFavorites]);
 
   if (loading) {
     return (
@@ -140,7 +153,9 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
     );
   }
 
-  const list = showFavorites ? favorites : photos;
+  // Nothing found for the search, but spots from other places of the same region are ready to suggest
+  const isRecommending = !showFavorites && photos.length === 0 && recommendations.length > 0;
+  const list = showFavorites ? favorites : isRecommending ? recommendations : photos;
 
   // Switch bar: all photos / favorites (always visible, so favorites can be opened even before a search)
   const favoriteBar = (
@@ -196,6 +211,16 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
   return (
     <View>
       {favoriteBar}
+      {isRecommending && (
+        <View style={[styles.recoBox, { backgroundColor: theme.colors.secondaryContainer, borderColor: theme.colors.secondary }]}>
+          <Text style={[styles.recoTitle, { color: theme.colors.onSecondaryContainer }]}>
+            🧭 No photos found for {searchedName}
+          </Text>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSecondaryContainer, textAlign: 'center' }}>
+            You may like these tourist spots from other places in {regionName || 'the same region'}.
+          </Text>
+        </View>
+      )}
       <View style={styles.grid}>
         {pagePhotos.map((photo) => (
           <View key={photo.id} style={[styles.gridItem, { width: itemWidth }]}>
@@ -227,6 +252,11 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
 
               <Card.Content style={styles.cardContent}>
                 <View style={[styles.goldBar, { backgroundColor: theme.colors.secondary }]} />
+                {photo.place ? (
+                  <Text numberOfLines={1} style={[styles.placeLabel, { color: theme.colors.primary }]}>
+                    📍 {photo.place}
+                  </Text>
+                ) : null}
                 <Text variant="labelSmall" style={styles.creditLabel}>
                   📸 Captured by:
                 </Text>
@@ -347,7 +377,9 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
                 {isWide && (
                   <View style={styles.eyebrowRow}>
                     <View style={[styles.eyebrowDot, { backgroundColor: theme.colors.secondary }]} />
-                    <Text style={[styles.eyebrowText, { color: theme.colors.primary }]}>TOURIST SPOT · PHILIPPINES</Text>
+                    <Text style={[styles.eyebrowText, { color: theme.colors.primary }]}>
+                      {selectedPhoto.place ? `${selectedPhoto.place.toUpperCase()} · PHILIPPINES` : 'TOURIST SPOT · PHILIPPINES'}
+                    </Text>
                   </View>
                 )}
 
@@ -549,6 +581,25 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     marginBottom: 8,
+  },
+  placeLabel: {
+    fontWeight: '800',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  recoBox: {
+    alignItems: 'center',
+    gap: 4,
+    padding: 16,
+    marginBottom: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  recoTitle: {
+    fontFamily: SERIF,
+    fontWeight: '800',
+    fontSize: 17,
+    textAlign: 'center',
   },
   creditLabel: {
     opacity: 0.7,

@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions,} from 'react-native';
+import { Animated, Easing, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions, } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LocationForm from '@/components/LocationForm';
 import MediaGallery from '@/components/MediaGallery';
-import { searchPhotosByLocation, type Photo } from '@/services/geoPhotoService';
+import {
+  searchPhotosByLocation,
+  searchPhotosByRegion,
+  type Photo,
+  type SearchOptions,
+} from '@/services/geoPhotoService';
 import { usePhotos } from '@/photos';
 import { useSearchHistory } from '@/searchHistory';
 import { useThemeMode } from '@/themeMode';
@@ -436,6 +441,10 @@ export default function SearchScreen() {
   const [lastSearchedCity, setLastSearchedCity] = useState('');
   // Region of the last search (used to confirm the photos are from that region)
   const [lastSearchedRegion, setLastSearchedRegion] = useState('');
+  // Details of the last search (region code / whole-region), reused by pull-to-refresh
+  const [lastSearchOptions, setLastSearchOptions] = useState<SearchOptions | undefined>(undefined);
+  // Fallback: spots from OTHER municipalities of the same region, shown when the search finds no photos
+  const [recommended, setRecommended] = useState<Photo[]>([]);
 
   // Photos shown in the header carousel
   const [heroPhotos, setHeroPhotos] = useState<Photo[]>([]);
@@ -443,13 +452,32 @@ export default function SearchScreen() {
   // City handed back from the History screen as a route param (see TODO 5.4)
   const { q } = useLocalSearchParams<{ q?: string }>();
 
-  const handleSearchSubmit = async (locationName: string, regionName?: string) => {
+  // Runs one search.
+  // - a city search looks for that city / municipality;
+  // - a whole-region search (no city picked) looks across the region and its municipalities;
+  // - when a city search finds nothing, tourist spots from other municipalities of the same region are suggested.
+  const runSearch = async (locationName: string, regionName?: string, options?: SearchOptions) => {
+    if (options?.wholeRegion && regionName) {
+      return { results: await searchPhotosByRegion(regionName, options.regionCode), suggestions: [] as Photo[] };
+    }
+
+    const results = await searchPhotosByLocation(locationName, regionName);
+    if (results.length === 0 && regionName) {
+      // Only photos that belong to the SAME region (the searched place itself is left out)
+      return { results, suggestions: await searchPhotosByRegion(regionName, options?.regionCode, locationName) };
+    }
+    return { results, suggestions: [] as Photo[] };
+  };
+
+  const handleSearchSubmit = async (locationName: string, regionName?: string, options?: SearchOptions) => {
     setLoading(true);
     try {
-      const results = await searchPhotosByLocation(locationName, regionName);
+      const { results, suggestions } = await runSearch(locationName, regionName, options);
       setPhotos(results);
+      setRecommended(suggestions);
       setLastSearchedCity(locationName);
       setLastSearchedRegion(regionName ?? '');
+      setLastSearchOptions(options);
 
       // TODO 5.1 [History Recording]: Once the search above succeeds, record the searched city
       // with recordSearch(locationName) from useSearchHistory() so the History screen can list it.
@@ -467,8 +495,13 @@ export default function SearchScreen() {
     setRefreshing(true);
     try {
       if (lastSearchedCity) {
-        const results = await searchPhotosByLocation(lastSearchedCity, lastSearchedRegion || undefined);
+        const { results, suggestions } = await runSearch(
+          lastSearchedCity,
+          lastSearchedRegion || undefined,
+          lastSearchOptions,
+        );
         setPhotos(results);
+        setRecommended(suggestions);
       }
     } catch (error) {
       console.warn('Refresh failed:', error);
@@ -615,7 +648,13 @@ export default function SearchScreen() {
             )}
 
             {/* Connect presentation display layout nodes passing state parameters downstream */}
-            <MediaGallery photos={photos} loading={loading} />
+            <MediaGallery
+              photos={photos}
+              loading={loading}
+              recommendations={recommended}
+              searchedName={lastSearchedCity}
+              regionName={lastSearchedRegion}
+            />
           </View>
         </View>
 
