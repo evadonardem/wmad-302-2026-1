@@ -104,7 +104,7 @@ export default function AboutScreen() {
           elevation={3}
         >
           <Text variant="titleLarge" style={[styles.heading, { color: theme.colors.onBackground }]}>
-            🇵🇭 PH NAVYRA
+            PH NAVYRA
           </Text>
           <Text variant="bodyMedium" style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>
             A React Native (Expo) capstone demo that maps Philippine geography and surfaces

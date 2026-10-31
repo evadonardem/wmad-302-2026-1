@@ -654,7 +654,7 @@ export default function SearchScreen() {
         <View>
           <FooterWaves width={width} />
           <View style={styles.footer}>
-            <Text style={styles.footerBrand}>🇵🇭 PH NAVYRA</Text>
+            <Text style={styles.footerBrand}> PH NAVYRA</Text>
             <View style={styles.footerDivider}>
               <View style={[styles.footerLine, { backgroundColor: theme.colors.secondary }]} />
               <View style={[styles.footerDiamond, { backgroundColor: theme.colors.secondary }]} />
@@ -848,6 +848,7 @@ const styles = StyleSheet.create({
   // DESIGN: welcome banner
   banner: {
     marginTop: 20,
+    marginBottom: 28, // space between the banner and the All photos / Favorites buttons (or the results title)
     alignItems: 'center',
     gap: 10,
     paddingVertical: 28,
@@ -948,7 +949,7 @@ const styles = StyleSheet.create({
   resultsHeader: {
     alignItems: 'center',
     gap: 8,
-    marginTop: 32,
+    marginTop: 8, // the banner above already has a bottom margin
     marginBottom: 16,
   },
   // DESIGN: label above the results title
