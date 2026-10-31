@@ -12,9 +12,17 @@ export default function TabsLayout() {
 
   return (
     <Tabs screenOptions={{
+      // Both tab screens draw their own PH NAVYRA header, so the default header bar is hidden
+      headerShown: false,
       tabBarActiveTintColor: theme.colors.primary,
       tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-      tabBarStyle: { backgroundColor: theme.colors.surface },
+      // Surface tab bar with a thin gold line on top
+      tabBarStyle: {
+        backgroundColor: theme.colors.surface,
+        borderTopWidth: 2,
+        borderTopColor: theme.colors.secondary,
+      },
+      tabBarLabelStyle: { fontWeight: '700' },
       headerStyle: { backgroundColor: theme.colors.surface },
       headerTintColor: theme.colors.onSurface,
       headerTitleStyle: { fontWeight: '700', color: theme.colors.onSurface },

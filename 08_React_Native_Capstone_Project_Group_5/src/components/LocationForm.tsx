@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Chip, Menu, Searchbar } from 'react-native-paper';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Button, Chip, Menu, Searchbar, Text, useTheme } from 'react-native-paper';
 import {
   getCitiesMunicipalitiesByRegion,
   getRegions,
@@ -20,11 +20,11 @@ const ISLAND_FILTERS: { value: IslandFilter; label: string }[] = [
 const normalize = (text: string) =>
   text
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .trim();
 
-const sortKey = (name: string) => name.replace(/^city of\s+/i, ''); 
+const sortKey = (name: string) => name.replace(/^city of\s+/i, '');
 
 const byName = (a: { name: string }, b: { name: string }) =>
   sortKey(a.name).localeCompare(sortKey(b.name), undefined, {
@@ -34,7 +34,17 @@ const byName = (a: { name: string }, b: { name: string }) =>
 
 const MENU_LIST_MAX_HEIGHT = 280;
 
-export default function LocationForm({ onSearch }: { onSearch: (cityName: string) => void }) {
+export default function LocationForm({
+  onSearch,
+}: {
+  onSearch: (cityName: string, regionName?: string) => void;
+}) {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+
+  // On wide screens the two menus and the Search button sit on one row
+  const isWide = width >= 760;
+
   // TODO 2.1 [State Trackers]: Replace the four placeholder trackers below with real React state hooks:
   // - 'regions': Stores the array of all regions (default: empty array)
   // - 'cities': Stores the array of filtered sub-municipalities (default: empty array)
@@ -113,7 +123,9 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
     // TODO 2.4 [Form Submit Bubble]: Trigger the parent callback routine 'onSearch'
     // passing through your active 'selectedCityName' value string.
     if (selectedCityName) {
-      onSearch(selectedCityName);
+      // The region's name travels along so the photo check can also confirm the region
+      const region = regions.find((r) => r.code === selectedRegion);
+      onSearch(selectedCityName, region?.regionName || region?.name);
     }
   };
 
@@ -168,6 +180,12 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
   const selectedRegionLabel = regions.find((r) => r.code === selectedRegion)?.name ?? 'Select Region';
   const selectedCityLabel = selectedCityName || 'Select City / Municipality';
 
+  // Rounded outlined look shared by both menu buttons
+  const menuButtonStyle = [
+    styles.button,
+    { borderColor: theme.colors.outline, backgroundColor: theme.colors.primaryContainer + '55' },
+  ];
+
   return (
     <View style={styles.form}>
       {/* TODO 2.9 [Island-Group Filter]: Let users narrow the region menu by island group:
@@ -179,21 +197,33 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
              onPress sets the filter).
           d. SAFETY: if the currently selected region falls outside the new filter, reset
              'selectedRegion' and 'selectedCityName' so a hidden selection can never trigger a search. */}
+      <Text variant="labelMedium" style={[styles.filterLabel, { color: theme.colors.onSurfaceVariant }]}>
+        Browse by island group
+      </Text>
       <View style={styles.filterRow}>
-        {ISLAND_FILTERS.map((option) => (
-          <Chip
-            key={option.value}
-            selected={islandFilter === option.value}
-            showSelectedOverlay
-            onPress={() => handleFilterChange(option.value)}
-          >
-            {option.label}
-          </Chip>
-        ))}
+        {ISLAND_FILTERS.map((option) => {
+          const active = islandFilter === option.value;
+          return (
+            <Chip
+              key={option.value}
+              selected={active}
+              showSelectedOverlay
+              onPress={() => handleFilterChange(option.value)}
+              selectedColor={active ? theme.colors.onPrimary : theme.colors.onSurfaceVariant}
+              style={[
+                styles.chip,
+                { backgroundColor: active ? theme.colors.primary : theme.colors.surfaceVariant },
+              ]}
+              textStyle={{ fontWeight: '700', color: active ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }}
+            >
+              {option.label}
+            </Chip>
+          );
+        })}
       </View>
 
-      <View style={styles.row}>
-        <View style={styles.field}>
+      <View style={[styles.row, isWide && styles.rowWide]}>
+        <View style={[styles.field, isWide && styles.fieldWide]}>
           <Menu
             visible={regionMenuVisible}
             onDismiss={closeRegionMenu}
@@ -203,7 +233,7 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
                 mode="outlined"
                 icon="menu-down"
                 contentStyle={styles.buttonContent}
-                style={styles.button}
+                style={menuButtonStyle}
                 onPress={() => setRegionMenuVisible(true)}
               >
                 {selectedRegionLabel}
@@ -222,7 +252,7 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
                 output <Menu.Item> choice options. Use region.code as the selection value and
                 region.name for the displayed label. Each item's onPress should write the code into
                 'selectedRegion' and dismiss the menu (setRegionMenuVisible(false)). */}
-            
+
             <ScrollView
               style={styles.menuList}
               keyboardShouldPersistTaps="handled"
@@ -243,7 +273,7 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
           </Menu>
         </View>
 
-        <View style={styles.field}>
+        <View style={[styles.field, isWide && styles.fieldWide]}>
           <Menu
             visible={cityMenuVisible}
             onDismiss={closeCityMenu}
@@ -254,7 +284,7 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
                 icon="menu-down"
                 disabled={!selectedRegion}
                 contentStyle={styles.buttonContent}
-                style={styles.button}
+                style={menuButtonStyle}
                 onPress={() => setCityMenuVisible(true)}
               >
                 {selectedCityLabel}
@@ -302,8 +332,11 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
           mode="contained"
           icon="magnify"
           disabled={!selectedCityName}
+          buttonColor={theme.colors.secondary}
+          textColor={theme.colors.onSecondary}
           contentStyle={styles.buttonContent}
-          style={styles.searchButton}
+          style={[styles.searchButton, isWide && styles.searchButtonWide]}
+          labelStyle={{ fontWeight: '700' }}
           onPress={handleSubmit}
         >
           Search
@@ -316,7 +349,13 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
 const styles = StyleSheet.create({
   form: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 8,
+  },
+  filterLabel: {
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 8,
   },
   filterRow: {
     flexDirection: 'row',
@@ -325,22 +364,38 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     justifyContent: 'center',
   },
+  chip: {
+    borderRadius: 999,
+  },
   row: {
     flexDirection: 'column',
     gap: 12,
     alignItems: 'stretch',
   },
+  rowWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   field: {
     width: '100%',
   },
+  fieldWide: {
+    flex: 1,
+    width: undefined,
+  },
   button: {
     width: '100%',
+    borderRadius: 14,
   },
   buttonContent: {
     paddingVertical: 6,
   },
   searchButton: {
     width: '100%',
+    borderRadius: 999,
+  },
+  searchButtonWide: {
+    width: 160,
   },
 
   menuContent: {
