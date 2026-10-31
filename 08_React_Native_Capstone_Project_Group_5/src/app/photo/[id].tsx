@@ -14,13 +14,6 @@ export default function PhotoDetailScreen() {
   const theme = useTheme();
   const { photos } = usePhotos();
 
-  // TODO 4.4 [Route Param Extraction]: Replace the placeholder values below with real route
-  // parameters read from this screen's URL using useLocalSearchParams() ('expo-router'):
-  // - 'id' arrives from the dynamic path segment (/photo/[id])
-  // - the rest arrive as search params (?imageUrl=...&photographer=...)
-  // Example: const { id, imageUrl, photographer, photographerUrl, altText } =
-  //            useLocalSearchParams<{ id?: string; imageUrl?: string; photographer?: string; photographerUrl?: string; altText?: string }>();
-  // NOTE: search params always arrive as strings (or string arrays) — coerce types as needed.
   const params = useLocalSearchParams<{
     id?: string;
     imageUrl?: string;
@@ -34,10 +27,6 @@ export default function PhotoDetailScreen() {
   const photographerUrl = firstParam(params.photographerUrl);
   const altText = firstParam(params.altText);
 
-  // TODO 4.8 [Route Guard]: Before rendering anything, check the required params above.
-  // If 'imageUrl' or 'photographer' is missing (someone opened the URL directly, or a stale
-  // link was tapped), bounce safely back to the Search tab:
-  //   return <Redirect href="/" />;
   if (!imageUrl || !photographer) {
     return <Redirect href="/" />;
   }
@@ -49,13 +38,6 @@ export default function PhotoDetailScreen() {
   const hasNext = currentIndex >= 0 && currentIndex < photos.length - 1;
 
   const goToAdjacentPhoto = (offset: number) => {
-    // TODO 4.7 [Prev/Next Viewer]: Browse the shared result set without closing the modal:
-    // a. Compute the target photo: photos[currentIndex + offset] — guard against out-of-bounds
-    //    (stay put when there is nothing to move to).
-    // b. Swap the CURRENT route for the target with router.replace:
-    //    router.replace({ pathname: '/photo/[id]', params: { id: String(target.id), imageUrl: target.imageUrl, photographer: target.photographer, photographerUrl: target.photographerUrl, altText: target.altText } })
-    // WHY replace instead of push? push would stack every photo on the history stack, so Back
-    // would step through each one — replace keeps a single entry so Back closes the modal.
     if (currentIndex < 0) {
       return;
     }
@@ -84,13 +66,6 @@ export default function PhotoDetailScreen() {
   };
 
   const handleShare = async () => {
-    // TODO 4.5 [Generic Share Sheet]: Open the platform share sheet with React Native's Share API:
-    // a. Call Share.share() with a { title, message, url } payload describing the photo and
-    //    linking to the photographer's profile.
-    // b. Wrap the call in try/catch: platforms/browsers without share support (and user
-    //    cancellations) must fail gracefully without crashing the screen.
-    // Hint: Messenger, WhatsApp, and every other installed app appear inside this sheet —
-    // no per-app deep links required.
     try {
       await Share.share({
         title: 'Tourist Spot',

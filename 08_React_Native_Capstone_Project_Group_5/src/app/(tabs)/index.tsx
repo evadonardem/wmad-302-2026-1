@@ -1,15 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import {
-  Animated,
-  Easing,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Animated, Easing, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions,} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { IconButton, Surface, Text, useTheme } from 'react-native-paper';
@@ -441,12 +431,6 @@ export default function SearchScreen() {
   const { photos, setPhotos } = usePhotos();
   const { recordSearch } = useSearchHistory();
 
-  // TODO 3.7 [Global Search Coordination]: Replace the placeholder trackers below with real
-  // React state hooks managed by this dashboard (the photo list itself lives in the shared
-  // PhotosProvider — already wired above via usePhotos()):
-  // - 'loading': Toggles the boolean workflow flag while operations are in flight (default: false)
-  // - 'refreshing': Toggles while the pull-to-refresh gesture is running (default: false)
-  // - 'lastSearchedCity': Remembers the most recent search keyword so pull-to-refresh can re-run it (default: empty string)
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastSearchedCity, setLastSearchedCity] = useState('');
@@ -460,13 +444,6 @@ export default function SearchScreen() {
   const { q } = useLocalSearchParams<{ q?: string }>();
 
   const handleSearchSubmit = async (locationName: string, regionName?: string) => {
-    // TODO 3.8 [Operational Async Glue Engine]:
-    // a. Shift the local 'loading' state tracker to true.
-    // b. Fire the async handler function 'searchPhotosByLocation(locationName)' inside an await statement.
-    // c. Capture the resulting photo dataset array into the shared store via setPhotos(...)
-    //    (from usePhotos()).
-    // d. Remember 'locationName' inside 'lastSearchedCity' (feeds the pull-to-refresh in TODO 4.6).
-    // e. Toggle the 'loading' tracker back to false inside a finally safety wrapper execution tier.
     setLoading(true);
     try {
       const results = await searchPhotosByLocation(locationName, regionName);
@@ -487,11 +464,6 @@ export default function SearchScreen() {
   };
 
   const handleRefresh = async () => {
-    // TODO 4.6 [Pull-to-Refresh Workflow]: Implement the RefreshControl gesture handler below:
-    // a. Flip the 'refreshing' tracker to true.
-    // b. If 'lastSearchedCity' holds a value, re-run 'searchPhotosByLocation(lastSearchedCity)'
-    //    and swap the shared photo store with the fresh results via setPhotos(...).
-    // c. Flip 'refreshing' back to false inside a finally safety wrapper.
     setRefreshing(true);
     try {
       if (lastSearchedCity) {
@@ -506,9 +478,6 @@ export default function SearchScreen() {
   };
 
   useEffect(() => {
-    // TODO 5.4 [Param-Driven Re-Search]: When the 'q' search param arrives or changes (the
-    // History screen navigates back here with it), and it holds a non-empty value, run the
-    // same search flow as TODO 3.8 with that city (locationName = q).
     if (q) {
       router.setParams({ q: undefined });
       handleSearchSubmit(q);

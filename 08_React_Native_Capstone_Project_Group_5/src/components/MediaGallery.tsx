@@ -129,11 +129,6 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
     setSelected(null);
   }, [photos, showFavorites]);
 
-
-  // TODO 3.1 [Loading Skeletal Feedbacks]: If the 'loading' prop evaluates true, return a visual
-  // waiting feedback layout instead of the gallery.
-  // Pro Tip: render a Paper <ActivityIndicator /> (or loop mock placeholder Views) to show a
-  // clean visual waiting state while photos are being fetched.
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -145,10 +140,6 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
     );
   }
 
-  // TODO 3.2 [Boundary Validation Checks]: If the photos array contains no records, return a
-  // fallback layout displaying a simple status message like:
-  // "No tourist spots found for this area yet."
-  // The gallery shows the search results, or only the favorites when that switch is on
   const list = showFavorites ? favorites : photos;
 
   // Switch bar: all photos / favorites (always visible, so favorites can be opened even before a search)
@@ -205,28 +196,11 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
   return (
     <View>
       {favoriteBar}
-      {/* TODO 3.3 [Fluid Layout Architecture]: Build a responsive wrapping grid using flexbox
-          (the RN substitute for MUI <Grid> breakpoints): a row container with flexWrap enabled,
-          then map across your structured 'photos' payload elements inside it. */}
       <View style={styles.grid}>
-        {/* TODO 3.4 [Card Content Loop Mapping]: Loop across the photo elements with a unique key,
-            wrapping each one in a grid cell View (styles.gridItem) containing the Card template below. */}
-        {/* [Your map loop here] */}
-        {/* TODO 4.3 [Detail Navigation Trigger]: Make each grid cell (or its Card) pressable so a tap
-            pushes the photo detail route (a DYNAMIC segment) with router.push:
-              router.push({ pathname: '/photo/[id]', params: { id: String(photo.id), imageUrl: photo.imageUrl, photographer: photo.photographer, photographerUrl: photo.photographerUrl, altText: photo.altText } })
-            Pass every field the detail screen needs — route params travel as strings, and the id
-            becomes part of the URL path (/photo/12345?...). */}
         {pagePhotos.map((photo) => (
           <View key={photo.id} style={[styles.gridItem, { width: itemWidth }]}>
-            {/* FIX: the Card no longer has onPress (on web that made the whole card a <button> with the heart and
-                the photographer link nested inside it). The tap now lives on a Pressable around the photo only. */}
             <Card style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={3}>
-              {/* TODO 3.5 [Multimedia Presentation Layer]: Render a Paper <Card.Cover /> image block.
-                  Set its source to {{ uri: photo.imageUrl }} and bind 'photo.altText' as the
-                  accessibilityLabel for the image asset. */}
               <View>
-                {/* Tapping a photo opens it in a popup on this page (the full detail page is still available from the popup) */}
                 <Pressable
                   onPress={() => setSelected(pageStart + pagePhotos.indexOf(photo))}
                   accessibilityRole="button"
@@ -240,7 +214,6 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
                     </Text>
                   </View>
                 </Pressable>
-                {/* Heart: add / remove this photo from the favorites (sibling of the Pressable above, not inside it) */}
                 <IconButton
                   icon={isFavorite(photo) ? 'heart' : 'heart-outline'}
                   iconColor={isFavorite(photo) ? '#FF5A7A' : '#FFFFFF'}
@@ -257,9 +230,6 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
                 <Text variant="labelSmall" style={styles.creditLabel}>
                   📸 Captured by:
                 </Text>
-                {/* TODO 3.6 [Attribution Links]: Render the photographer credit as a Pressable Text.
-                    Display 'photo.photographer' and, on press, open 'photo.photographerUrl' in the
-                    device browser using WebBrowser.openBrowserAsync (RN has no <a> hyperlinks). */}
                 <Pressable
                   onPress={() => {
                     if (photo.photographerUrl) {
@@ -281,7 +251,6 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
             </Card>
           </View>
         ))}
-        {/* End Loop */}
       </View>
 
       {/* Page buttons: previous / page numbers / next, centred below the photos */}
@@ -332,8 +301,6 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
         </View>
       )}
 
-      {/* Photo popup: everything fits on one screen (no scrolling). Opens when a card is tapped and closes
-          with the X, the dark background or the back button. */}
       <Modal visible={selectedPhoto !== null} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
         <View style={styles.backdrop}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelected(null)} accessibilityLabel="Close photo" />
@@ -345,7 +312,6 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
                 { height: Math.min(height * 0.9, isWide ? 560 : 720), backgroundColor: theme.colors.surface, borderTopColor: theme.colors.secondary },
               ]}
             >
-              {/* Photo: takes all the space the text and buttons do not need */}
               <View style={isWide ? styles.popupImageWide : styles.popupImageBox}>
                 <Image
                   source={{ uri: selectedPhoto.imageUrl }}

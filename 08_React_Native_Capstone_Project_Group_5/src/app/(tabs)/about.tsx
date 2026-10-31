@@ -199,9 +199,6 @@ export default function AboutScreen() {
 
           <Divider style={styles.divider} />
 
-          {/* TODO 4.9 [Declarative Navigation]: Render a declarative <Link href="/"> below that jumps
-              back to the Search tab — the JSX-based counterpart to the imperative router.push calls
-              used elsewhere. Style it like a call-to-action (e.g. "Start exploring →"). */}
           <View style={styles.cta}>
             <View style={[styles.ctaButton, { backgroundColor: theme.colors.secondary }]}>
               <Link

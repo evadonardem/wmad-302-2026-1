@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Chip, Menu, Searchbar, Text, useTheme } from 'react-native-paper';
-import {
-  getCitiesMunicipalitiesByRegion,
-  getRegions,
-  type City,
-  type Region,
-} from '@/services/geoPhotoService';
+import { getCitiesMunicipalitiesByRegion, getRegions, type City, type Region, } from '@/services/geoPhotoService';
 
 type IslandFilter = 'all' | 'luzon' | 'visayas' | 'mindanao';
 
@@ -45,11 +40,6 @@ export default function LocationForm({
   // On wide screens the two menus and the Search button sit on one row
   const isWide = width >= 760;
 
-  // TODO 2.1 [State Trackers]: Replace the four placeholder trackers below with real React state hooks:
-  // - 'regions': Stores the array of all regions (default: empty array)
-  // - 'cities': Stores the array of filtered sub-municipalities (default: empty array)
-  // - 'selectedRegion': String tracking the chosen active region code (default: empty string)
-  // - 'selectedCityName': String tracking the chosen city text name fed to the search keyword engine (default: empty string)
   const [regions, setRegions] = useState<Region[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
@@ -63,12 +53,9 @@ export default function LocationForm({
   const [regionQuery, setRegionQuery] = useState('');
   const [cityQuery, setCityQuery] = useState('');
 
-  // TODO 2.9 (a): island-group filter state
   const [islandFilter, setIslandFilter] = useState<IslandFilter>('all');
 
   useEffect(() => {
-    // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside
-    // this mounting side-effect and store the returned collection into your local regions state.
     let cancelled = false;
 
     const loadRegions = async () => {
@@ -86,13 +73,6 @@ export default function LocationForm({
   }, []);
 
   useEffect(() => {
-    // TODO 2.3 [Reactive Cascading Refresh]: Run whenever 'selectedRegion' changes.
-    // a. If selectedRegion holds a valid code, call 'getCitiesMunicipalitiesByRegion(selectedRegion)'
-    //    and load the result into your cities list state.
-    // b. CRITICAL: Reset your 'selectedCityName' state back to an empty string so stale child
-    //    selections never leak into the next search.
-
-    // b. Always clear the stale child selection (and the old list) first.
     setSelectedCityName('');
     setCities([]);
     setCityQuery('');
@@ -120,8 +100,6 @@ export default function LocationForm({
   }, [selectedRegion]);
 
   const handleSubmit = () => {
-    // TODO 2.4 [Form Submit Bubble]: Trigger the parent callback routine 'onSearch'
-    // passing through your active 'selectedCityName' value string.
     if (selectedCityName) {
       // The region's name travels along so the photo check can also confirm the region
       const region = regions.find((r) => r.code === selectedRegion);
@@ -129,7 +107,6 @@ export default function LocationForm({
     }
   };
 
-  // TODO 2.9 (b): filtered region list derived from 'regions' + 'islandFilter'
   const filteredRegions = useMemo(() => {
     const byIsland =
       islandFilter === 'all'
@@ -156,7 +133,6 @@ export default function LocationForm({
   const handleFilterChange = (next: IslandFilter) => {
     setIslandFilter(next);
 
-    // TODO 2.9 (d) SAFETY: if the selected region falls outside the new filter, reset selections.
     if (selectedRegion && next !== 'all') {
       const current = regions.find((r) => r.code === selectedRegion);
       if (!current || current.islandGroupCode !== next) {
@@ -188,15 +164,6 @@ export default function LocationForm({
 
   return (
     <View style={styles.form}>
-      {/* TODO 2.9 [Island-Group Filter]: Let users narrow the region menu by island group:
-          a. Add state 'islandFilter' (default 'all'; option values 'all' | 'luzon' | 'visayas' |
-             'mindanao', matching the Region.islandGroupCode field).
-          b. Derive a filtered region list (useMemo) from 'regions' + 'islandFilter', and have your
-             TODO 2.6 menu map over THAT list instead of the raw array.
-          c. Render a row of Paper <Chip> options in the filterRow below (selected chip highlighted,
-             onPress sets the filter).
-          d. SAFETY: if the currently selected region falls outside the new filter, reset
-             'selectedRegion' and 'selectedCityName' so a hidden selection can never trigger a search. */}
       <Text variant="labelMedium" style={[styles.filterLabel, { color: theme.colors.onSurfaceVariant }]}>
         Browse by island group
       </Text>
@@ -248,11 +215,6 @@ export default function LocationForm({
               inputStyle={styles.searchbarInput}
             />
 
-            {/* TODO 2.6 [Region Menu Map]: Dynamically map through your local regions array state to
-                output <Menu.Item> choice options. Use region.code as the selection value and
-                region.name for the displayed label. Each item's onPress should write the code into
-                'selectedRegion' and dismiss the menu (setRegionMenuVisible(false)). */}
-
             <ScrollView
               style={styles.menuList}
               keyboardShouldPersistTaps="handled"
@@ -298,11 +260,6 @@ export default function LocationForm({
               style={styles.searchbar}
               inputStyle={styles.searchbarInput}
             />
-
-            {/* TODO 2.8 [City Menu Map]: Map through your internal cities array state to output
-                <Menu.Item> options. Use city.code as the selection key and map city.name to the
-                label. Each item's onPress should write the name into 'selectedCityName'
-                and dismiss the menu. */}
             <ScrollView
               style={styles.menuList}
               keyboardShouldPersistTaps="handled"
