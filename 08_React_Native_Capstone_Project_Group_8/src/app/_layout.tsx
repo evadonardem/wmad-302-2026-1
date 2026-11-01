@@ -9,24 +9,27 @@ import { ThemeModeProvider } from '@/themeMode';
 
 export default function RootLayout() {
   const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // Dynamic Paper theme configuration (MD3 light/dark palettes, app-wide)
+ 
+  // Dynamic Paper theme — switches automatically
   const theme = isDarkMode ? MD3DarkTheme : MD3LightTheme;
 
-  return (
+  return ( 
     <ThemeModeProvider value={{ isDarkMode, setIsDarkMode }}>
       <PhotosProvider>
         <SearchHistoryProvider>
           <PaperProvider theme={theme}>
             <StatusBar style={isDarkMode ? 'light' : 'dark'} />
             <Stack screenOptions={{ headerShown: false }}>
+              {/* Main tabs navigation */}
               <Stack.Screen name="(tabs)" />
-              {/* The photo detail route opens as a modal with the native header providing Back */}
+              
+              {/* Photo detail — opens as modal with header */}
               <Stack.Screen
                 name="photo/[id]"
                 options={{ headerShown: true, presentation: 'modal', title: 'Tourist Spot' }}
               />
-              {/* Recent searches screen pushes over the tabs with its own native header */}
+              
+              {/* Search history — pushes over tabs */}
               <Stack.Screen name="history" options={{ headerShown: true, title: 'Recent Searches' }} />
             </Stack>
           </PaperProvider>
