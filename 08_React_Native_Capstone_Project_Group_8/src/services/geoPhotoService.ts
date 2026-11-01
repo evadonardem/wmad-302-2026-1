@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // TODO 1.1 [Base Configuration]: Set the fixed PSGC Gitlab API trailing-slash base URL constant.
 // Targeted Value: 'https://psgc.gitlab.io/api'
-const PSGC_BASE_URL = '';
+const PSGC_BASE_URL = 'https://psgc.gitlab.io/api';
 
 // Expo only exposes environment variables prefixed with EXPO_PUBLIC_ (loaded from the .env file).
 const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_API_KEY;
@@ -32,11 +32,15 @@ export type Photo = {
   altText: string;
 };
 
-export const getRegions = async () => {
-  // TODO 1.2 [Regions Retrieval]: Fetch the full array of regions from the PSGC host.
-  // Perform an asynchronous GET request using axios targeting `${PSGC_BASE_URL}/regions/`,
-  // return the response data array on success, and return an empty array fallback inside the catch safety layer.
-  // [Your code here]
+export const getRegions = async (): Promise<Region[]> => {
+    // TODO 1.2 ✅ COMPLETED — Regions Retrieval
+    try {
+        const response = await axios.get(`${PSGC_BASE_URL}/regions/`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching regions:', error);
+        return [];
+    }
 };
 
 export const getCitiesMunicipalitiesByRegion = async (regionCode: string) => {
