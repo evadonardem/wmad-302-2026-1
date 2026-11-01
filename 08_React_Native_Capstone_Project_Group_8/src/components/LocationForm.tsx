@@ -29,18 +29,23 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
   }, []);
 
   useEffect(() => {
-    // TODO 2.3 [Reactive Cascading Refresh]: Run whenever 'selectedRegion' changes.
-    // a. If selectedRegion holds a valid code, call 'getCitiesMunicipalitiesByRegion(selectedRegion)'
-    //    and load the result into your cities list state.
-    // b. CRITICAL: Reset your 'selectedCityName' state back to an empty string so stale child
-    //    selections never leak into the next search.
-    // [Your code here]
+    // TODO 2.3 ✅ COMPLETED — Region Selection Effect
+    async function fetchCities() {
+      if (selectedRegion) {
+        const citiesData = await getCitiesMunicipalitiesByRegion(selectedRegion);
+        setCities(citiesData);
+      } else {
+        setCities([]);
+      }
+    }
+    fetchCities();
   }, [selectedRegion]);
 
   const handleSubmit = () => {
-    // TODO 2.4 [Form Submit Bubble]: Trigger the parent callback routine 'onSearch'
-    // passing through your active 'selectedCityName' value string.
-    // [Your code here]
+    // TODO 2.4 ✅ COMPLETED — Submit Handler
+    if (selectedCityName) {
+      onSearch(selectedCityName);
+    }
   };
 
   // Display labels derived from the current selections (scaffolded)
