@@ -1,10 +1,9 @@
-import axios from 'axios';
-
 // TODO 1.1 [Base Configuration]: Set the fixed PSGC Gitlab API trailing-slash base URL constant.
 // Targeted Value: 'https://psgc.gitlab.io/api'
 const PSGC_BASE_URL = 'https://psgc.gitlab.io/api';
 
 // Expo only exposes environment variables prefixed with EXPO_PUBLIC_ (loaded from the .env file).
+declare const process: { env: { EXPO_PUBLIC_PEXELS_API_KEY?: string } };
 const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_API_KEY;
 
 export type Region = {
@@ -35,33 +34,48 @@ export type Photo = {
 export const getRegions = async (): Promise<Region[]> => {
     // TODO 1.2 ✅ COMPLETED — Regions Retrieval
     try {
-        const response = await axios.get(`${PSGC_BASE_URL}/regions/`);
-        return response.data;
+        const response = await fetch(`${PSGC_BASE_URL}/regions/`);
+        if (!response.ok) throw new Error(`PSGC request failed: ${response.status}`);
+        return await response.json();
     } catch (error) {
         console.error('Error fetching regions:', error);
         return [];
     }
 };
 
-export const getCitiesMunicipalitiesByRegion = async (regionCode: string) => {
-  // TODO 1.3 [Chained Location Population]: Complete the dynamic lookup using string interpolation.
-  // a. Validate that a truthy regionCode parameter is provided before generating a network request (return [] otherwise).
-  // b. Execute an async GET request hitting the exact trailing-slash path directory:
-  //    `${PSGC_BASE_URL}/regions/{regionCode}/cities-municipalities/`
-  // c. Return the response data array, with an empty array fallback inside the catch layer.
-  // [Your code here]
+export const getCitiesMunicipalitiesByRegion = async (regionCode: string): Promise<City[]> => {
+     // TODO 1.3 ✅ COMPLETED — Chained Location Population
+  if (!regionCode) {
+        return [];
+    }
+    try {
+        const response = await fetch(`${PSGC_BASE_URL}/regions/${regionCode}/cities-municipalities/`);
+        if (!response.ok) throw new Error(`PSGC request failed: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching cities/municipalities:', error);
+        return [];
+    }
 };
 
-export const searchPhotosByLocation = async (locationName: string) => {
-  // TODO 1.4 [Pexels Query Resolution]: Build the photo search pipeline.
-  // a. Create a combined query keyword string: `${locationName} tourist spot`.
-  // b. Query the structural Pexels search endpoint: 'https://pexels.com{keyword}&per_page=12'
-  //    (use the keyword from step a, URL-encoded, as the query parameter).
-  // c. Inject your authentication token securely using an Authorization header configuration
-  //    block reading from the PEXELS_API_KEY constant above.
-  // d. Map through the resulting 'photos' array in the payload and return streamlined objects
-  //    styled exactly like: { id, imageUrl: [large image src URL], photographer, photographerUrl, altText }
-  // e. Provide a backup empty array (or placeholder photo array) inside your catch layer shield
-  //    to handle error edge cases gracefully.
-  // [Your code here]
+export const searchPhotosByLocation = async (locationName: string): Promise<Photo[]> => {
+    // TODO 1.4 ✅ COMPLETED — Pexels Query Resolution
+    const keyword = `${locationName} tourist spot`;
+    try {
+        const headers: Record<string, string> = {};
+        if (PEXELS_API_KEY) headers.Authorization = PEXELS_API_KEY;
+        const response = await fetch(`https://pexels.com/search/${encodeURIComponent(keyword)}?per_page=12`, { headers });
+        if (!response.ok) throw new Error(`Pexels request failed: ${response.status}`);
+        const data = await response.json();
+        return data.photos.map((photo: any) => ({
+            id: photo.id,
+            imageUrl: photo.src.large,
+            photographer: photo.photographer,
+            photographerUrl: photo.photographer_url,
+            altText: photo.alt
+        }));
+    } catch (error) {
+        console.error('Error searching photos:', error);
+        return [];
+    }
 };
