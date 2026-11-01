@@ -9,24 +9,23 @@ import {
 } from '@/services/geoPhotoService';
 
 export default function LocationForm({ onSearch }: { onSearch: (cityName: string) => void }) {
-  // TODO 2.1 [State Trackers]: Replace the four placeholder trackers below with real React state hooks:
-  // - 'regions': Stores the array of all regions (default: empty array)
-  // - 'cities': Stores the array of filtered sub-municipalities (default: empty array)
-  // - 'selectedRegion': String tracking the chosen active region code (default: empty string)
-  // - 'selectedCityName': String tracking the chosen city text name fed to the search keyword engine (default: empty string)
-  const regions: Region[] = [];
-  const cities: City[] = [];
-  const selectedRegion = '';
-  const selectedCityName = '';
+  // TODO 2.1 ✅ COMPLETED — Real React state hooks replacing placeholders
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState<string>('');
+  const [selectedCityName, setSelectedCityName] = useState<string>('');
 
   // Paper <Menu> visibility flags (scaffolded UI chrome — no TODO required)
   const [regionMenuVisible, setRegionMenuVisible] = useState(false);
   const [cityMenuVisible, setCityMenuVisible] = useState(false);
 
   useEffect(() => {
-    // TODO 2.2 [Initial Data Populate]: Invoke the 'getRegions' service function asynchronously inside
-    // this mounting side-effect and store the returned collection into your local regions state.
-    // [Your code here]
+     // TODO 2.2 ✅ COMPLETED — Initial Data Populate
+    async function fetchRegions() {
+      const regionsData = await getRegions();
+      setRegions(regionsData);
+    }
+    fetchRegions();
   }, []);
 
   useEffect(() => {
