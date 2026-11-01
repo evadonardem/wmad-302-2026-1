@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { List, Text, useTheme } from 'react-native-paper';
 import { useSearchHistory } from '@/searchHistory';
 
 export default function HistoryScreen() {
@@ -9,12 +9,11 @@ export default function HistoryScreen() {
   const { entries } = useSearchHistory();
 
   const handlePick = (city: string) => {
-    // TODO 5.3 [Cross-Screen Handoff]: Jump back to the Search tab carrying the chosen city as a
-    // route param so the dashboard re-runs the search (see TODO 5.4 over there):
-    //   router.navigate({ pathname: '/', params: { q: city } })
-    // Use router.navigate (not push) so this history screen is not left sitting underneath
-    // the returned stack entry.
-    // [Your code here]
+    // TODO 5.3  COMPLETED — Cross-Screen Handoff
+    router.navigate({
+      pathname: '/',
+      params: { q: city },
+    });
   };
 
   return (
@@ -23,16 +22,29 @@ export default function HistoryScreen() {
         Tap a city to jump back into that search.
       </Text>
 
-      {/* TODO 5.2 [History List Mapping]: Map through 'entries' (most recent first) and render a
-          row per city — Paper <Button>, <List.Item>, or a plain Pressable all work. Each row's
-          onPress should call handlePick(entry) with that city. Give each row a unique key. */}
-      {/* [Your code here] */}
+      {/* TODO 5.2  COMPLETED — History List Mapping */}
+      {entries.map((city, index) => (
+        <Pressable
+          key={`${city}-${index}`}
+          style={styles.itemRow}
+          onPress={() => handlePick(city)}
+        >
+          <List.Item
+            title={city}
+            description="Previously searched"
+            left={(props) => <List.Icon {...props} icon="map-marker" />}
+            right={(props) => <List.Icon {...props} icon="arrow-right" />}
+            style={styles.item}
+          />
+        </Pressable>
+      ))}
 
       {entries.length === 0 && (
         <Text variant="bodyMedium" style={[styles.empty, { color: theme.colors.onSurfaceVariant }]}>
           No searches yet — run a search on the Search tab first.
         </Text>
       )}
+
     </View>
   );
 }
@@ -44,13 +56,20 @@ const styles = StyleSheet.create({
     maxWidth: 720,
     alignSelf: 'center',
     padding: 20,
-    gap: 8,
+    gap: 4,
   },
   intro: {
-    marginBottom: 8,
+    marginBottom: 16,
+  },
+  itemRow: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  item: {
+    paddingVertical: 4,
   },
   empty: {
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: 32,
   },
 });
