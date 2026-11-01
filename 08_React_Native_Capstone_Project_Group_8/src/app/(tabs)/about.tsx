@@ -1,3 +1,4 @@
+import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Link } from 'expo-router';
 import { Divider, Text, useTheme } from 'react-native-paper';

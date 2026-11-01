@@ -1,3 +1,4 @@
+import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
 import { router } from 'expo-router';

@@ -1,3 +1,4 @@
+import React from 'react';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
 // Pre-built search history store (not part of the assignment).

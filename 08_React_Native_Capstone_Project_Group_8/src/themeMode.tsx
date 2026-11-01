@@ -1,3 +1,4 @@
+import React from 'react';
 import { createContext, useContext, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 
 // Pre-built app-wide theme bridge (not part of the assignment).

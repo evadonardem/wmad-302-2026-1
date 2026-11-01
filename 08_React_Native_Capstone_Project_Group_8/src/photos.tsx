@@ -1,3 +1,4 @@
+import React from 'react';
 import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { Photo } from '@/services/geoPhotoService';
 
