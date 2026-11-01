@@ -17,48 +17,51 @@ export default function SearchScreen() {
   const { photos, setPhotos } = usePhotos();
   const { recordSearch } = useSearchHistory();
 
-  // TODO 3.7 [Global Search Coordination]: Replace the placeholder trackers below with real
-  // React state hooks managed by this dashboard (the photo list itself lives in the shared
-  // PhotosProvider — already wired above via usePhotos()):
-  // - 'loading': Toggles the boolean workflow flag while operations are in flight (default: false)
-  // - 'refreshing': Toggles while the pull-to-refresh gesture is running (default: false)
-  // - 'lastSearchedCity': Remembers the most recent search keyword so pull-to-refresh can re-run it (default: empty string)
-  const loading = false;
-  const refreshing = false;
-  const lastSearchedCity = '';
+  // TODO 3.7  COMPLETED — State Trackers
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastSearchedCity, setLastSearchedCity] = useState('');
 
-  // City handed back from the History screen as a route param (see TODO 5.4)
+  // City handed back from the History screen as a route param
   const { q } = useLocalSearchParams<{ q?: string }>();
 
   const handleSearchSubmit = async (locationName: string) => {
-    // TODO 3.8 [Operational Async Glue Engine]:
-    // a. Shift the local 'loading' state tracker to true.
-    // b. Fire the async handler function 'searchPhotosByLocation(locationName)' inside an await statement.
-    // c. Capture the resulting photo dataset array into the shared store via setPhotos(...)
-    //    (from usePhotos()).
-    // d. Remember 'locationName' inside 'lastSearchedCity' (feeds the pull-to-refresh in TODO 4.6).
-    // e. Toggle the 'loading' tracker back to false inside a finally safety wrapper execution tier.
-    // [Your code here]
+    // TODO 3.8  COMPLETED — Search Flow
+    try {
+      setLoading(true);
+      const results = await searchPhotosByLocation(locationName);
+      setPhotos(results);
+      setLastSearchedCity(locationName);
 
-    // TODO 5.1 [History Recording]: Once the search above succeeds, record the searched city
-    // with recordSearch(locationName) from useSearchHistory() so the History screen can list it.
-    // [Your code here]
+      // TODO 5.1  COMPLETED — Record to History
+      await recordSearch(locationName);
+    } catch (err) {
+      console.warn('Search failed:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {
-    // TODO 4.6 [Pull-to-Refresh Workflow]: Implement the RefreshControl gesture handler below:
-    // a. Flip the 'refreshing' tracker to true.
-    // b. If 'lastSearchedCity' holds a value, re-run 'searchPhotosByLocation(lastSearchedCity)'
-    //    and swap the shared photo store with the fresh results via setPhotos(...).
-    // c. Flip 'refreshing' back to false inside a finally safety wrapper.
-    // [Your code here]
+    // TODO 4.6  COMPLETED — Pull-to-Refresh
+    try {
+      setRefreshing(true);
+      if (lastSearchedCity) {
+        const results = await searchPhotosByLocation(lastSearchedCity);
+        setPhotos(results);
+      }
+    } catch (err) {
+      console.warn('Refresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
-    // TODO 5.4 [Param-Driven Re-Search]: When the 'q' search param arrives or changes (the
-    // History screen navigates back here with it), and it holds a non-empty value, run the
-    // same search flow as TODO 3.8 with that city (locationName = q).
-    // [Your code here]
+    // TODO 5.4  COMPLETED — Param-Driven Re-Search
+    if (q && typeof q === 'string' && q.trim()) {
+      handleSearchSubmit(q.trim());
+    }
   }, [q]);
 
   return (
@@ -93,10 +96,7 @@ export default function SearchScreen() {
           Explore tourist spots across regions, cities, and municipalities in the Philippines
         </Text>
 
-        {/* Connect the location selection input modules */}
         <LocationForm onSearch={handleSearchSubmit} />
-
-        {/* Connect presentation display layout nodes passing state parameters downstream */}
         <MediaGallery photos={photos} loading={loading} />
       </ScrollView>
     </SafeAreaView>
