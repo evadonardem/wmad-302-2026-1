@@ -6,64 +6,108 @@ import * as WebBrowser from 'expo-web-browser';
 import type { Photo } from '@/services/geoPhotoService';
 
 export default function MediaGallery({ photos, loading }: { photos: Photo[]; loading: boolean }) {
-  // TODO 3.1 [Loading Skeletal Feedbacks]: If the 'loading' prop evaluates true, return a visual
-  // waiting feedback layout instead of the gallery.
-  // Pro Tip: render a Paper <ActivityIndicator /> (or loop mock placeholder Views) to show a
-  // clean visual waiting state while photos are being fetched.
+  // TODO 3.1  COMPLETED — Loading Feedback
   if (loading) {
     return (
-      // [Your loading layout here]
-      <></>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator animating={true} size="large" />
+        <Text style={styles.loadingText}>Loading photos...</Text>
+      </View>
     );
   }
 
-  // TODO 3.2 [Boundary Validation Checks]: If the photos array contains no records, return a
-  // fallback layout displaying a simple status message like:
-  // "No tourist spots found for this area yet."
+  // TODO 3.2  COMPLETED — Empty State
   if (!photos || photos.length === 0) {
     return (
-      // [Your empty state boundary here]
-      <></>
+      <View style={styles.emptyContainer}>
+        <Text variant="bodyLarge" style={styles.emptyText}>
+          No tourist spots found for this area yet.
+        </Text>
+      </View>
     );
   }
 
+  // TODO 3.3 → 3.6  COMPLETED — Grid, Mapping, Navigation, Image, Attribution
   return (
-    // TODO 3.3 [Fluid Layout Architecture]: Build a responsive wrapping grid using flexbox
-    // (the RN substitute for MUI <Grid> breakpoints): a row container with flexWrap enabled,
-    // then map across your structured 'photos' payload elements inside it.
     <View style={styles.grid}>
-      {/* TODO 3.4 [Card Content Loop Mapping]: Loop across the photo elements with a unique key,
-          wrapping each one in a grid cell View (styles.gridItem) containing the Card template below. */}
-      {/* [Your map loop here] */}
-      {/* TODO 4.3 [Detail Navigation Trigger]: Make each grid cell (or its Card) pressable so a tap
-          pushes the photo detail route (a DYNAMIC segment) with router.push:
-            router.push({ pathname: '/photo/[id]', params: { id: String(photo.id), imageUrl: photo.imageUrl, photographer: photo.photographer, photographerUrl: photo.photographerUrl, altText: photo.altText } })
-          Pass every field the detail screen needs — route params travel as strings, and the id
-          becomes part of the URL path (/photo/12345?...). */}
-      <View style={styles.gridItem}>
-        <Card style={styles.card} elevation={2}>
-          {/* TODO 3.5 [Multimedia Presentation Layer]: Render a Paper <Card.Cover /> image block.
-              Set its source to {{ uri: photo.imageUrl }} and bind 'photo.altText' as the
-              accessibilityLabel for the image asset. */}
-          {/* [Your code here] */}
+      {photos.map((photo) => (
+        <Pressable
+          key={photo.id}
+          style={styles.gridItem}
+          onPress={() => {
+            // TODO 4.3  COMPLETED — Detail Navigation
+            router.push({
+              pathname: '/photo/[id]',
+              params: {
+                id: String(photo.id),
+                imageUrl: photo.imageUrl,
+                photographer: photo.photographer || '',
+                photographerUrl: photo.photographerUrl || '',
+                altText: photo.altText || '',
+              },
+            });
+          }}
+        >
+          <Card style={styles.card} elevation={2}>
+            {/* TODO 3.5  COMPLETED — Photo Image */}
+            <Card.Cover
+              source={{ uri: photo.imageUrl }}
+              accessibilityLabel={photo.altText || 'Photo'}
+              style={styles.cardImage}
+            />
 
-          <Card.Content style={styles.cardContent}>
-            <Text variant="labelSmall" style={styles.creditLabel}>
-              📸 Captured by:
-            </Text>
-            {/* TODO 3.6 [Attribution Links]: Render the photographer credit as a Pressable Text.
-                Display 'photo.photographer' and, on press, open 'photo.photographerUrl' in the
-                device browser using WebBrowser.openBrowserAsync (RN has no <a> hyperlinks). */}
-            {/* [Your code here] */}
-          </Card.Content>
-        </Card>
-      </View>
-      {/* End Loop */}
+            <Card.Content style={styles.cardContent}>
+              <Text variant="labelSmall" style={styles.creditLabel}>
+                📸 Captured by:
+              </Text>
+
+              {/* TODO 3.6  COMPLETED — Photographer Link */}
+              <Pressable
+                onPress={async () => {
+                  if (photo.photographerUrl) {
+                    await WebBrowser.openBrowserAsync(photo.photographerUrl);
+                  }
+                }}
+                disabled={!photo.photographerUrl}
+              >
+                <Text
+                  variant="bodyMedium"
+                  style={[
+                    styles.photographerName,
+                    !photo.photographerUrl && styles.photographerNameDisabled,
+                  ]}
+                >
+                  {photo.photographer || 'Unknown Photographer'}
+                </Text>
+              </Pressable>
+            </Card.Content>
+          </Card>
+        </Pressable>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    opacity: 0.6,
+  },
+  emptyContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyText: {
+    opacity: 0.6,
+    textAlign: 'center',
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -79,10 +123,23 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'hidden',
   },
+  cardImage: {
+    height: 160,
+  },
   cardContent: {
     paddingBottom: 12,
+    paddingTop: 8,
   },
   creditLabel: {
     opacity: 0.7,
+    marginBottom: 2,
+  },
+  photographerName: {
+    color: '#2196F3',
+    textDecorationLine: 'underline',
+  },
+  photographerNameDisabled: {
+    color: '#999',
+    textDecorationLine: 'none',
   },
 });
