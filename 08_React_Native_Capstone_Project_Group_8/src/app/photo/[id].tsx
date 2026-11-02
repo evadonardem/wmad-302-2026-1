@@ -10,7 +10,6 @@ export default function PhotoDetailScreen() {
   const theme = useTheme();
   const { photos } = usePhotos();
 
-  // TODO 4.4  COMPLETED — Route Param Extraction
   const {
     id,
     imageUrl,
@@ -25,16 +24,13 @@ export default function PhotoDetailScreen() {
     altText?: string;
   }>();
 
-  // TODO 4.8  COMPLETED — Route Guard
   if (!imageUrl || !photographer) {
     return <Redirect href="/" />;
   }
 
-  // Position of the current photo inside the shared result set
   const currentIndex = photos.findIndex((p) => String(p.id) === id);
 
   const goToAdjacentPhoto = (offset: number) => {
-    // TODO 4.7  COMPLETED — Prev/Next Viewer
     const targetIndex = currentIndex + offset;
     if (targetIndex < 0 || targetIndex >= photos.length) return;
 
@@ -58,7 +54,6 @@ export default function PhotoDetailScreen() {
   };
 
   const handleShare = async () => {
-    // TODO 4.5  COMPLETED — Share Sheet
     try {
       await Share.share({
         title: `Photo by ${photographer}`,
@@ -74,54 +69,72 @@ export default function PhotoDetailScreen() {
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen options={{ title: photographer ? `By ${photographer}` : 'Tourist Spot' }} />
 
-      <Image
-        source={{ uri: imageUrl }}
-        style={styles.hero}
-        contentFit="cover"
-        transition={200}
-        accessibilityLabel={altText || 'Photo'}
-      />
+      {/* Previous Button */}
+      <View style={styles.navLeft}>
+        <IconButton
+          icon="chevron-left"
+          iconColor={currentIndex <= 0 ? theme.colors.outline : theme.colors.onBackground}
+          size={32}
+          onPress={() => goToAdjacentPhoto(-1)}
+          disabled={currentIndex <= 0}
+          accessibilityLabel="Previous photo"
+        />
+      </View>
 
-      <View style={[styles.body, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.pagerRow}>
-          <IconButton
-            icon="chevron-left"
-            iconColor={theme.colors.onSurface}
-            size={28}
-            onPress={() => goToAdjacentPhoto(-1)}
-            disabled={currentIndex <= 0}
-            accessibilityLabel="Previous photo"
-          />
-          <Text variant="titleMedium" style={[styles.photographer, { color: theme.colors.onSurface }]}>
-            📸 Captured by {photographer}
-          </Text>
-          <IconButton
-            icon="chevron-right"
-            iconColor={theme.colors.onSurface}
-            size={28}
-            onPress={() => goToAdjacentPhoto(1)}
-            disabled={currentIndex >= photos.length - 1}
-            accessibilityLabel="Next photo"
+      {/* Main Content — Clean, Theme-Adaptive, NO Hard Background Box */}
+      <View style={styles.contentWrapper}>
+        {/* Image — Clean rounded, no conflicting background */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.photo}
+            contentFit="contain"
+            transition={300}
+            accessibilityLabel={altText || 'Photo'}
           />
         </View>
 
-        <Button
-          mode="outlined"
-          icon="open-in-new"
-          onPress={handleOpenPhotographer}
-          disabled={!photographerUrl}
-        >
-          Visit photographer profile
-        </Button>
+        {/* Info Section — Uses theme colors directly, always readable */}
+        <View style={styles.infoSection}>
+          <Text variant="titleMedium" style={[styles.photographer, { color: theme.colors.onBackground }]}>
+            📸 Captured by {photographer}
+          </Text>
 
-        <Button
-          mode="contained"
-          icon="share-variant"
-          onPress={handleShare}
-          style={styles.shareButton}
-        >
-          Share this spot
-        </Button>
+          <View style={styles.buttonRow}>
+            <Button
+              mode="outlined"
+              icon="open-in-new"
+              onPress={handleOpenPhotographer}
+              disabled={!photographerUrl}
+              style={styles.btnOutline}
+              labelStyle={[styles.btnLabel, { color: theme.colors.onBackground }]}
+            >
+              View Profile
+            </Button>
+
+            <Button
+              mode="contained"
+              icon="share-variant"
+              onPress={handleShare}
+              style={styles.btnSolid}
+              labelStyle={styles.btnLabel}
+            >
+              Share Spot
+            </Button>
+          </View>
+        </View>
+      </View>
+
+      {/* Next Button */}
+      <View style={styles.navRight}>
+        <IconButton
+          icon="chevron-right"
+          iconColor={currentIndex >= photos.length - 1 ? theme.colors.outline : theme.colors.onBackground}
+          size={32}
+          onPress={() => goToAdjacentPhoto(1)}
+          disabled={currentIndex >= photos.length - 1}
+          accessibilityLabel="Next photo"
+        />
       </View>
     </View>
   );
@@ -130,30 +143,77 @@ export default function PhotoDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    paddingHorizontal: 60,
+    paddingVertical: 24,
   },
-  hero: {
+
+  navLeft: {
+    position: 'absolute',
+    left: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  navRight: {
+    position: 'absolute',
+    right: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+
+  contentWrapper: {
     width: '100%',
-    aspectRatio: 4 / 3,
+    maxWidth: 1000,
+    alignSelf: 'center',
+    gap: 24,
   },
-  body: {
-    flex: 1,
-    padding: 20,
-    gap: 14,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -20,
+
+  imageContainer: {
+    width: '100%',
+    aspectRatio: 16 / 10,
+    borderRadius: 32,
+    overflow: 'hidden',
+    backgroundColor: 'transparent', // ✅ No fixed background — matches theme perfectly
   },
-  pagerRow: {
-    flexDirection: 'row',
+  photo: {
+    width: '100%',
+    height: '100%',
+  },
+
+  infoSection: {
+    padding: 8,
+    gap: 20,
     alignItems: 'center',
-    gap: 8,
   },
+
   photographer: {
-    flex: 1,
+    fontSize: 17,
     fontWeight: '600',
     textAlign: 'center',
   },
-  shareButton: {
-    marginTop: 4,
+
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 16,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    width: '100%',
+  },
+
+  btnOutline: {
+    borderRadius: 14,
+    flex: 1,
+    minWidth: 150,
+  },
+  btnSolid: {
+    borderRadius: 14,
+    flex: 1,
+    minWidth: 150,
+  },
+  btnLabel: {
+    fontSize: 15,
   },
 });
