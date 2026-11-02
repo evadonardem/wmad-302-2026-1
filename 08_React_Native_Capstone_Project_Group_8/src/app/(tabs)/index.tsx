@@ -4,6 +4,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient'; // ✅ ADDED
 import LocationForm from '@/components/LocationForm';
 import MediaGallery from '@/components/MediaGallery';
 import { searchPhotosByLocation } from '@/services/geoPhotoService';
@@ -20,20 +21,18 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastSearchedCity, setLastSearchedCity] = useState('');
-  const [searchInput, setSearchInput] = useState(''); // ✅ Search text input
+  const [searchInput, setSearchInput] = useState('');
 
   const { q } = useLocalSearchParams<{ q?: string }>();
 
-  // Handle search from LocationForm OR from the search bar
   const doSearch = async (locationName: string) => {
     if (!locationName.trim()) return;
-    
     setLoading(true);
     try {
       const results = await searchPhotosByLocation(locationName);
       setPhotos(results);
       setLastSearchedCity(locationName);
-      setSearchInput(locationName); // Update input with searched text
+      setSearchInput(locationName);
       await recordSearch(locationName);
     } catch (err) {
       console.warn('Search failed:', err);
@@ -45,9 +44,7 @@ export default function SearchScreen() {
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      if (lastSearchedCity) {
-        await doSearch(lastSearchedCity);
-      }
+      if (lastSearchedCity) await doSearch(lastSearchedCity);
     } catch (err) {
       console.warn('Refresh failed:', err);
     } finally {
@@ -55,86 +52,92 @@ export default function SearchScreen() {
     }
   };
 
-  // Search when coming from history or direct link
   useEffect(() => {
-    if (q && typeof q === 'string' && q.trim()) {
-      doSearch(q.trim());
-    }
+    if (q && typeof q === 'string' && q.trim()) doSearch(q.trim());
   }, [q]);
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <IconButton
-          icon="history"
-          iconColor={theme.colors.onBackground}
-          size={22}
-          onPress={() => router.push('/history')}
-          accessibilityLabel="Recent searches"
-        />
-        <IconButton
-          icon={isDarkMode ? 'weather-sunny' : 'weather-night'}
-          iconColor={theme.colors.onBackground}
-          size={24}
-          onPress={() => setIsDarkMode(!isDarkMode)}
-          accessibilityLabel="Toggle dark mode"
-        />
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} />
-        }
-      >
-        {/* ✅ CARD WITH SEARCH BAR */}
-        <View
-          style={[
-            styles.cardContainer,
-            {
-              backgroundColor: isDarkMode
-                ? 'rgba(30, 30, 45, 0.95)'
-                : '#ffffff',
-              shadowColor: isDarkMode ? '#000000' : '#6b46c1',
-            },
-          ]}
-        >
-          <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Discover tourist spots across regions, cities, and municipalities in the Philippines
-          </Text>
-
-          {/* ✅ DIRECT SEARCH BAR — Type any place name! */}
-          <TextInput
-            label="Search Places"
-            placeholder="Type a place name... e.g. El Nido, Boracay, Baguio"
-            value={searchInput}
-            onChangeText={setSearchInput}
-            style={styles.searchInput}
-            mode="outlined"
-            right={<TextInput.Icon icon="magnify" onPress={() => doSearch(searchInput)} />}
-            onSubmitEditing={() => doSearch(searchInput)}
+    <LinearGradient
+      // Tropical gradient background
+      colors={isDarkMode
+        ? ['#0f172a', '#1e293b', '#0c4a6e']  // Deep ocean dark theme
+        : ['#e0f2fe', '#f0fdf4', '#fffbeb']}  // Sky → green → sand light theme
+      style={styles.screen}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <View style={styles.header}>
+          <IconButton
+            icon="history"
+            iconColor={isDarkMode ? '#a5f3fc' : '#0d9488'}
+            size={22}
+            onPress={() => router.push('/history')}
+            accessibilityLabel="Recent searches"
           />
-
-          <Text variant="labelMedium" style={styles.orText}>
-            — Or select by location —
-          </Text>
-
-          {/* LocationForm still works too */}
-          <LocationForm onSearch={doSearch} />
-
-          
+          <IconButton
+            icon={isDarkMode ? 'weather-sunny' : 'weather-night'}
+            iconColor={isDarkMode ? '#fef08a' : '#0d9488'}
+            size={24}
+            onPress={() => setIsDarkMode(!isDarkMode)}
+            accessibilityLabel="Toggle dark mode"
+          />
         </View>
 
-        <MediaGallery photos={photos} loading={loading} />
-      </ScrollView>
-    </SafeAreaView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={isDarkMode ? '#5eead4' : '#0d9488'}
+            />
+          }
+        >
+          {/* Card — Slightly transparent so gradient shows through */}
+          <View
+            style={[
+              styles.cardContainer,
+              {
+                backgroundColor: isDarkMode
+                  ? 'rgba(30, 41, 59, 0.85)'
+                  : 'rgba(255, 255, 255, 0.85)',
+              },
+            ]}
+          >
+            <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+              Discover tourist spots across regions, cities, and municipalities in the Philippines
+            </Text>
+
+            <TextInput
+              label="Search Places"
+              placeholder="Type a place name... e.g. El Nido, Boracay, Baguio"
+              value={searchInput}
+              onChangeText={setSearchInput}
+              style={styles.searchInput}
+              mode="outlined"
+              right={<TextInput.Icon icon="magnify" onPress={() => doSearch(searchInput)} />}
+              onSubmitEditing={() => doSearch(searchInput)}
+            />
+
+            <Text variant="labelMedium" style={styles.orText}>
+              — Or select by location —
+            </Text>
+
+            <LocationForm onSearch={doSearch} />
+          </View>
+
+          <MediaGallery photos={photos} loading={loading} />
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    width: '100%',
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -147,23 +150,19 @@ const styles = StyleSheet.create({
     maxWidth: 960,
     alignSelf: 'center',
     paddingBottom: 24,
+    paddingHorizontal: 16,
   },
-
   cardContainer: {
     width: '100%',
     borderRadius: 28,
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingVertical: 32,
     marginBottom: 24,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 8,
-  },
-  title: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
   },
   subtitle: {
     textAlign: 'center',
@@ -176,9 +175,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 12,
     opacity: 0.6,
-  },
-  searchButton: {
-    marginTop: 8,
-    borderRadius: 12,
   },
 });
