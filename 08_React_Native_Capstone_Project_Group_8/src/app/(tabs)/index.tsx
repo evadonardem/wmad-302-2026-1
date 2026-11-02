@@ -122,16 +122,7 @@ export default function SearchScreen() {
           {/* LocationForm still works too */}
           <LocationForm onSearch={doSearch} />
 
-          {/* Search Button */}
-          <Button
-            mode="contained"
-            onPress={() => doSearch(searchInput)}
-            loading={loading}
-            disabled={!searchInput.trim()}
-            style={styles.searchButton}
-          >
-            Search
-          </Button>
+          
         </View>
 
         <MediaGallery photos={photos} loading={loading} />
