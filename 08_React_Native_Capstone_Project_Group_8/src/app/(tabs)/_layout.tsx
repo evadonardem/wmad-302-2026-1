@@ -9,13 +9,15 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        // TODO 4.1  COMPLETED — Tab Bar Configuration
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.outlineVariant,
+          // ✅ ADDED: Balance empty space so About sits in the middle
+          paddingHorizontal: '50%',
         },
+        headerTitleAlign: 'center',
         headerTitleStyle: {
           fontWeight: 'bold',
           color: theme.colors.onBackground,
@@ -25,14 +27,11 @@ export default function TabsLayout() {
         },
       }}
     >
-      {/* TODO 4.2  COMPLETED — Tab Screen Registration */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color as string} />
-          ),
+          tabBarButton: () => null, // ✅ KEPT: Search stays hidden
         }}
       />
       <Tabs.Screen
