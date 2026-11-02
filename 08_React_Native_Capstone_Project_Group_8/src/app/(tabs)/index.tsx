@@ -2,7 +2,7 @@ import React from 'react';
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { IconButton, Text, useTheme } from 'react-native-paper';
+import { Button, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LocationForm from '@/components/LocationForm';
 import MediaGallery from '@/components/MediaGallery';
@@ -17,23 +17,23 @@ export default function SearchScreen() {
   const { photos, setPhotos } = usePhotos();
   const { recordSearch } = useSearchHistory();
 
-  // TODO 3.7  COMPLETED — State Trackers
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastSearchedCity, setLastSearchedCity] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // ✅ Search text input
 
-  // City handed back from the History screen as a route param
   const { q } = useLocalSearchParams<{ q?: string }>();
 
-  const handleSearchSubmit = async (locationName: string) => {
-    // TODO 3.8  COMPLETED — Search Flow
+  // Handle search from LocationForm OR from the search bar
+  const doSearch = async (locationName: string) => {
+    if (!locationName.trim()) return;
+    
+    setLoading(true);
     try {
-      setLoading(true);
       const results = await searchPhotosByLocation(locationName);
       setPhotos(results);
       setLastSearchedCity(locationName);
-
-      // TODO 5.1  COMPLETED — Record to History
+      setSearchInput(locationName); // Update input with searched text
       await recordSearch(locationName);
     } catch (err) {
       console.warn('Search failed:', err);
@@ -43,12 +43,10 @@ export default function SearchScreen() {
   };
 
   const handleRefresh = async () => {
-    // TODO 4.6  COMPLETED — Pull-to-Refresh
     try {
       setRefreshing(true);
       if (lastSearchedCity) {
-        const results = await searchPhotosByLocation(lastSearchedCity);
-        setPhotos(results);
+        await doSearch(lastSearchedCity);
       }
     } catch (err) {
       console.warn('Refresh failed:', err);
@@ -57,10 +55,10 @@ export default function SearchScreen() {
     }
   };
 
+  // Search when coming from history or direct link
   useEffect(() => {
-    // TODO 5.4  COMPLETED — Param-Driven Re-Search
     if (q && typeof q === 'string' && q.trim()) {
-      handleSearchSubmit(q.trim());
+      doSearch(q.trim());
     }
   }, [q]);
 
@@ -89,14 +87,56 @@ export default function SearchScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} />
         }
       >
-        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onBackground }]}>
-          🇵🇭 Lakbay PH
-        </Text>
-        <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-          Explore tourist spots across regions, cities, and municipalities in the Philippines
-        </Text>
+        {/* ✅ CARD WITH SEARCH BAR */}
+        <View
+          style={[
+            styles.cardContainer,
+            {
+              backgroundColor: isDarkMode
+                ? 'rgba(30, 30, 45, 0.95)'
+                : '#ffffff',
+              shadowColor: isDarkMode ? '#000000' : '#6b46c1',
+            },
+          ]}
+        >
+          <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onBackground }]}>
+            🇵🇭 Lakbay PH
+          </Text>
+          <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+            Explore tourist spots across regions, cities, and municipalities in the Philippines
+          </Text>
 
-        <LocationForm onSearch={handleSearchSubmit} />
+          {/* ✅ DIRECT SEARCH BAR — Type any place name! */}
+          <TextInput
+            label="Search Places"
+            placeholder="Type a place name... e.g. El Nido, Boracay, Baguio"
+            value={searchInput}
+            onChangeText={setSearchInput}
+            style={styles.searchInput}
+            mode="outlined"
+            right={<TextInput.Icon icon="magnify" onPress={() => doSearch(searchInput)} />}
+            onSubmitEditing={() => doSearch(searchInput)}
+          />
+
+          <Text variant="labelMedium" style={styles.orText}>
+            — Or select by location —
+          </Text>
+
+          {/* LocationForm still works too */}
+          <LocationForm onSearch={doSearch} />
+
+          {/* Search Button */}
+          <Button
+            mode="contained"
+            onPress={() => doSearch(searchInput)}
+            loading={loading}
+            disabled={!searchInput.trim()}
+            style={styles.searchButton}
+          >
+            Search
+          </Button>
+        </View>
+
         <MediaGallery photos={photos} loading={loading} />
       </ScrollView>
     </SafeAreaView>
@@ -112,20 +152,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 4,
+    paddingHorizontal: 8,
   },
   scrollContent: {
     width: '100%',
     maxWidth: 960,
     alignSelf: 'center',
-    paddingHorizontal: 16,
     paddingBottom: 24,
+  },
+
+  cardContainer: {
+    width: '100%',
+    borderRadius: 28,
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+    marginBottom: 24,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
   title: {
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 8,
   },
   subtitle: {
     textAlign: 'center',
     marginBottom: 24,
+  },
+  searchInput: {
+    marginBottom: 16,
+  },
+  orText: {
+    textAlign: 'center',
+    marginVertical: 12,
+    opacity: 0.6,
+  },
+  searchButton: {
+    marginTop: 8,
+    borderRadius: 12,
   },
 });
