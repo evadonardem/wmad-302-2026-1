@@ -99,11 +99,8 @@ export default function SearchScreen() {
             },
           ]}
         >
-          <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onBackground }]}>
-            🇵🇭 Lakbay PH
-          </Text>
           <Text variant="bodyLarge" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Explore tourist spots across regions, cities, and municipalities in the Philippines
+            Discover tourist spots across regions, cities, and municipalities in the Philippines
           </Text>
 
           {/* ✅ DIRECT SEARCH BAR — Type any place name! */}

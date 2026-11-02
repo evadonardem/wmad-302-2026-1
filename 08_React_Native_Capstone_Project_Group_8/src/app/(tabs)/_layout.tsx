@@ -30,7 +30,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Search',
+          title: 'LAKBAY PH',
           tabBarButton: () => null, // ✅ KEPT: Search stays hidden
         }}
       />
