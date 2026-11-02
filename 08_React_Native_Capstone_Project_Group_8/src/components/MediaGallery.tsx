@@ -44,8 +44,12 @@ export default function MediaGallery({ photos, loading }: { photos: Photo[]; loa
 
 // Separate animated item component
 function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
+  // Fade-in + entrance animation (kept exactly as you have)
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.94)).current;
+
+  // ✨ NEW: Press lift effect
+  const pressScale = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
     Animated.parallel([
@@ -64,15 +68,35 @@ function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
     ]).start();
   }, [fadeAnim, scaleAnim, index]);
 
+  const handlePressIn = () => {
+    Animated.timing(pressScale, {
+      toValue: 0.96,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(pressScale, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
   return (
     <AnimatedPressable
       style={[
         styles.gridItem,
         {
           opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
+          transform: [
+            { scale: Animated.multiply(scaleAnim, pressScale) },
+          ],
         },
       ]}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       onPress={() => {
         // TODO 4.3 ✅ COMPLETED — Detail Navigation
         router.push({
@@ -141,9 +165,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     gap: 8,
-  },
-  emptyEmoji: {
-    fontSize: 40,
   },
   emptyText: {
     opacity: 0.8,
