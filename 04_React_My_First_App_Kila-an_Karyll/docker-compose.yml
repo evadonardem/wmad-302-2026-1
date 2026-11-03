@@ -4,7 +4,7 @@ services:
     user: "root"
     container_name: "react_my_first_app_dynamic_quote_generator"
     ports:
-      - "8081:5173"
+      - "8015:5173"
     volumes:
       - .:/app
     stdin_open: true
