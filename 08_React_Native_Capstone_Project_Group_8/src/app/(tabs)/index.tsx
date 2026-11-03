@@ -29,6 +29,7 @@ import MediaGallery from '@/components/MediaGallery';
 import {
   searchPhotosByLocation,
   getTouristAttractions,
+  getDestinationImage,
   type TouristAttraction,
 } from '@/services/geoPhotoService';
 
@@ -271,43 +272,9 @@ const TOTAL_PAGES = Math.ceil(
   POPULAR_DESTINATIONS.length / ITEMS_PER_PAGE
 );
 
-// ======================================
-// PEXELS API FOR DESTINATION IMAGES
-// ======================================
 
-const fetchPexelsImage = async (
-  searchQuery: string
-): Promise<string> => {
-  const apiKey = process.env.EXPO_PUBLIC_PEXELS_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('Pexels API key is missing.');
-  }
-
-  const url =
-    `https://api.pexels.com/v1/search?query=${encodeURIComponent(
-      searchQuery
-    )}&per_page=10&orientation=landscape`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: apiKey,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Pexels API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  if (!data.photos || data.photos.length === 0) {
-    throw new Error(`No photos found for ${searchQuery}`);
-  }
-
-  return data.photos[0].src.large;
-};
+// Keep destination image URLs between screen visits while the app is running.
+const popularDestinationImageCache = new Map<string, string>();
 
 // ======================================
 // MAIN SEARCH SCREEN
@@ -340,7 +307,7 @@ export default function SearchScreen() {
     useState<PopularDestination[]>(
       POPULAR_DESTINATIONS.map((dest) => ({
         ...dest,
-        imageUrl: '',
+        imageUrl: popularDestinationImageCache.get(dest.id) || '',
       }))
     );
 
@@ -387,65 +354,78 @@ export default function SearchScreen() {
   };
 
   // ======================================
-  // LOAD POPULAR DESTINATION IMAGES
+  // LOAD IMAGES FOR THE CURRENT PAGE ONLY
   // ======================================
 
   useEffect(() => {
     let isActive = true;
 
-    const loadPopularDestinationImages = async () => {
-      if (!process.env.EXPO_PUBLIC_PEXELS_API_KEY) {
-        console.warn('Pexels API key is missing.');
+    const loadCurrentPageImages = async () => {
+      const destinationsOnPage = POPULAR_DESTINATIONS.slice(
+        currentPage * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE
+      );
 
-        if (isActive) {
-          setPopularImagesLoading(false);
-        }
+      // Show cached images immediately before requesting anything new.
+      setPopularDestinations((previous) =>
+        previous.map((destination) => ({
+          ...destination,
+          imageUrl:
+            popularDestinationImageCache.get(destination.id) ||
+            destination.imageUrl,
+        }))
+      );
 
+      const missingImages = destinationsOnPage.filter(
+        (destination) => !popularDestinationImageCache.has(destination.id)
+      );
+
+      if (missingImages.length === 0) {
+        setPopularImagesLoading(false);
         return;
       }
 
-      try {
-        const updatedDestinations = await Promise.all(
-          POPULAR_DESTINATIONS.map(async (dest) => {
-            try {
-              const imageUrl = await fetchPexelsImage(dest.query);
+      setPopularImagesLoading(true);
 
-              return {
-                ...dest,
-                imageUrl,
-              };
-            } catch (error) {
-              console.warn(
-                `Failed to load ${dest.name} image:`,
-                error
-              );
+      const updatedImages = await Promise.all(
+        missingImages.map(async (destination) => {
+          const imageUrl = await getDestinationImage(destination.query);
+          popularDestinationImageCache.set(destination.id, imageUrl);
+          return { id: destination.id, imageUrl };
+        })
+      );
 
-              return {
-                ...dest,
-                imageUrl: '',
-              };
-            }
+      if (isActive) {
+        setPopularDestinations((previous) =>
+          previous.map((destination) => {
+            const updated = updatedImages.find(
+              (item) => item.id === destination.id
+            );
+
+            return updated
+              ? { ...destination, imageUrl: updated.imageUrl }
+              : {
+                  ...destination,
+                  imageUrl:
+                    popularDestinationImageCache.get(destination.id) ||
+                    destination.imageUrl,
+                };
           })
         );
 
-        if (isActive) {
-          setPopularDestinations(updatedDestinations);
-        }
-      } catch (error) {
-        console.warn('Failed to load destination images:', error);
-      } finally {
-        if (isActive) {
-          setPopularImagesLoading(false);
-        }
+        setPopularImagesLoading(false);
       }
     };
 
-    loadPopularDestinationImages();
+    loadCurrentPageImages().catch((error) => {
+      console.warn('Failed to load destination images:', error);
+      if (isActive) setPopularImagesLoading(false);
+    });
 
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [currentPage]);
 
   // ======================================
   // SEARCH PHOTOS
@@ -502,7 +482,12 @@ export default function SearchScreen() {
     try {
       const [_, attractionResults] = await Promise.all([
         doSearch(destination.name, true),
-        getTouristAttractions(destination.id),
+        getTouristAttractions(
+          destination.id,
+          destination.imageUrl ||
+            popularDestinationImageCache.get(destination.id) ||
+            ''
+        ),
       ]);
 
       setAttractions(attractionResults);

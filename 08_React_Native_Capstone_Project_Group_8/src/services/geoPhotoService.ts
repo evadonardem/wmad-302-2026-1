@@ -13,6 +13,30 @@ declare const process: {
 
 const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_API_KEY;
 
+
+// ======================================
+// IMAGE CACHE AND PEXELS REQUEST CONTROL
+// ======================================
+
+// These caches keep successfully loaded photos available while the app is running.
+// They prevent repeated navigation and refreshes from requesting the same photos.
+const pexelsSearchCache = new Map<string, any[]>();
+const attractionCache = new Map<string, TouristAttraction[]>();
+const destinationImageCache = new Map<string, string>();
+
+// Pexels can return HTTP 429 when too many requests arrive together.
+// Queue requests and leave a short gap between them.
+let pexelsRequestQueue: Promise<void> = Promise.resolve();
+let lastPexelsRequestTime = 0;
+const PEXELS_REQUEST_GAP_MS = 800;
+
+const wait = (milliseconds: number) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+// Used only when Pexels has no cached photo available.
+const FALLBACK_IMAGE_URL =
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&q=80';
+
 // ======================================
 // TYPES
 // ======================================
@@ -517,35 +541,101 @@ const TOURIST_ATTRACTIONS: Record<string, AttractionInfo[]> = {
 };
 
 // ======================================
-// PEXELS PHOTO SEARCH
+// PEXELS PHOTO SEARCH WITH CACHE + RETRY
 // ======================================
 
-const searchPexels = async (query: string) => {
+const searchPexels = async (query: string): Promise<any[]> => {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  // Return the saved result immediately when this query was already successful.
+  const cachedPhotos = pexelsSearchCache.get(normalizedQuery);
+  if (cachedPhotos && cachedPhotos.length > 0) {
+    return cachedPhotos;
+  }
+
   if (!PEXELS_API_KEY) {
     throw new Error('Pexels API key is missing. Check your .env file.');
   }
 
-  const params = new URLSearchParams({
-    query,
-    per_page: '5',
-    orientation: 'landscape',
+  const requestTask = pexelsRequestQueue.then(async () => {
+    const elapsed = Date.now() - lastPexelsRequestTime;
+    if (elapsed < PEXELS_REQUEST_GAP_MS) {
+      await wait(PEXELS_REQUEST_GAP_MS - elapsed);
+    }
+
+    const params = new URLSearchParams({
+      query,
+      per_page: '5',
+      orientation: 'landscape',
+    });
+
+    const url = `${PEXELS_SEARCH_URL}?${params.toString()}`;
+
+    // Retry temporary rate-limit and server errors up to three times.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      lastPexelsRequestTime = Date.now();
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: PEXELS_API_KEY,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const photos = Array.isArray(data.photos) ? data.photos : [];
+
+        if (photos.length > 0) {
+          pexelsSearchCache.set(normalizedQuery, photos);
+        }
+
+        return photos;
+      }
+
+      const canRetry =
+        response.status === 429 || response.status >= 500;
+
+      if (!canRetry || attempt === 2) {
+        throw new Error(`Pexels request failed: ${response.status}`);
+      }
+
+      // Exponential backoff: 1.5 seconds, then 3 seconds.
+      await wait(1500 * Math.pow(2, attempt));
+    }
+
+    return [];
   });
 
-  const response = await fetch(
-    `${PEXELS_SEARCH_URL}?${params.toString()}`,
-    {
-      headers: {
-        Authorization: PEXELS_API_KEY,
-      },
-    }
+  // Keep the queue usable even if one request fails.
+  pexelsRequestQueue = requestTask.then(
+    () => undefined,
+    () => undefined
   );
 
-  if (!response.ok) {
-    throw new Error(`Pexels request failed: ${response.status}`);
+  return requestTask;
+};
+
+// Get one image for a popular destination, reusing the cached result.
+export const getDestinationImage = async (
+  searchQuery: string
+): Promise<string> => {
+  const cacheKey = searchQuery.trim().toLowerCase();
+  const cachedImage = destinationImageCache.get(cacheKey);
+
+  if (cachedImage) {
+    return cachedImage;
   }
 
-  const data = await response.json();
-  return data.photos || [];
+  try {
+    const photos = await searchPexels(searchQuery);
+    const imageUrl = photos[0]?.src?.large || FALLBACK_IMAGE_URL;
+    destinationImageCache.set(cacheKey, imageUrl);
+    return imageUrl;
+  } catch (error) {
+    console.warn(`Could not load destination image for ${searchQuery}:`, error);
+    return FALLBACK_IMAGE_URL;
+  }
 };
 
 // ======================================
@@ -622,13 +712,20 @@ export const searchPhotosByLocation = async (
 // ======================================
 
 export const getTouristAttractions = async (
-  destinationId: string
+  destinationId: string,
+  destinationFallbackImage = FALLBACK_IMAGE_URL
 ): Promise<TouristAttraction[]> => {
   const attractions = TOURIST_ATTRACTIONS[destinationId];
 
   if (!attractions) {
     console.warn(`No tourist attractions found for ${destinationId}`);
     return [];
+  }
+
+  // Return all six saved attraction records without making new API requests.
+  const cachedAttractions = attractionCache.get(destinationId);
+  if (cachedAttractions && cachedAttractions.length === attractions.length) {
+    return cachedAttractions;
   }
 
   const results = await Promise.all(
@@ -639,7 +736,7 @@ export const getTouristAttractions = async (
 
         return {
           ...attraction,
-          imageUrl: photo?.src?.large || '',
+          imageUrl: photo?.src?.large || destinationFallbackImage || FALLBACK_IMAGE_URL,
           photographer: photo?.photographer || '',
           photographerUrl: photo?.photographer_url || '',
         };
@@ -649,9 +746,10 @@ export const getTouristAttractions = async (
           error
         );
 
+        // Keep a visible image even if this attraction's Pexels request fails.
         return {
           ...attraction,
-          imageUrl: '',
+          imageUrl: destinationFallbackImage || FALLBACK_IMAGE_URL,
           photographer: '',
           photographerUrl: '',
         };
@@ -659,5 +757,6 @@ export const getTouristAttractions = async (
     })
   );
 
+  attractionCache.set(destinationId, results);
   return results;
 };
