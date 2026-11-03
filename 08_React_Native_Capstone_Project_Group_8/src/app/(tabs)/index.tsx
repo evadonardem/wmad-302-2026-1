@@ -16,7 +16,6 @@ import {
   IconButton,
   Text,
   TextInput,
-  useTheme,
 } from 'react-native-paper';
 
 import { Image } from 'expo-image';
@@ -281,9 +280,40 @@ const popularDestinationImageCache = new Map<string, string>();
 // ======================================
 
 export default function SearchScreen() {
-  const theme = useTheme();
-
   const { isDarkMode, setIsDarkMode } = useThemeMode();
+
+  // Tropical Ocean + Emerald glass palette
+  const palette = isDarkMode
+    ? {
+        background: ['#071C20', '#0B292B', '#103D3A'] as [string, string, ...string[]],
+        glass: 'rgba(13, 48, 48, 0.76)',
+        glassStrong: 'rgba(15, 57, 54, 0.94)',
+        card: 'rgba(17, 58, 55, 0.92)',
+        border: 'rgba(143, 235, 211, 0.20)',
+        primary: '#20B99B',
+        primarySoft: '#174F48',
+        accent: '#F5C77E',
+        text: '#ECFDF8',
+        muted: '#A8C9C0',
+        subtle: '#789B92',
+        placeholder: '#214B49',
+        divider: 'rgba(178, 230, 215, 0.18)',
+      }
+    : {
+        background: ['#DDF7F1', '#F0FBF7', '#EAF5F1'] as [string, string, ...string[]],
+        glass: 'rgba(255, 255, 255, 0.76)',
+        glassStrong: 'rgba(255, 255, 255, 0.94)',
+        card: 'rgba(255, 255, 255, 0.94)',
+        border: 'rgba(8, 127, 115, 0.16)',
+        primary: '#087F73',
+        primarySoft: '#D9F2EA',
+        accent: '#D99B42',
+        text: '#173B35',
+        muted: '#58766E',
+        subtle: '#78928A',
+        placeholder: '#E3F0EB',
+        divider: 'rgba(8, 127, 115, 0.14)',
+      };
 
   const { photos, setPhotos } = usePhotos();
 
@@ -576,11 +606,7 @@ export default function SearchScreen() {
 
   return (
     <LinearGradient
-      colors={
-        isDarkMode
-          ? ['#0f172a', '#1e293b', '#0c4a6e']
-          : ['#e0f2fe', '#f0fdf4', '#fffbeb']
-      }
+      colors={palette.background}
       style={styles.screen}
     >
       <SafeAreaView
@@ -592,7 +618,7 @@ export default function SearchScreen() {
         <View style={styles.header}>
           <IconButton
             icon="history"
-            iconColor={isDarkMode ? '#a5f3fc' : '#0d9488'}
+            iconColor={palette.primary}
             size={22}
             onPress={() => router.push('/history')}
             accessibilityLabel="Recent searches"
@@ -600,7 +626,7 @@ export default function SearchScreen() {
 
           <IconButton
             icon={isDarkMode ? 'weather-sunny' : 'weather-night'}
-            iconColor={isDarkMode ? '#fef08a' : '#0d9488'}
+            iconColor={palette.accent}
             size={24}
             onPress={() => setIsDarkMode(!isDarkMode)}
             accessibilityLabel="Toggle dark mode"
@@ -613,7 +639,7 @@ export default function SearchScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={isDarkMode ? '#5eead4' : '#0d9488'}
+              tintColor={palette.primary}
             />
           }
         >
@@ -625,17 +651,27 @@ export default function SearchScreen() {
             style={[
               styles.cardContainer,
               {
-                backgroundColor: isDarkMode
-                  ? 'rgba(30, 41, 59, 0.85)'
-                  : 'rgba(255, 255, 255, 0.85)',
+                backgroundColor: palette.glass,
+                borderColor: palette.border,
               },
             ]}
           >
+            <View style={styles.heroHeading}>
+              <Text style={[styles.heroEyebrow, { color: palette.primary }]}>
+                YOUR NEXT ADVENTURE STARTS HERE
+              </Text>
+              <Text style={[styles.heroTitle, { color: palette.text }]}>
+                Explore the Philippines
+              </Text>
+              <Text style={[styles.heroAccent, { color: palette.accent }]}>
+                Islands • Mountains • Memories
+              </Text>
+            </View>
             <Text
               variant="bodyLarge"
               style={[
                 styles.subtitle,
-                { color: theme.colors.onSurfaceVariant },
+                { color: palette.muted },
               ]}
             >
               Discover tourist spots across regions, cities, and
@@ -647,7 +683,11 @@ export default function SearchScreen() {
               placeholder="Search a tourist destination..."
               value={searchInput}
               onChangeText={setSearchInput}
-              style={styles.searchInput}
+              style={[styles.searchInput, { backgroundColor: palette.glassStrong }]}
+              textColor={palette.text}
+              outlineColor={palette.border}
+              activeOutlineColor={palette.primary}
+              placeholderTextColor={palette.subtle}
               mode="outlined"
               right={
                 <TextInput.Icon
@@ -658,7 +698,7 @@ export default function SearchScreen() {
               onSubmitEditing={() => doSearch(searchInput)}
             />
 
-            <Text variant="labelMedium" style={styles.orText}>
+            <Text variant="labelMedium" style={[styles.orText, { color: palette.muted }]}>
               — Or select by location —
             </Text>
 
@@ -674,14 +714,14 @@ export default function SearchScreen() {
               <View>
                 <Text
                   variant="labelMedium"
-                  style={styles.popularSubheading}
+                  style={[styles.popularSubheading, { color: palette.primary }]}
                 >
                   Practical Travel Guide
                 </Text>
 
                 <Text
                   variant="titleLarge"
-                  style={styles.popularHeading}
+                  style={[styles.popularHeading, { color: palette.text }]}
                 >
                   Popular Destination
                 </Text>
@@ -692,14 +732,14 @@ export default function SearchScreen() {
                   style={[
                     styles.statNumber,
                     {
-                      color: isDarkMode ? '#5eead4' : '#0d9488',
+                      color: palette.primary,
                     },
                   ]}
                 >
                   30
                 </Text>
 
-                <Text style={styles.statLabel}>
+                <Text style={[styles.statLabel, { color: palette.muted }]}>
                   Destinations
                 </Text>
               </View>
@@ -718,13 +758,10 @@ export default function SearchScreen() {
                   style={({ pressed }) => [
                     styles.destCard,
                     {
-                      backgroundColor: isDarkMode
-                        ? '#1e293b'
-                        : '#ffffff',
+                      backgroundColor: palette.glassStrong,
+                      borderWidth: selectedDestination?.id === dest.id ? 2 : 1,
+                      borderColor: selectedDestination?.id === dest.id ? palette.primary : palette.border,
                       opacity: pressed ? 0.8 : 1,
-                      borderWidth:
-                        selectedDestination?.id === dest.id ? 2 : 0,
-                      borderColor: '#f59e0b',
                       transform: [
                         { scale: pressed ? 0.97 : 1 },
                       ],
@@ -745,9 +782,7 @@ export default function SearchScreen() {
                       style={[
                         styles.destImagePlaceholder,
                         {
-                          backgroundColor: isDarkMode
-                            ? '#334155'
-                            : '#e5e7eb',
+                          backgroundColor: palette.placeholder,
                         },
                       ]}
                     >
@@ -767,18 +802,18 @@ export default function SearchScreen() {
                       style={[
                         styles.destName,
                         {
-                          color: isDarkMode ? '#ffffff' : '#111827',
+                          color: palette.text,
                         },
                       ]}
                     >
                       {dest.name}
                     </Text>
 
-                    <Text style={styles.destProvince}>
+                    <Text style={[styles.destProvince, { color: palette.muted }]}>
                       {dest.province}
                     </Text>
 
-                    <View style={styles.exploreBtn}>
+                    <View style={[styles.exploreBtn, { backgroundColor: palette.primary }]}>
                       <Text style={styles.exploreIcon}>→</Text>
                     </View>
                   </View>
@@ -799,10 +834,8 @@ export default function SearchScreen() {
                   {
                     backgroundColor:
                       currentPage === 0
-                        ? isDarkMode
-                          ? '#334155'
-                          : '#d1d5db'
-                        : '#0d9488',
+                        ? palette.placeholder
+                        : palette.primary,
                     opacity: pressed ? 0.75 : 1,
                   },
                 ]}
@@ -817,7 +850,7 @@ export default function SearchScreen() {
                   style={[
                     styles.paginationPage,
                     {
-                      color: isDarkMode ? '#5eead4' : '#0d9488',
+                      color: palette.primary,
                     },
                   ]}
                 >
@@ -828,7 +861,7 @@ export default function SearchScreen() {
                   style={[
                     styles.paginationCaption,
                     {
-                      color: isDarkMode ? '#cbd5e1' : '#64748b',
+                      color: palette.muted,
                     },
                   ]}
                 >
@@ -848,10 +881,8 @@ export default function SearchScreen() {
                   {
                     backgroundColor:
                       currentPage === TOTAL_PAGES - 1
-                        ? isDarkMode
-                          ? '#334155'
-                          : '#d1d5db'
-                        : '#0d9488',
+                        ? palette.placeholder
+                        : palette.primary,
                     opacity: pressed ? 0.75 : 1,
                   },
                 ]}
@@ -872,15 +903,14 @@ export default function SearchScreen() {
               style={[
                 styles.attractionSection,
                 {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(30, 41, 59, 0.92)'
-                    : 'rgba(255, 255, 255, 0.92)',
+                  backgroundColor: palette.glass,
+                  borderColor: palette.border,
                 },
               ]}
             >
               <View style={styles.attractionHeader}>
                 <View style={styles.attractionTitleContainer}>
-                  <Text style={styles.attractionOverline}>
+                  <Text style={[styles.attractionOverline, { color: palette.accent }]}>
                     DESTINATION GUIDE
                   </Text>
 
@@ -889,14 +919,14 @@ export default function SearchScreen() {
                     style={[
                       styles.attractionHeading,
                       {
-                        color: isDarkMode ? '#5eead4' : '#0d9488',
+                        color: palette.primary,
                       },
                     ]}
                   >
                     Explore {selectedDestination.name}
                   </Text>
 
-                  <Text style={styles.attractionLocation}>
+                  <Text style={[styles.attractionLocation, { color: palette.muted }]}>
                     {selectedDestination.province}, Philippines
                   </Text>
                 </View>
@@ -915,7 +945,7 @@ export default function SearchScreen() {
                 style={[
                   styles.attractionIntro,
                   {
-                    color: isDarkMode ? '#cbd5e1' : '#64748b',
+                    color: palette.muted,
                   },
                 ]}
               >
@@ -930,10 +960,10 @@ export default function SearchScreen() {
                   <ActivityIndicator
                     animating
                     size="large"
-                    color="#0d9488"
+                    color={palette.primary}
                   />
 
-                  <Text style={styles.attractionLoadingText}>
+                  <Text style={[styles.attractionLoadingText, { color: palette.muted }]}>
                     Finding tourist attractions and photos...
                   </Text>
                 </View>
@@ -943,12 +973,12 @@ export default function SearchScreen() {
 
               {!attractionsLoading && attractionError !== '' && (
                 <View style={styles.attractionEmpty}>
-                  <Text style={styles.attractionEmptyText}>
+                  <Text style={[styles.attractionEmptyText, { color: palette.muted }]}>
                     {attractionError}
                   </Text>
 
                   <Pressable
-                    style={styles.retryButton}
+                    style={[styles.retryButton, { backgroundColor: palette.primary }]}
                     onPress={() =>
                       handleDestinationClick(selectedDestination)
                     }
@@ -969,7 +999,7 @@ export default function SearchScreen() {
                       style={[
                         styles.attractionCount,
                         {
-                          color: isDarkMode ? '#5eead4' : '#0d9488',
+                          color: palette.primary,
                         },
                       ]}
                     >
@@ -989,9 +1019,9 @@ export default function SearchScreen() {
                         style={({ pressed }) => [
                           styles.attractionCard,
                           {
-                            backgroundColor: isDarkMode
-                              ? '#0f172a'
-                              : '#ffffff',
+                            backgroundColor: palette.glassStrong,
+                            borderWidth: 1,
+                            borderColor: palette.border,
                             opacity: pressed ? 0.85 : 1,
                             transform: [
                               { scale: pressed ? 0.98 : 1 },
@@ -1012,9 +1042,7 @@ export default function SearchScreen() {
                             style={[
                               styles.attractionImagePlaceholder,
                               {
-                                backgroundColor: isDarkMode
-                                  ? '#334155'
-                                  : '#e5e7eb',
+                                backgroundColor: palette.placeholder,
                               },
                             ]}
                           >
@@ -1030,17 +1058,15 @@ export default function SearchScreen() {
                             style={[
                               styles.attractionName,
                               {
-                                color: isDarkMode
-                                  ? '#ffffff'
-                                  : '#111827',
+                                color: palette.text,
                               },
                             ]}
                           >
                             {attraction.name}
                           </Text>
 
-                          <Text style={styles.attractionPlace}>
-                            <Text style={styles.locationIcon}>⌖ </Text>
+                          <Text style={[styles.attractionPlace, { color: palette.muted }]}>
+                            <Text style={[styles.locationIcon, { color: palette.primary }]}>⌖ </Text>
                             {attraction.location}
                           </Text>
 
@@ -1049,9 +1075,7 @@ export default function SearchScreen() {
                             style={[
                               styles.attractionDescription,
                               {
-                                color: isDarkMode
-                                  ? '#cbd5e1'
-                                  : '#64748b',
+                                color: palette.muted,
                               },
                             ]}
                           >
@@ -1059,17 +1083,17 @@ export default function SearchScreen() {
                           </Text>
 
                           {attraction.photographer !== '' && (
-                            <Text style={styles.photoCredit}>
+                            <Text style={[styles.photoCredit, { color: palette.primary }]}>
                               📸 {attraction.photographer}
                             </Text>
                           )}
 
-                          <View style={styles.viewDetailsRow}>
-                            <Text style={styles.viewDetailsText}>
+                          <View style={[styles.viewDetailsRow, { borderTopColor: palette.divider }]}>
+                            <Text style={[styles.viewDetailsText, { color: palette.primary }]}>
                               View Attraction Details
                             </Text>
 
-                            <Text style={styles.viewDetailsArrow}>
+                            <Text style={[styles.viewDetailsArrow, { color: palette.accent }]}>
                               →
                             </Text>
                           </View>
@@ -1085,7 +1109,7 @@ export default function SearchScreen() {
               {!attractionsLoading && attractions.length > 0 && (
                 <Pressable
                   onPress={closeAttractions}
-                  style={styles.closeGuideButton}
+                  style={[styles.closeGuideButton, { backgroundColor: palette.primary }]}
                 >
                   <Text style={styles.closeGuideText}>
                     Back to Popular Destinations
@@ -1140,9 +1164,39 @@ const styles = StyleSheet.create({
 
   // SEARCH CARD
 
+  heroHeading: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  heroEyebrow: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+
+  heroTitle: {
+    fontSize: 29,
+    lineHeight: 36,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: -0.8,
+  },
+
+  heroAccent: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginTop: 7,
+  },
+
   cardContainer: {
     width: '100%',
     borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
     paddingHorizontal: 24,
     paddingVertical: 32,
     marginBottom: 24,
@@ -1184,14 +1238,14 @@ const styles = StyleSheet.create({
   },
 
   popularSubheading: {
-    color: '#f59e0b',
+    color: '#087F73',
     fontWeight: '600',
   },
 
   popularHeading: {
-    fontWeight: '800',
-    fontSize: 22,
-    color: '#f59e0b',
+    fontWeight: '900',
+    fontSize: 23,
+    color: '#173B35',
   },
 
   statBox: {
@@ -1218,9 +1272,11 @@ const styles = StyleSheet.create({
   destCard: {
     flex: 1,
     maxWidth: 210,
-    borderRadius: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.42)',
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#064E45',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -1262,10 +1318,10 @@ const styles = StyleSheet.create({
   },
 
   exploreBtn: {
-    width: 34,
+    width: 36,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#087F73',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1291,6 +1347,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
     minWidth: 100,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1321,7 +1379,9 @@ const styles = StyleSheet.create({
 
   attractionSection: {
     width: '100%',
-    borderRadius: 24,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
     padding: 20,
     marginBottom: 28,
     shadowColor: '#000000',
@@ -1398,9 +1458,11 @@ const styles = StyleSheet.create({
     flexBasis: 280,
     minWidth: 240,
     maxWidth: 520,
-    borderRadius: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.38)',
     overflow: 'hidden',
-    shadowColor: '#000000',
+    shadowColor: '#064E45',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
