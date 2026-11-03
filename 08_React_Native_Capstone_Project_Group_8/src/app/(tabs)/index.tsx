@@ -282,37 +282,39 @@ const popularDestinationImageCache = new Map<string, string>();
 export default function SearchScreen() {
   const { isDarkMode, setIsDarkMode } = useThemeMode();
 
-  // Tropical Ocean + Emerald glass palette
+  // Greener Tropical Ocean + Emerald glass palette
   const palette = isDarkMode
     ? {
-        background: ['#071C20', '#0B292B', '#103D3A'] as [string, string, ...string[]],
-        glass: 'rgba(13, 48, 48, 0.76)',
-        glassStrong: 'rgba(15, 57, 54, 0.94)',
-        card: 'rgba(17, 58, 55, 0.92)',
-        border: 'rgba(143, 235, 211, 0.20)',
-        primary: '#20B99B',
-        primarySoft: '#174F48',
+        // Deep forest-green background and emerald glass surfaces
+        background: ['#03291F', '#064332', '#0B563D'] as [string, string, ...string[]],
+        glass: 'rgba(5, 50, 35, 0.84)',
+        glassStrong: 'rgba(8, 66, 45, 0.96)',
+        card: 'rgba(9, 74, 49, 0.94)',
+        border: 'rgba(110, 231, 183, 0.28)',
+        primary: '#34D399',
+        primarySoft: '#14532D',
         accent: '#F5C77E',
-        text: '#ECFDF8',
-        muted: '#A8C9C0',
-        subtle: '#789B92',
-        placeholder: '#214B49',
-        divider: 'rgba(178, 230, 215, 0.18)',
+        text: '#ECFDF5',
+        muted: '#B7E4C7',
+        subtle: '#86B99A',
+        placeholder: '#164E3B',
+        divider: 'rgba(167, 243, 208, 0.22)',
       }
     : {
-        background: ['#DDF7F1', '#F0FBF7', '#EAF5F1'] as [string, string, ...string[]],
-        glass: 'rgba(255, 255, 255, 0.76)',
-        glassStrong: 'rgba(255, 255, 255, 0.94)',
-        card: 'rgba(255, 255, 255, 0.94)',
-        border: 'rgba(8, 127, 115, 0.16)',
-        primary: '#087F73',
-        primarySoft: '#D9F2EA',
+        // Fresh jade-green background with softly tinted glass panels
+        background: ['#B7E4C7', '#D8F3DC', '#ECFDF3'] as [string, string, ...string[]],
+        glass: 'rgba(236, 253, 243, 0.86)',
+        glassStrong: 'rgba(247, 255, 249, 0.97)',
+        card: 'rgba(232, 250, 238, 0.96)',
+        border: 'rgba(22, 101, 52, 0.24)',
+        primary: '#15803D',
+        primarySoft: '#BBF7D0',
         accent: '#D99B42',
-        text: '#173B35',
-        muted: '#58766E',
-        subtle: '#78928A',
-        placeholder: '#E3F0EB',
-        divider: 'rgba(8, 127, 115, 0.14)',
+        text: '#123B2A',
+        muted: '#3F6B52',
+        subtle: '#648B72',
+        placeholder: '#D1FAE5',
+        divider: 'rgba(22, 101, 52, 0.18)',
       };
 
   const { photos, setPhotos } = usePhotos();
