@@ -1,7 +1,7 @@
-import React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Chip, Menu } from 'react-native-paper';
+
 import {
   getCitiesMunicipalitiesByRegion,
   getRegions,
@@ -11,27 +11,58 @@ import {
 
 type IslandFilter = 'all' | 'luzon' | 'visayas' | 'mindanao';
 
-export default function LocationForm({ onSearch }: { onSearch: (cityName: string) => void }) {
-  // TODO 2.1 ✅ COMPLETED
+// ======================================
+// TROPICAL OCEAN + EMERALD COLORS
+// ======================================
+
+const COLORS = {
+  emerald: '#0D9488',
+  emeraldDark: '#0F766E',
+  mint: '#D1FAE5',
+  mintText: '#115E59',
+  white: '#FFFFFF',
+  border: '#99CFC5',
+};
+
+export default function LocationForm({
+  onSearch,
+}: {
+  onSearch: (cityName: string) => void;
+}) {
   const [regions, setRegions] = useState<Region[]>([]);
   const [cities, setCities] = useState<City[]>([]);
+
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [selectedCityName, setSelectedCityName] = useState<string>('');
 
-  // TODO 2.5 + 2.9 ✅ COMPLETED — Island Filter State
   const [islandFilter, setIslandFilter] = useState<IslandFilter>('all');
 
-  // TODO 2.9b ✅ COMPLETED — Filtered Regions List
+  const [regionMenuVisible, setRegionMenuVisible] = useState(false);
+  const [cityMenuVisible, setCityMenuVisible] = useState(false);
+
+  // ======================================
+  // FILTER REGIONS
+  // ======================================
+
   const filteredRegions = useMemo<Region[]>(() => {
     if (islandFilter === 'all') return regions;
-    return regions.filter((region) => region.islandGroupCode === islandFilter);
+
+    return regions.filter(
+      (region) => region.islandGroupCode === islandFilter,
+    );
   }, [regions, islandFilter]);
 
-  // TODO 2.9d ✅ COMPLETED — Safety Reset Effect
+  // ======================================
+  // RESET INVALID REGION SELECTION
+  // ======================================
+
   useEffect(() => {
     if (islandFilter === 'all' || !selectedRegion) return;
 
-    const stillVisible = filteredRegions.some((region) => region.code === selectedRegion);
+    const stillVisible = filteredRegions.some(
+      (region) => region.code === selectedRegion,
+    );
+
     if (!stillVisible) {
       setSelectedRegion('');
       setSelectedCityName('');
@@ -39,57 +70,101 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
     }
   }, [islandFilter, selectedRegion, filteredRegions]);
 
-  const [regionMenuVisible, setRegionMenuVisible] = useState(false);
-  const [cityMenuVisible, setCityMenuVisible] = useState(false);
+  // ======================================
+  // LOAD REGIONS
+  // ======================================
 
   useEffect(() => {
-    // TODO 2.2 ✅ COMPLETED — Load Regions on Mount
     async function fetchRegions() {
       const regionsData = await getRegions();
       setRegions(regionsData);
     }
+
     fetchRegions();
   }, []);
 
+  // ======================================
+  // LOAD CITIES
+  // ======================================
+
   useEffect(() => {
-    // TODO 2.3 ✅ COMPLETED — Load Cities on Region Change
     async function fetchCities() {
       if (selectedRegion) {
-        const citiesData = await getCitiesMunicipalitiesByRegion(selectedRegion);
+        const citiesData =
+          await getCitiesMunicipalitiesByRegion(selectedRegion);
+
         setCities(citiesData);
       } else {
         setCities([]);
       }
-      setSelectedCityName(''); // Clear stale city when region changes
+
+      setSelectedCityName('');
     }
+
     fetchCities();
   }, [selectedRegion]);
 
+  // ======================================
+  // SEARCH
+  // ======================================
+
   const handleSubmit = () => {
-    // TODO 2.4 ✅ COMPLETED — Submit Handler
     if (selectedCityName) {
       onSearch(selectedCityName);
     }
   };
 
-  const selectedRegionLabel = regions.find((r) => r.code === selectedRegion)?.name ?? 'Select Region';
-  const selectedCityLabel = selectedCityName || 'Select City / Municipality';
+  const selectedRegionLabel =
+    regions.find((region) => region.code === selectedRegion)?.name ??
+    'Select Region';
+
+  const selectedCityLabel =
+    selectedCityName || 'Select City / Municipality';
+
+  // ======================================
+  // UI
+  // ======================================
 
   return (
     <View style={styles.form}>
-      {/* TODO 2.9c ✅ COMPLETED — Chip Filter Row */}
+      {/* ISLAND FILTER */}
+
       <View style={styles.filterRow}>
-        {(['all', 'luzon', 'visayas', 'mindanao'] as const).map((filter) => (
-          <Chip
-            key={filter}
-            selected={islandFilter === filter}
-            onPress={() => setIslandFilter(filter)}
-            style={styles.filterChip}
-          >
-            {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-          </Chip>
-        ))}
+        {(['all', 'luzon', 'visayas', 'mindanao'] as const).map(
+          (filter) => {
+            const isSelected = islandFilter === filter;
+
+            return (
+              <Chip
+                key={filter}
+                selected={isSelected}
+                onPress={() => setIslandFilter(filter)}
+                selectedColor={COLORS.emeraldDark}
+                textStyle={{
+                  color: isSelected
+                    ? COLORS.white
+                    : COLORS.mintText,
+                  fontWeight: '600',
+                }}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: isSelected
+                      ? COLORS.emerald
+                      : COLORS.mint,
+                  },
+                ]}
+              >
+                {filter === 'all'
+                  ? 'All'
+                  : filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </Chip>
+            );
+          },
+        )}
       </View>
+
+      {/* REGION DROPDOWN */}
 
       <View style={styles.row}>
         <View style={styles.field}>
@@ -100,6 +175,7 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
               <Button
                 mode="outlined"
                 icon="menu-down"
+                textColor={COLORS.emeraldDark}
                 contentStyle={styles.buttonContent}
                 style={styles.button}
                 onPress={() => setRegionMenuVisible(true)}
@@ -108,11 +184,11 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
               </Button>
             }
           >
-            {/* TODO 2.6 ✅ COMPLETED — Region Menu Map */}
             {filteredRegions.map((region) => (
               <Menu.Item
                 key={region.code}
                 title={region.name}
+                titleStyle={styles.menuText}
                 onPress={() => {
                   setSelectedRegion(region.code);
                   setRegionMenuVisible(false);
@@ -121,6 +197,8 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
             ))}
           </Menu>
         </View>
+
+        {/* CITY DROPDOWN */}
 
         <View style={styles.field}>
           <Menu
@@ -131,6 +209,7 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
                 mode="outlined"
                 icon="menu-down"
                 disabled={!selectedRegion}
+                textColor={COLORS.emeraldDark}
                 contentStyle={styles.buttonContent}
                 style={styles.button}
                 onPress={() => setCityMenuVisible(true)}
@@ -139,11 +218,11 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
               </Button>
             }
           >
-            {/* TODO 2.8 ✅ COMPLETED — City Menu Map */}
             {cities.map((city) => (
               <Menu.Item
                 key={city.code}
                 title={city.name}
+                titleStyle={styles.menuText}
                 onPress={() => {
                   setSelectedCityName(city.name);
                   setCityMenuVisible(false);
@@ -153,10 +232,14 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
           </Menu>
         </View>
 
+        {/* SEARCH BUTTON */}
+
         <Button
           mode="contained"
           icon="magnify"
           disabled={!selectedCityName}
+          buttonColor={COLORS.emerald}
+          textColor={COLORS.white}
           contentStyle={styles.buttonContent}
           style={styles.searchButton}
           onPress={handleSubmit}
@@ -168,11 +251,16 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
   );
 }
 
+// ======================================
+// STYLES
+// ======================================
+
 const styles = StyleSheet.create({
   form: {
     width: '100%',
     marginBottom: 24,
   },
+
   filterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -180,24 +268,38 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     justifyContent: 'center',
   },
+
   filterChip: {
     marginHorizontal: 2,
+    borderRadius: 10,
   },
+
   row: {
     flexDirection: 'column',
     gap: 12,
     alignItems: 'stretch',
   },
+
   field: {
     width: '100%',
   },
+
   button: {
     width: '100%',
+    borderColor: COLORS.border,
+    borderRadius: 14,
   },
+
   buttonContent: {
     paddingVertical: 6,
   },
+
   searchButton: {
     width: '100%',
+    borderRadius: 14,
+  },
+
+  menuText: {
+    color: COLORS.emeraldDark,
   },
 });
