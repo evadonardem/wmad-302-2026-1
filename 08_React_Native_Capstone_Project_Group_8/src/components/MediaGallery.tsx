@@ -1,54 +1,128 @@
+
 import React from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Card, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Card,
+  Text,
+  useTheme,
+} from 'react-native-paper';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import type { Photo } from '@/services/geoPhotoService';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export default function MediaGallery({ photos, loading }: { photos: Photo[]; loading: boolean }) {
-  // TODO 3.1 ✅ COMPLETED — Loading Feedback
+export default function MediaGallery({
+  photos,
+  loading,
+}: {
+  photos: Photo[];
+  loading: boolean;
+}) {
+  const theme = useTheme();
+  const isDark = theme.dark;
+
+  // ======================================
+  // EMERALD THEME COLORS
+  // ======================================
+
+  const colors = {
+    card: isDark ? '#064332' : '#D8F3DC',
+    border: isDark ? '#176B50' : '#B7E4C7',
+    text: isDark ? '#D1FAE5' : '#14532D',
+    secondaryText: isDark ? '#A7F3D0' : '#166534',
+    accent: isDark ? '#34D399' : '#0D9488',
+    disabled: isDark ? '#86A99B' : '#729487',
+  };
+
+  // ======================================
+  // LOADING STATE
+  // ======================================
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator animating={true} size="large" color="#0d9488" />
-        <Text style={styles.loadingText}>Finding beautiful spots...</Text>
+        <ActivityIndicator
+          animating={true}
+          size="large"
+          color={colors.accent}
+        />
+
+        <Text style={[styles.loadingText, { color: colors.secondaryText }]}>
+          Finding beautiful spots...
+        </Text>
       </View>
     );
   }
 
-  // TODO 3.2 ✅ COMPLETED — Empty State
+  // ======================================
+  // EMPTY STATE
+  // ======================================
+
   if (!photos || photos.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text variant="bodyLarge" style={styles.emptyText}>
+        <Text
+          variant="bodyLarge"
+          style={[styles.emptyText, { color: colors.text }]}
+        >
           Ready to explore?
         </Text>
-        <Text variant="bodyMedium" style={styles.emptySubtext}>
+
+        <Text
+          variant="bodyMedium"
+          style={[styles.emptySubtext, { color: colors.secondaryText }]}
+        >
           Search a place above or pick a region
         </Text>
       </View>
     );
   }
 
-  // TODO 3.3 → 3.6 ✅ COMPLETED — Grid, Mapping, Navigation, Image, Attribution
+  // ======================================
+  // PHOTO GALLERY
+  // ======================================
+
   return (
     <View style={styles.grid}>
       {photos.map((photo, index) => (
-        <AnimatedGridItem key={photo.id} photo={photo} index={index} />
+        <AnimatedGridItem
+          key={photo.id}
+          photo={photo}
+          index={index}
+          colors={colors}
+        />
       ))}
     </View>
   );
 }
 
-// Separate animated item component
-function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
-  // Fade-in + entrance animation (kept exactly as you have)
+// ======================================
+// ANIMATED PHOTO CARD
+// ======================================
+
+function AnimatedGridItem({
+  photo,
+  index,
+  colors,
+}: {
+  photo: Photo;
+  index: number;
+  colors: {
+    card: string;
+    border: string;
+    text: string;
+    secondaryText: string;
+    accent: string;
+    disabled: string;
+  };
+}) {
+  // Entrance animation
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.94)).current;
 
-  // ✨ NEW: Press lift effect
+  // Press animation
   const pressScale = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -59,6 +133,7 @@ function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
         delay: index * 120,
         useNativeDriver: true,
       }),
+
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 500,
@@ -91,14 +166,15 @@ function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
         {
           opacity: fadeAnim,
           transform: [
-            { scale: Animated.multiply(scaleAnim, pressScale) },
+            {
+              scale: Animated.multiply(scaleAnim, pressScale),
+            },
           ],
         },
       ]}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={() => {
-        // TODO 4.3 ✅ COMPLETED — Detail Navigation
         router.push({
           pathname: '/photo/[id]',
           params: {
@@ -111,24 +187,45 @@ function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
         });
       }}
     >
-      <Card style={styles.card} elevation={2}>
-        {/* TODO 3.5 ✅ COMPLETED — Photo Image */}
+      <Card
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+          },
+        ]}
+        elevation={2}
+      >
+        {/* PHOTO */}
+
         <Card.Cover
           source={{ uri: photo.imageUrl }}
           accessibilityLabel={photo.altText || 'Photo'}
           style={styles.cardImage}
         />
 
+        {/* PHOTO CREDIT */}
+
         <Card.Content style={styles.cardContent}>
-          <Text variant="labelSmall" style={styles.creditLabel}>
+          <Text
+            variant="labelSmall"
+            style={[
+              styles.creditLabel,
+              { color: colors.secondaryText },
+            ]}
+          >
             📸 Captured by:
           </Text>
 
-          {/* TODO 3.6 ✅ COMPLETED — Photographer Link */}
+          {/* PHOTOGRAPHER LINK */}
+
           <Pressable
             onPress={async () => {
               if (photo.photographerUrl) {
-                await WebBrowser.openBrowserAsync(photo.photographerUrl);
+                await WebBrowser.openBrowserAsync(
+                  photo.photographerUrl,
+                );
               }
             }}
             disabled={!photo.photographerUrl}
@@ -137,7 +234,14 @@ function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
               variant="bodyMedium"
               style={[
                 styles.photographerName,
-                !photo.photographerUrl && styles.photographerNameDisabled,
+                {
+                  color: photo.photographerUrl
+                    ? colors.accent
+                    : colors.disabled,
+                  textDecorationLine: photo.photographerUrl
+                    ? 'underline'
+                    : 'none',
+                },
               ]}
             >
               {photo.photographer || 'Unknown Photographer'}
@@ -149,6 +253,10 @@ function AnimatedGridItem({ photo, index }: { photo: Photo; index: number }) {
   );
 }
 
+// ======================================
+// STYLES
+// ======================================
+
 const styles = StyleSheet.create({
   loadingContainer: {
     paddingVertical: 48,
@@ -156,9 +264,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
+
   loadingText: {
-    opacity: 0.6,
+    opacity: 0.8,
   },
+
   emptyContainer: {
     paddingVertical: 48,
     alignItems: 'center',
@@ -166,48 +276,53 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 8,
   },
+
   emptyText: {
-    opacity: 0.8,
+    opacity: 0.9,
     textAlign: 'center',
     fontWeight: '600',
   },
+
   emptySubtext: {
-    opacity: 0.5,
+    opacity: 0.8,
     textAlign: 'center',
   },
+
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
     width: '100%',
   },
+
   gridItem: {
     flexGrow: 1,
     flexBasis: '30%',
     minWidth: 240,
   },
+
   card: {
     width: '100%',
     overflow: 'hidden',
     borderRadius: 20,
+    borderWidth: 1,
   },
+
   cardImage: {
     height: 160,
   },
+
   cardContent: {
     paddingBottom: 12,
     paddingTop: 8,
   },
+
   creditLabel: {
-    opacity: 0.7,
+    opacity: 0.9,
     marginBottom: 2,
   },
+
   photographerName: {
-    color: '#2196F3',
-    textDecorationLine: 'underline',
-  },
-  photographerNameDisabled: {
-    color: '#999',
-    textDecorationLine: 'none',
+    fontWeight: '600',
   },
 });
