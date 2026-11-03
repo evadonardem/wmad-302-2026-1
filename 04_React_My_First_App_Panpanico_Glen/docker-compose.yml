@@ -1,7 +1,6 @@
 services:
   app:
     build: .
-    container_name: "react_my_first_app_dynamic_quote_generator"
     ports:
       - "8022:5173"
     volumes:
