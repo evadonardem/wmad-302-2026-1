@@ -288,7 +288,6 @@ export default function SearchScreen() {
     setAttractionsLoading(true);
 
     try {
-      // Search the destination and retrieve its attractions
       const [_, attractionResults] = await Promise.all([
         doSearch(destination.name, true),
         getTouristAttractions(destination.id),
@@ -310,6 +309,28 @@ export default function SearchScreen() {
     } finally {
       setAttractionsLoading(false);
     }
+  };
+
+  // ======================================
+  // NEW: HANDLE ATTRACTION CLICK
+  // ======================================
+
+  const handleAttractionClick = (attraction: TouristAttraction) => {
+    if (!selectedDestination) return;
+
+    router.push({
+      pathname: '/attractions/[id]',
+      params: {
+        id: String(attraction.id),
+        name: attraction.name || 'Tourist Attraction',
+        location: attraction.location || '',
+        description: attraction.description || '',
+        imageUrl: attraction.imageUrl || '',
+        photographer: attraction.photographer || '',
+        destinationName: selectedDestination.name,
+        province: selectedDestination.province,
+      },
+    });
   };
 
   // ======================================
@@ -672,7 +693,7 @@ export default function SearchScreen() {
                 </View>
               )}
 
-              {/* ATTRACTION CARDS */}
+              {/* CLICKABLE ATTRACTION CARDS */}
 
               {!attractionsLoading && attractions.length > 0 && (
                 <>
@@ -691,14 +712,23 @@ export default function SearchScreen() {
 
                   <View style={styles.attractionGrid}>
                     {attractions.map((attraction) => (
-                      <View
+                      <Pressable
                         key={attraction.id}
-                        style={[
+                        onPress={() =>
+                          handleAttractionClick(attraction)
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`View details for ${attraction.name}`}
+                        style={({ pressed }) => [
                           styles.attractionCard,
                           {
                             backgroundColor: isDarkMode
                               ? '#0f172a'
                               : '#ffffff',
+                            opacity: pressed ? 0.85 : 1,
+                            transform: [
+                              { scale: pressed ? 0.98 : 1 },
+                            ],
                           },
                         ]}
                       >
@@ -772,8 +802,20 @@ export default function SearchScreen() {
                               📸 {attraction.photographer}
                             </Text>
                           )}
+
+                          {/* CLICK TO VIEW DETAILS */}
+
+                          <View style={styles.viewDetailsRow}>
+                            <Text style={styles.viewDetailsText}>
+                              View Attraction Details
+                            </Text>
+
+                            <Text style={styles.viewDetailsArrow}>
+                              →
+                            </Text>
+                          </View>
                         </View>
-                      </View>
+                      </Pressable>
                     ))}
                   </View>
                 </>
@@ -1105,6 +1147,30 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#0d9488',
     marginTop: 12,
+  },
+
+  // NEW: VIEW DETAILS LINK
+
+  viewDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    marginTop: 16,
+    paddingTop: 12,
+  },
+
+  viewDetailsText: {
+    color: '#0d9488',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+
+  viewDetailsArrow: {
+    color: '#f59e0b',
+    fontSize: 22,
+    fontWeight: '800',
   },
 
   attractionEmpty: {
