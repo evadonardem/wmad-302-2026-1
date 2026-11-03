@@ -37,7 +37,7 @@ import { useSearchHistory } from '@/searchHistory';
 import { useThemeMode } from '@/themeMode';
 
 // ======================================
-// POPULAR DESTINATIONS
+// 30 POPULAR DESTINATIONS
 // ======================================
 
 const POPULAR_DESTINATIONS = [
@@ -76,6 +76,181 @@ const POPULAR_DESTINATIONS = [
     islandGroup: 'mindanao',
     query: 'Siargao Island Philippines Cloud 9',
   },
+  {
+    id: 'vigan-city',
+    name: 'Vigan City',
+    province: 'Ilocos Sur',
+    islandGroup: 'luzon',
+    query: 'Vigan City Calle Crisologo Philippines',
+  },
+  {
+    id: 'sagada',
+    name: 'Sagada',
+    province: 'Mountain Province',
+    islandGroup: 'luzon',
+    query: 'Sagada Mountain Province Philippines',
+  },
+  {
+    id: 'banaue',
+    name: 'Banaue',
+    province: 'Ifugao',
+    islandGroup: 'luzon',
+    query: 'Banaue Rice Terraces Philippines',
+  },
+  {
+    id: 'bohol',
+    name: 'Bohol',
+    province: 'Bohol',
+    islandGroup: 'visayas',
+    query: 'Chocolate Hills Bohol Philippines',
+  },
+  {
+    id: 'cebu-city',
+    name: 'Cebu City',
+    province: 'Cebu',
+    islandGroup: 'visayas',
+    query: 'Cebu City Philippines tourist attractions',
+  },
+  {
+    id: 'puerto-princesa',
+    name: 'Puerto Princesa',
+    province: 'Palawan',
+    islandGroup: 'luzon',
+    query: 'Puerto Princesa Underground River Philippines',
+  },
+  {
+    id: 'coron',
+    name: 'Coron',
+    province: 'Palawan',
+    islandGroup: 'luzon',
+    query: 'Coron Palawan Philippines island',
+  },
+  {
+    id: 'batanes',
+    name: 'Batanes',
+    province: 'Batanes',
+    islandGroup: 'luzon',
+    query: 'Batanes Philippines rolling hills',
+  },
+  {
+    id: 'la-union',
+    name: 'La Union',
+    province: 'La Union',
+    islandGroup: 'luzon',
+    query: 'San Juan La Union Philippines beach',
+  },
+  {
+    id: 'tagaytay',
+    name: 'Tagaytay',
+    province: 'Cavite',
+    islandGroup: 'luzon',
+    query: 'Tagaytay Taal Volcano Philippines',
+  },
+  {
+    id: 'batangas',
+    name: 'Batangas',
+    province: 'Batangas',
+    islandGroup: 'luzon',
+    query: 'Batangas Philippines beaches',
+  },
+  {
+    id: 'camiguin',
+    name: 'Camiguin',
+    province: 'Camiguin',
+    islandGroup: 'mindanao',
+    query: 'Camiguin Philippines White Island',
+  },
+  {
+    id: 'davao-city',
+    name: 'Davao City',
+    province: 'Davao del Sur',
+    islandGroup: 'mindanao',
+    query: 'Davao City Philippines tourist attractions',
+  },
+  {
+    id: 'cagayan-de-oro',
+    name: 'Cagayan de Oro',
+    province: 'Misamis Oriental',
+    islandGroup: 'mindanao',
+    query: 'Cagayan de Oro Philippines river',
+  },
+  {
+    id: 'iloilo-city',
+    name: 'Iloilo City',
+    province: 'Iloilo',
+    islandGroup: 'visayas',
+    query: 'Iloilo City Philippines heritage',
+  },
+  {
+    id: 'bacolod-city',
+    name: 'Bacolod City',
+    province: 'Negros Occidental',
+    islandGroup: 'visayas',
+    query: 'Bacolod City Philippines tourist attractions',
+  },
+  {
+    id: 'dumaguete',
+    name: 'Dumaguete',
+    province: 'Negros Oriental',
+    islandGroup: 'visayas',
+    query: 'Dumaguete Philippines Rizal Boulevard',
+  },
+  {
+    id: 'samal-island',
+    name: 'Samal Island',
+    province: 'Davao del Norte',
+    islandGroup: 'mindanao',
+    query: 'Samal Island Philippines beach',
+  },
+  {
+    id: 'lake-sebu',
+    name: 'Lake Sebu',
+    province: 'South Cotabato',
+    islandGroup: 'mindanao',
+    query: 'Lake Sebu Philippines waterfalls',
+  },
+  {
+    id: 'zamboanga-city',
+    name: 'Zamboanga City',
+    province: 'Zamboanga del Sur',
+    islandGroup: 'mindanao',
+    query: 'Zamboanga City Philippines tourist attractions',
+  },
+  {
+    id: 'hundred-islands',
+    name: 'Hundred Islands',
+    province: 'Pangasinan',
+    islandGroup: 'luzon',
+    query: 'Hundred Islands Pangasinan Philippines',
+  },
+  {
+    id: 'taal-volcano',
+    name: 'Taal Volcano',
+    province: 'Batangas',
+    islandGroup: 'luzon',
+    query: 'Taal Volcano Batangas Philippines',
+  },
+  {
+    id: 'mayon-volcano',
+    name: 'Mayon Volcano',
+    province: 'Albay',
+    islandGroup: 'luzon',
+    query: 'Mayon Volcano Albay Philippines',
+  },
+  {
+    id: 'tubbataha-reef',
+    name: 'Tubbataha Reef',
+    province: 'Palawan',
+    islandGroup: 'luzon',
+    query: 'Tubbataha Reefs Natural Park Philippines',
+  },
+  {
+    id: 'apo-island',
+    name: 'Apo Island',
+    province: 'Negros Oriental',
+    islandGroup: 'visayas',
+    query: 'Apo Island Negros Oriental Philippines',
+  },
 ];
 
 // ======================================
@@ -87,7 +262,17 @@ type PopularDestination = (typeof POPULAR_DESTINATIONS)[number] & {
 };
 
 // ======================================
-// PEXELS API FOR DESTINATION CARDS
+// PAGINATION SETTINGS
+// ======================================
+
+const ITEMS_PER_PAGE = 5;
+
+const TOTAL_PAGES = Math.ceil(
+  POPULAR_DESTINATIONS.length / ITEMS_PER_PAGE
+);
+
+// ======================================
+// PEXELS API FOR DESTINATION IMAGES
 // ======================================
 
 const fetchPexelsImage = async (
@@ -145,6 +330,10 @@ export default function SearchScreen() {
   const [lastSearchedCity, setLastSearchedCity] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
+  // PAGINATION STATE
+
+  const [currentPage, setCurrentPage] = useState(0);
+
   // DESTINATION IMAGE STATES
 
   const [popularDestinations, setPopularDestinations] =
@@ -157,6 +346,13 @@ export default function SearchScreen() {
 
   const [popularImagesLoading, setPopularImagesLoading] =
     useState(true);
+
+  // GET FIVE DESTINATIONS FOR THE CURRENT PAGE
+
+  const displayedDestinations = popularDestinations.slice(
+    currentPage * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE
+  );
 
   // TOURIST ATTRACTION STATES
 
@@ -173,6 +369,22 @@ export default function SearchScreen() {
     useState('');
 
   const { q } = useLocalSearchParams<{ q?: string }>();
+
+  // ======================================
+  // PAGINATION FUNCTIONS
+  // ======================================
+
+  const goToNextPage = () => {
+    if (currentPage < TOTAL_PAGES - 1) {
+      setCurrentPage((previous) => previous + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage((previous) => previous - 1);
+    }
+  };
 
   // ======================================
   // LOAD POPULAR DESTINATION IMAGES
@@ -312,7 +524,7 @@ export default function SearchScreen() {
   };
 
   // ======================================
-  // NEW: HANDLE ATTRACTION CLICK
+  // HANDLE ATTRACTION CLICK
   // ======================================
 
   const handleAttractionClick = (attraction: TouristAttraction) => {
@@ -445,8 +657,6 @@ export default function SearchScreen() {
               municipalities in the Philippines
             </Text>
 
-            {/* SEARCH INPUT */}
-
             <TextInput
               label="Search Places"
               placeholder="Search a tourist destination..."
@@ -466,8 +676,6 @@ export default function SearchScreen() {
             <Text variant="labelMedium" style={styles.orText}>
               — Or select by location —
             </Text>
-
-            {/* LOCATION SELECTOR */}
 
             <LocationForm onSearch={doSearch} />
           </View>
@@ -503,11 +711,11 @@ export default function SearchScreen() {
                     },
                   ]}
                 >
-                  82
+                  30
                 </Text>
 
                 <Text style={styles.statLabel}>
-                  Provinces
+                  Destinations
                 </Text>
               </View>
             </View>
@@ -515,7 +723,7 @@ export default function SearchScreen() {
             {/* FIVE CLICKABLE DESTINATION CARDS */}
 
             <View style={styles.destGrid}>
-              {popularDestinations.map((dest) => (
+              {displayedDestinations.map((dest) => (
                 <Pressable
                   key={dest.id}
                   onPress={() => handleDestinationClick(dest)}
@@ -592,6 +800,82 @@ export default function SearchScreen() {
                 </Pressable>
               ))}
             </View>
+
+            {/* ================================== */}
+            {/* DESTINATION PAGINATION */}
+            {/* ================================== */}
+
+            <View style={styles.paginationContainer}>
+              <Pressable
+                onPress={goToPreviousPage}
+                disabled={currentPage === 0}
+                style={({ pressed }) => [
+                  styles.paginationButton,
+                  {
+                    backgroundColor:
+                      currentPage === 0
+                        ? isDarkMode
+                          ? '#334155'
+                          : '#d1d5db'
+                        : '#0d9488',
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <Text style={styles.paginationButtonText}>
+                  ← Previous
+                </Text>
+              </Pressable>
+
+              <View style={styles.paginationInfo}>
+                <Text
+                  style={[
+                    styles.paginationPage,
+                    {
+                      color: isDarkMode ? '#5eead4' : '#0d9488',
+                    },
+                  ]}
+                >
+                  {currentPage + 1} / {TOTAL_PAGES}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.paginationCaption,
+                    {
+                      color: isDarkMode ? '#cbd5e1' : '#64748b',
+                    },
+                  ]}
+                >
+                  Showing {currentPage * ITEMS_PER_PAGE + 1}–
+                  {Math.min(
+                    (currentPage + 1) * ITEMS_PER_PAGE,
+                    POPULAR_DESTINATIONS.length
+                  )} of 30
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={goToNextPage}
+                disabled={currentPage === TOTAL_PAGES - 1}
+                style={({ pressed }) => [
+                  styles.paginationButton,
+                  {
+                    backgroundColor:
+                      currentPage === TOTAL_PAGES - 1
+                        ? isDarkMode
+                          ? '#334155'
+                          : '#d1d5db'
+                        : '#0d9488',
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <Text style={styles.paginationButtonText}>
+                  Next →
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* ================================== */}
@@ -609,8 +893,6 @@ export default function SearchScreen() {
                 },
               ]}
             >
-              {/* ATTRACTION HEADER */}
-
               <View style={styles.attractionHeader}>
                 <View style={styles.attractionTitleContainer}>
                   <Text style={styles.attractionOverline}>
@@ -656,7 +938,7 @@ export default function SearchScreen() {
                 attractions in {selectedDestination.name}.
               </Text>
 
-              {/* LOADING INDICATOR */}
+              {/* LOADING */}
 
               {attractionsLoading && (
                 <View style={styles.attractionLoading}>
@@ -672,7 +954,7 @@ export default function SearchScreen() {
                 </View>
               )}
 
-              {/* ERROR MESSAGE */}
+              {/* ERROR */}
 
               {!attractionsLoading && attractionError !== '' && (
                 <View style={styles.attractionEmpty}>
@@ -693,7 +975,7 @@ export default function SearchScreen() {
                 </View>
               )}
 
-              {/* CLICKABLE ATTRACTION CARDS */}
+              {/* ATTRACTION CARDS */}
 
               {!attractionsLoading && attractions.length > 0 && (
                 <>
@@ -732,8 +1014,6 @@ export default function SearchScreen() {
                           },
                         ]}
                       >
-                        {/* ATTRACTION PHOTO */}
-
                         {attraction.imageUrl ? (
                           <Image
                             source={{ uri: attraction.imageUrl }}
@@ -758,8 +1038,6 @@ export default function SearchScreen() {
                             </Text>
                           </View>
                         )}
-
-                        {/* ATTRACTION INFORMATION */}
 
                         <View style={styles.attractionContent}>
                           <Text
@@ -795,15 +1073,11 @@ export default function SearchScreen() {
                             {attraction.description}
                           </Text>
 
-                          {/* PHOTOGRAPHER CREDIT */}
-
                           {attraction.photographer !== '' && (
                             <Text style={styles.photoCredit}>
                               📸 {attraction.photographer}
                             </Text>
                           )}
-
-                          {/* CLICK TO VIEW DETAILS */}
 
                           <View style={styles.viewDetailsRow}>
                             <Text style={styles.viewDetailsText}>
@@ -837,7 +1111,7 @@ export default function SearchScreen() {
           )}
 
           {/* ================================== */}
-          {/* EXISTING MEDIA GALLERY */}
+          {/* MEDIA GALLERY */}
           {/* ================================== */}
 
           <MediaGallery
@@ -1017,6 +1291,47 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  // PAGINATION
+
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+
+  paginationButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  paginationButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  paginationInfo: {
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  paginationPage: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+
+  paginationCaption: {
+    fontSize: 10,
+    marginTop: 3,
+  },
+
   // TOURIST ATTRACTION SECTION
 
   attractionSection: {
@@ -1148,8 +1463,6 @@ const styles = StyleSheet.create({
     color: '#0d9488',
     marginTop: 12,
   },
-
-  // NEW: VIEW DETAILS LINK
 
   viewDetailsRow: {
     flexDirection: 'row',
