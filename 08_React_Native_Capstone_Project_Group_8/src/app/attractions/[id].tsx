@@ -6,7 +6,6 @@ import {
   Share,
   StyleSheet,
   View,
-  Pressable,
 } from 'react-native';
 
 import { Image } from 'expo-image';
@@ -29,6 +28,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AttractionDetailScreen() {
   const theme = useTheme();
+  const isDarkMode = theme.dark;
+
+  // ======================================
+  // EMERALD THEME COLORS
+  // ======================================
+
+  const colors = {
+    background: isDarkMode ? '#0B1712' : '#F5FBF7',
+    surface: isDarkMode ? '#064332' : '#FFFFFF',
+    text: isDarkMode ? '#D1FAE5' : '#14532D',
+    secondaryText: isDarkMode ? '#A7F3D0' : '#166534',
+    mutedText: isDarkMode ? '#86A99B' : '#729487',
+    primary: isDarkMode ? '#34D399' : '#0D9488',
+    primaryText: '#FFFFFF',
+    border: isDarkMode ? '#176B50' : '#B7E4C7',
+    photographerBackground: isDarkMode
+      ? '#103F34'
+      : '#E8F5EE',
+    placeholderBackground: isDarkMode
+      ? '#103F34'
+      : '#D8F3DC',
+  };
+
+  // ======================================
+  // ROUTE PARAMETERS
+  // ======================================
 
   const {
     name,
@@ -50,10 +75,12 @@ export default function AttractionDetailScreen() {
   }>();
 
   const attractionName = name || 'Tourist Attraction';
-
   const destination = destinationName || 'Philippines';
-
   const attractionLocation = location || destination;
+
+  // ======================================
+  // BACK NAVIGATION
+  // ======================================
 
   const handleGoBack = () => {
     if (router.canGoBack()) {
@@ -62,6 +89,10 @@ export default function AttractionDetailScreen() {
       router.replace('/');
     }
   };
+
+  // ======================================
+  // SHARE ATTRACTION
+  // ======================================
 
   const handleShare = async () => {
     try {
@@ -78,11 +109,15 @@ export default function AttractionDetailScreen() {
     }
   };
 
+  // ======================================
+  // MAIN SCREEN
+  // ======================================
+
   return (
     <SafeAreaView
       style={[
         styles.screen,
-        { backgroundColor: theme.colors.background },
+        { backgroundColor: colors.background },
       ]}
       edges={['top', 'left', 'right']}
     >
@@ -94,6 +129,7 @@ export default function AttractionDetailScreen() {
       />
 
       <ScrollView
+        style={{ backgroundColor: colors.background }}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -103,7 +139,7 @@ export default function AttractionDetailScreen() {
           <IconButton
             icon="arrow-left"
             size={26}
-            iconColor={theme.colors.onBackground}
+            iconColor={colors.text}
             onPress={handleGoBack}
             accessibilityLabel="Go back"
           />
@@ -112,7 +148,7 @@ export default function AttractionDetailScreen() {
             variant="titleMedium"
             style={[
               styles.headerTitle,
-              { color: theme.colors.onBackground },
+              { color: colors.primary },
             ]}
           >
             LAKBAY PH
@@ -123,7 +159,12 @@ export default function AttractionDetailScreen() {
 
         {/* MAIN IMAGE */}
 
-        <View style={styles.imageContainer}>
+        <View
+          style={[
+            styles.imageContainer,
+            { backgroundColor: colors.placeholderBackground },
+          ]}
+        >
           {imageUrl ? (
             <Image
               source={{ uri: imageUrl }}
@@ -136,15 +177,20 @@ export default function AttractionDetailScreen() {
             <View
               style={[
                 styles.imagePlaceholder,
-                { backgroundColor: theme.colors.surfaceVariant },
+                { backgroundColor: colors.placeholderBackground },
               ]}
             >
               <ActivityIndicator
                 size="large"
-                color="#0d9488"
+                color={colors.primary}
               />
 
-              <Text style={styles.placeholderText}>
+              <Text
+                style={[
+                  styles.placeholderText,
+                  { color: colors.secondaryText },
+                ]}
+              >
                 No photograph available
               </Text>
             </View>
@@ -156,10 +202,18 @@ export default function AttractionDetailScreen() {
         <View
           style={[
             styles.detailsCard,
-            { backgroundColor: theme.colors.surface },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
           ]}
         >
-          <Text style={styles.overline}>
+          <Text
+            style={[
+              styles.overline,
+              { color: colors.primary },
+            ]}
+          >
             TOURIST ATTRACTION
           </Text>
 
@@ -167,7 +221,7 @@ export default function AttractionDetailScreen() {
             variant="headlineMedium"
             style={[
               styles.attractionName,
-              { color: theme.colors.onSurface },
+              { color: colors.text },
             ]}
           >
             {attractionName}
@@ -182,13 +236,18 @@ export default function AttractionDetailScreen() {
               <Text
                 style={[
                   styles.locationName,
-                  { color: theme.colors.onSurface },
+                  { color: colors.text },
                 ]}
               >
                 {attractionLocation}
               </Text>
 
-              <Text style={styles.locationSubtext}>
+              <Text
+                style={[
+                  styles.locationSubtext,
+                  { color: colors.mutedText },
+                ]}
+              >
                 {destination}, {province || 'Philippines'}
               </Text>
             </View>
@@ -199,7 +258,7 @@ export default function AttractionDetailScreen() {
           <View
             style={[
               styles.divider,
-              { backgroundColor: theme.colors.outlineVariant },
+              { backgroundColor: colors.border },
             ]}
           />
 
@@ -209,7 +268,7 @@ export default function AttractionDetailScreen() {
             variant="titleMedium"
             style={[
               styles.sectionTitle,
-              { color: theme.colors.onSurface },
+              { color: colors.text },
             ]}
           >
             About this Attraction
@@ -219,7 +278,7 @@ export default function AttractionDetailScreen() {
             variant="bodyLarge"
             style={[
               styles.description,
-              { color: theme.colors.onSurfaceVariant },
+              { color: colors.secondaryText },
             ]}
           >
             {description ||
@@ -229,18 +288,31 @@ export default function AttractionDetailScreen() {
           {/* PHOTOGRAPHER */}
 
           {photographer ? (
-            <View style={styles.photographerContainer}>
+            <View
+              style={[
+                styles.photographerContainer,
+                {
+                  backgroundColor: colors.photographerBackground,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
               <Text style={styles.cameraIcon}>📸</Text>
 
               <View>
-                <Text style={styles.photographerLabel}>
+                <Text
+                  style={[
+                    styles.photographerLabel,
+                    { color: colors.mutedText },
+                  ]}
+                >
                   Photograph captured by
                 </Text>
 
                 <Text
                   style={[
                     styles.photographerName,
-                    { color: theme.colors.onSurface },
+                    { color: colors.text },
                   ]}
                 >
                   {photographer}
@@ -256,7 +328,11 @@ export default function AttractionDetailScreen() {
               mode="outlined"
               icon="arrow-left"
               onPress={handleGoBack}
-              style={styles.backButton}
+              style={[
+                styles.backButton,
+                { borderColor: colors.primary },
+              ]}
+              textColor={colors.primary}
               labelStyle={styles.buttonLabel}
             >
               Back to Attractions
@@ -267,8 +343,8 @@ export default function AttractionDetailScreen() {
               icon="share-variant"
               onPress={handleShare}
               style={styles.shareButton}
-              buttonColor="#0d9488"
-              textColor="#ffffff"
+              buttonColor={colors.primary}
+              textColor={colors.primaryText}
               labelStyle={styles.buttonLabel}
             >
               Share Attraction
@@ -278,7 +354,12 @@ export default function AttractionDetailScreen() {
 
         {/* FOOTER */}
 
-        <Text style={styles.footer}>
+        <Text
+          style={[
+            styles.footer,
+            { color: colors.mutedText },
+          ]}
+        >
           Discover the Philippines with LAKBAY PH.
         </Text>
       </ScrollView>
@@ -316,7 +397,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 2,
-    color: '#0d9488',
   },
 
   headerSpacer: {
@@ -330,7 +410,6 @@ const styles = StyleSheet.create({
     height: 420,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#e5e7eb',
   },
 
   mainImage: {
@@ -347,7 +426,6 @@ const styles = StyleSheet.create({
 
   placeholderText: {
     fontSize: 13,
-    color: '#64748b',
   },
 
   // DETAILS CARD
@@ -356,6 +434,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderRadius: 24,
     padding: 28,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -364,7 +443,6 @@ const styles = StyleSheet.create({
   },
 
   overline: {
-    color: '#f59e0b',
     fontWeight: '900',
     fontSize: 12,
     letterSpacing: 1.5,
@@ -400,7 +478,6 @@ const styles = StyleSheet.create({
   },
 
   locationSubtext: {
-    color: '#999999',
     fontSize: 12,
     marginTop: 3,
   },
@@ -433,7 +510,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    borderWidth: 1,
   },
 
   cameraIcon: {
@@ -442,7 +519,6 @@ const styles = StyleSheet.create({
 
   photographerLabel: {
     fontSize: 11,
-    color: '#999999',
   },
 
   photographerName: {
@@ -464,7 +540,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 180,
     borderRadius: 12,
-    borderColor: '#0d9488',
   },
 
   shareButton: {
@@ -482,7 +557,6 @@ const styles = StyleSheet.create({
 
   footer: {
     textAlign: 'center',
-    color: '#999999',
     fontSize: 12,
     marginTop: 24,
   },
