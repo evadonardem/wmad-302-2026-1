@@ -309,7 +309,7 @@ export default function SearchScreen() {
         border: 'rgba(22, 101, 52, 0.24)',
         primary: '#15803D',
         primarySoft: '#BBF7D0',
-        accent: '#D99B42',
+        accent: '#15803D',
         text: '#123B2A',
         muted: '#3F6B52',
         subtle: '#648B72',
