@@ -7,6 +7,7 @@ const PEXELS_SEARCH_URL = 'https://api.pexels.com/v1/search';
 
 // Expo only exposes environment variables prefixed with EXPO_PUBLIC_ (loaded from the .env file).
 const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_API_KEY;
+console.log('Pexels key loaded?', PEXELS_API_KEY ? `yes (${PEXELS_API_KEY.length} chars)` : 'NO KEY');
 
 export type Region = {
   code: string;
@@ -74,7 +75,8 @@ export const searchPhotosByLocation = async (locationName: string): Promise<Phot
       photographerUrl: p.photographer_url,
       altText: p.alt || `${locationName} tourist spot`,
     }));
-  } catch {
+  } catch (error: any) {
+    console.log('Pexels error:', error?.response?.status, error?.response?.data);
     return [];
   }
 };

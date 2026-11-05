@@ -11,7 +11,7 @@ export default function AboutScreen() {
       contentContainerStyle={styles.content}
     >
       <Text variant="titleLarge" style={[styles.heading, { color: theme.colors.onBackground }]}>
-        🇵🇭 Lakbay PH
+        Horizon: Philippine Tourist Spot Explorer
       </Text>
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
         A React Native (Expo) capstone demo that maps Philippine geography and surfaces

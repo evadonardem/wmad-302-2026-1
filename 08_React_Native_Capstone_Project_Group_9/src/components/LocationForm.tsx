@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Chip, Text, useTheme } from 'react-native-paper';
-import { usePalette } from '@/themeMode';
-
+import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Button, Chip, Text } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
 import {
   getCitiesMunicipalitiesByRegion,
   getRegions,
   type City,
   type Region,
 } from '@/services/geoPhotoService';
+import { usePalette } from '@/themeMode';
 
 type IslandFilter = 'all' | 'luzon' | 'visayas' | 'mindanao';
 
@@ -19,49 +19,88 @@ const ISLAND_OPTIONS: { value: IslandFilter; label: string }[] = [
   { value: 'mindanao', label: 'Mindanao' },
 ];
 
-// Reusable popup list (replaces Paper <Menu>, which fails inside ScrollView on web)
+// Popup list with a type-to-search box (replaces Paper <Menu>, which fails inside ScrollView on web)
 function PickerModal({
   visible,
   title,
   items,
+  selectedKey,
   emptyText,
   onSelect,
-
   onClose,
 }: {
   visible: boolean;
   title: string;
   items: { key: string; label: string }[];
+  selectedKey?: string;
   emptyText: string;
   onSelect: (key: string) => void;
   onClose: () => void;
 }) {
-  const theme = useTheme();
+  const p = usePalette();
+  const [query, setQuery] = useState('');
+
+  // Start with an empty search every time the popup opens
+  useEffect(() => {
+    if (visible) setQuery('');
+  }, [visible]);
+
+  const visibleItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? items.filter((item) => item.label.toLowerCase().includes(q)) : items;
+  }, [items, query]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>
-          <Text variant="titleMedium" style={[styles.sheetTitle, { color: theme.colors.onSurface }]}>
-            {title}
-          </Text>
-          <ScrollView>
+        <View style={[styles.sheet, { backgroundColor: p.card }]}>
+          <Text style={[styles.sheetTitle, { color: p.textSoft }]}>{title}</Text>
+
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Type to search..."
+            placeholderTextColor={p.textSoft}
+            autoFocus
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+            onSubmitEditing={() => {
+              // Enter picks the first match
+              if (visibleItems.length > 0) onSelect(visibleItems[0].key);
+            }}
+            style={[
+              styles.searchInput,
+              { borderColor: p.border, backgroundColor: p.field, color: p.text },
+            ]}
+          />
+
+          <ScrollView keyboardShouldPersistTaps="handled">
             {items.length === 0 ? (
-              <Text style={[styles.empty, { color: theme.colors.onSurfaceVariant }]}>{emptyText}</Text>
+              <Text style={[styles.empty, { color: p.textSoft }]}>{emptyText}</Text>
+            ) : visibleItems.length === 0 ? (
+              <Text style={[styles.empty, { color: p.textSoft }]}>
+                No matches for "{query.trim()}".
+              </Text>
             ) : (
-              items.map((item) => (
-                <Pressable
-                  key={item.key}
-                  onPress={() => onSelect(item.key)}
-                  style={({ pressed }) => [
-                    styles.item,
-                    pressed && { backgroundColor: theme.colors.surfaceVariant },
-                  ]}
-                >
-                  <Text style={{ color: theme.colors.onSurface }}>{item.label}</Text>
-                </Pressable>
-              ))
+              visibleItems.map((item) => {
+                const active = item.key === selectedKey;
+                return (
+                  <Pressable
+                    key={item.key}
+                    onPress={() => onSelect(item.key)}
+                    style={({ pressed }) => [
+                      styles.item,
+                      (active || pressed) && { backgroundColor: p.field },
+                    ]}
+                  >
+                    <Text style={{ color: p.text, fontWeight: active ? '700' : '400' }}>
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              })
             )}
           </ScrollView>
         </View>
@@ -70,7 +109,40 @@ function PickerModal({
   );
 }
 
+// Outlined field with a small floating label, like a text field
+function PickerField({
+  label,
+  value,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const p = usePalette();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[styles.fieldBox, { borderColor: p.border, opacity: disabled ? 0.5 : 1 }]}
+    >
+      <Text style={[styles.fieldLabel, { color: p.textSoft, backgroundColor: p.card }]}>
+        {label}
+      </Text>
+      <Text numberOfLines={1} style={[styles.fieldValue, { color: value ? p.text : p.textSoft }]}>
+        {value || 'Select'}
+      </Text>
+      <Ionicons name="caret-down" size={12} color={p.textSoft} style={styles.caret} />
+    </Pressable>
+  );
+}
+
 export default function LocationForm({ onSearch }: { onSearch: (cityName: string) => void }) {
+  const p = usePalette();
+
   // TODO 2.1 [State Trackers]
   const [regions, setRegions] = useState<Region[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -143,41 +215,45 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
     }
   };
 
-  const selectedRegionLabel = regions.find((r) => r.code === selectedRegion)?.name ?? 'Select Region';
-  const selectedCityLabel = selectedCityName || 'Select City / Municipality';
+  const selectedRegionName = regions.find((r) => r.code === selectedRegion)?.name ?? '';
+  const selectedCityCode = cities.find((c) => c.name === selectedCityName)?.code;
 
   return (
-    <View style={styles.form}>
+    <View style={styles.wrapper}>
       {/* TODO 2.9 (c) [Island-Group Filter] */}
       <View style={styles.filterRow}>
-        {ISLAND_OPTIONS.map((option) => (
-          <Chip
-            key={option.value}
-            selected={islandFilter === option.value}
-            showSelectedOverlay
-            onPress={() => handleFilterChange(option.value)}
-          >
-            {option.label}
-          </Chip>
-        ))}
+        {ISLAND_OPTIONS.map((option) => {
+          const active = islandFilter === option.value;
+          return (
+            <Chip
+              key={option.value}
+              compact
+              selected={active}
+              showSelectedOverlay={false}
+              style={{ backgroundColor: active ? p.accent : 'rgba(0,0,0,0.35)' }}
+              textStyle={{ color: '#ffffff' }}
+              selectedColor="#ffffff"
+              onPress={() => handleFilterChange(option.value)}
+            >
+              {option.label}
+            </Chip>
+          );
+        })}
       </View>
 
-      <View style={styles.row}>
+      <View style={[styles.panel, { backgroundColor: p.card }]}>
         <View style={styles.field}>
-          <Button
-            mode="outlined"
-            icon="menu-down"
-            contentStyle={styles.buttonContent}
-            style={styles.button}
+          <PickerField
+            label="Select Region"
+            value={selectedRegionName}
             onPress={() => setRegionMenuVisible(true)}
-          >
-            {selectedRegionLabel}
-          </Button>
+          />
           {/* TODO 2.6 [Region Menu Map] */}
           <PickerModal
             visible={regionMenuVisible}
             title="Select Region"
             items={filteredRegions.map((r) => ({ key: r.code, label: r.name }))}
+            selectedKey={selectedRegion}
             emptyText={
               regions.length === 0
                 ? 'No regions loaded. Check your internet connection and try again.'
@@ -192,21 +268,18 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
         </View>
 
         <View style={styles.field}>
-          <Button
-            mode="outlined"
-            icon="menu-down"
+          <PickerField
+            label="Select City / Municipality"
+            value={selectedCityName}
             disabled={!selectedRegion}
-            contentStyle={styles.buttonContent}
-            style={styles.button}
             onPress={() => setCityMenuVisible(true)}
-          >
-            {selectedCityLabel}
-          </Button>
+          />
           {/* TODO 2.8 [City Menu Map] */}
           <PickerModal
             visible={cityMenuVisible}
             title="Select City / Municipality"
             items={cities.map((c) => ({ key: c.code, label: c.name }))}
+            selectedKey={selectedCityCode}
             emptyText="Loading cities..."
             onSelect={(code) => {
               const city = cities.find((c) => c.code === code);
@@ -220,8 +293,10 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
         <Button
           mode="contained"
           icon="magnify"
+          buttonColor={p.accent}
+          textColor="#ffffff"
           disabled={!selectedCityName}
-          contentStyle={styles.buttonContent}
+          contentStyle={styles.searchContent}
           style={styles.searchButton}
           onPress={handleSubmit}
         >
@@ -233,33 +308,61 @@ export default function LocationForm({ onSearch }: { onSearch: (cityName: string
 }
 
 const styles = StyleSheet.create({
-  form: {
+  wrapper: {
     width: '100%',
-    marginBottom: 24,
+    maxWidth: 900,
+    alignItems: 'center',
+    gap: 14,
   },
   filterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 14,
     justifyContent: 'center',
+    gap: 8,
   },
-  row: {
-    flexDirection: 'column',
+  panel: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 12,
-    alignItems: 'stretch',
+    padding: 14,
+    borderRadius: 40,
   },
   field: {
-    width: '100%',
+    flexGrow: 1,
+    flexBasis: 220,
   },
-  button: {
-    width: '100%',
+  fieldBox: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 14,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
   },
-  buttonContent: {
-    paddingVertical: 6,
+  fieldLabel: {
+    position: 'absolute',
+    top: -9,
+    left: 12,
+    paddingHorizontal: 4,
+    fontSize: 11,
+  },
+  fieldValue: {
+    textAlign: 'center',
+    paddingRight: 16,
+    fontSize: 15,
+  },
+  caret: {
+    position: 'absolute',
+    right: 14,
   },
   searchButton: {
-    width: '100%',
+    flexGrow: 1,
+    flexBasis: 140,
+    borderRadius: 24,
+  },
+  searchContent: {
+    height: 48,
   },
   overlay: {
     flex: 1,
@@ -271,19 +374,29 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     maxWidth: 420,
-    maxHeight: 420,
-    borderRadius: 16,
+    maxHeight: 460,
+    borderRadius: 20,
     padding: 12,
   },
   sheetTitle: {
-    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
     marginBottom: 8,
     paddingHorizontal: 8,
+  },
+  searchInput: {
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    fontSize: 15,
   },
   item: {
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   empty: {
     textAlign: 'center',

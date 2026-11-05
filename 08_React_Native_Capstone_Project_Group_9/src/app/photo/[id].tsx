@@ -1,16 +1,20 @@
-import { Share, StyleSheet, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router';
-import { Button, IconButton, Text, useTheme } from 'react-native-paper';
+import { Button, IconButton, Text } from 'react-native-paper';
 import * as WebBrowser from 'expo-web-browser';
 import { usePhotos } from '@/photos';
+import { useFavorites } from '@/components/MediaGallery';
+import { usePalette } from '@/themeMode';
+import type { Photo } from '@/services/geoPhotoService';
 
 // search params can arrive as string | string[] — always take a single string
 const first = (value?: string | string[]) => (Array.isArray(value) ? value[0] : value) ?? '';
 
 export default function PhotoDetailScreen() {
-  const theme = useTheme();
+  const p = usePalette();
   const { photos } = usePhotos();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // TODO 4.4 [Route Param Extraction]
   const params = useLocalSearchParams<{
@@ -32,7 +36,8 @@ export default function PhotoDetailScreen() {
   }
 
   // Position of the current photo inside the shared result set (for prev/next)
-  const currentIndex = photos.findIndex((p) => String(p.id) === id);
+  const currentIndex = photos.findIndex((ph) => String(ph.id) === id);
+  const liked = isFavorite(id);
 
   const goToAdjacentPhoto = (offset: number) => {
     // TODO 4.7 [Prev/Next Viewer]
@@ -72,66 +77,116 @@ export default function PhotoDetailScreen() {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+    <ScrollView
+      style={{ backgroundColor: p.bg }}
+      contentContainerStyle={styles.content}
+    >
       {/* Dynamic native header title */}
       <Stack.Screen options={{ title: photographer ? `By ${photographer}` : 'Tourist Spot' }} />
 
-      <Image
-        source={{ uri: imageUrl }}
-        style={styles.hero}
-        contentFit="cover"
-        transition={200}
-        accessibilityLabel={altText}
-      />
-
-      <View style={[styles.body, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.pagerRow}>
-          <IconButton
-            icon="chevron-left"
-            iconColor={theme.colors.onSurface}
-            size={28}
-            onPress={() => goToAdjacentPhoto(-1)}
-            accessibilityLabel="Previous photo"
+      <View style={[styles.card, { backgroundColor: p.card }]}>
+        <View style={[styles.imageWrap, { backgroundColor: p.field }]}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            contentFit="contain"
+            transition={200}
+            accessibilityLabel={altText}
           />
-          <Text variant="titleMedium" style={[styles.photographer, { color: theme.colors.onSurface }]}>
-            📸 Captured by {photographer || '—'}
-          </Text>
           <IconButton
-            icon="chevron-right"
-            iconColor={theme.colors.onSurface}
-            size={28}
-            onPress={() => goToAdjacentPhoto(1)}
-            accessibilityLabel="Next photo"
+            icon={liked ? 'heart' : 'heart-outline'}
+            iconColor={liked ? '#e0245e' : '#ffffff'}
+            size={24}
+            style={styles.heart}
+            onPress={() =>
+              toggleFavorite({ id: id as unknown as Photo['id'], imageUrl, photographer, photographerUrl, altText })
+            }
+            accessibilityLabel={liked ? 'Remove from favorites' : 'Add to favorites'}
           />
         </View>
 
-        <Button mode="outlined" icon="open-in-new" onPress={handleOpenPhotographer} disabled={!photographerUrl}>
-          Visit photographer profile
-        </Button>
+        <View style={styles.body}>
+          {!!altText && (
+            <Text variant="bodyMedium" style={{ color: p.text, textAlign: 'center' }}>
+              {altText}
+            </Text>
+          )}
 
-        <Button mode="contained" icon="share-variant" onPress={handleShare} style={styles.shareButton}>
-          Share this spot
-        </Button>
+          <View style={styles.pagerRow}>
+            <IconButton
+              icon="chevron-left"
+              iconColor={p.text}
+              size={28}
+              onPress={() => goToAdjacentPhoto(-1)}
+              accessibilityLabel="Previous photo"
+            />
+            <Text variant="titleMedium" style={[styles.photographer, { color: p.text }]}>
+              📸 Captured by {photographer || '—'}
+            </Text>
+            <IconButton
+              icon="chevron-right"
+              iconColor={p.text}
+              size={28}
+              onPress={() => goToAdjacentPhoto(1)}
+              accessibilityLabel="Next photo"
+            />
+          </View>
+
+          <Button
+            mode="outlined"
+            icon="open-in-new"
+            textColor={p.accent}
+            onPress={handleOpenPhotographer}
+            disabled={!photographerUrl}
+          >
+            Visit photographer profile
+          </Button>
+
+          <Button
+            mode="contained"
+            icon="share-variant"
+            buttonColor={p.accent}
+            textColor="#ffffff"
+            onPress={handleShare}
+            style={styles.shareButton}
+          >
+            Share this spot
+          </Button>
+        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  content: {
+    padding: 16,
+    alignItems: 'center',
+    flexGrow: 1,
   },
-  hero: {
+  card: {
+    width: '100%',
+    maxWidth: 600,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  imageWrap: {
+    width: '100%',
+  },
+  image: {
     width: '100%',
     aspectRatio: 4 / 3,
   },
+  heart: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    margin: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
   body: {
-    flex: 1,
     padding: 20,
     gap: 14,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -20,
   },
   pagerRow: {
     flexDirection: 'row',

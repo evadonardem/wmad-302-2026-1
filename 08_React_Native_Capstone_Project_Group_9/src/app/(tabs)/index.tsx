@@ -198,7 +198,7 @@ export default function SearchScreen() {
           {lastSearchedCity ? `Tourist spots in ${lastSearchedCity}` : 'Tourist spots'}
         </Text>
 
-        <MediaGallery photos={photos} loading={loading} />
+        <MediaGallery photos={photos} loading={loading} locationName={lastSearchedCity} />
       </ScrollView>
     </SafeAreaView>
   );
