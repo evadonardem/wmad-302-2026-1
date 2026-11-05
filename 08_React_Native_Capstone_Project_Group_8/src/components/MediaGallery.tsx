@@ -16,16 +16,14 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export default function MediaGallery({
   photos,
   loading,
+  locationName,
 }: {
   photos: Photo[];
   loading: boolean;
+  locationName: string;
 }) {
   const theme = useTheme();
   const isDark = theme.dark;
-
-  // ======================================
-  // EMERALD THEME COLORS
-  // ======================================
 
   const colors = {
     card: isDark ? '#064332' : '#D8F3DC',
@@ -36,10 +34,6 @@ export default function MediaGallery({
     disabled: isDark ? '#86A99B' : '#729487',
   };
 
-  // ======================================
-  // LOADING STATE
-  // ======================================
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -48,17 +42,12 @@ export default function MediaGallery({
           size="large"
           color={colors.accent}
         />
-
         <Text style={[styles.loadingText, { color: colors.secondaryText }]}>
           Finding beautiful spots...
         </Text>
       </View>
     );
   }
-
-  // ======================================
-  // EMPTY STATE
-  // ======================================
 
   if (!photos || photos.length === 0) {
     return (
@@ -80,10 +69,6 @@ export default function MediaGallery({
     );
   }
 
-  // ======================================
-  // PHOTO GALLERY
-  // ======================================
-
   return (
     <View style={styles.grid}>
       {photos.map((photo, index) => (
@@ -92,23 +77,22 @@ export default function MediaGallery({
           photo={photo}
           index={index}
           colors={colors}
+          locationName={locationName}
         />
       ))}
     </View>
   );
 }
 
-// ======================================
-// ANIMATED PHOTO CARD
-// ======================================
-
 function AnimatedGridItem({
   photo,
   index,
   colors,
+  locationName,
 }: {
   photo: Photo;
   index: number;
+  locationName: string;
   colors: {
     card: string;
     border: string;
@@ -118,11 +102,8 @@ function AnimatedGridItem({
     disabled: string;
   };
 }) {
-  // Entrance animation
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.94)).current;
-
-  // Press animation
   const pressScale = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -133,7 +114,6 @@ function AnimatedGridItem({
         delay: index * 120,
         useNativeDriver: true,
       }),
-
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 500,
@@ -183,6 +163,7 @@ function AnimatedGridItem({
             photographer: photo.photographer || '',
             photographerUrl: photo.photographerUrl || '',
             altText: photo.altText || '',
+            locationName: locationName || 'Philippines',
           },
         });
       }}
@@ -197,15 +178,11 @@ function AnimatedGridItem({
         ]}
         elevation={2}
       >
-        {/* PHOTO */}
-
         <Card.Cover
           source={{ uri: photo.imageUrl }}
           accessibilityLabel={photo.altText || 'Photo'}
           style={styles.cardImage}
         />
-
-        {/* PHOTO CREDIT */}
 
         <Card.Content style={styles.cardContent}>
           <Text
@@ -217,8 +194,6 @@ function AnimatedGridItem({
           >
             📸 Captured by:
           </Text>
-
-          {/* PHOTOGRAPHER LINK */}
 
           <Pressable
             onPress={async () => {
@@ -252,10 +227,6 @@ function AnimatedGridItem({
     </AnimatedPressable>
   );
 }
-
-// ======================================
-// STYLES
-// ======================================
 
 const styles = StyleSheet.create({
   loadingContainer: {

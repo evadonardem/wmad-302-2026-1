@@ -265,7 +265,7 @@ type PopularDestination = (typeof POPULAR_DESTINATIONS)[number] & {
 // PAGINATION SETTINGS
 // ======================================
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 9;
 
 const TOTAL_PAGES = Math.ceil(
   POPULAR_DESTINATIONS.length / ITEMS_PER_PAGE
@@ -1128,6 +1128,7 @@ export default function SearchScreen() {
           <MediaGallery
             photos={photos}
             loading={loading}
+            locationName={lastSearchedCity || 'Philippines'}
           />
 
         </ScrollView>
