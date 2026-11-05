@@ -28,6 +28,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { LinearGradient } from 'expo-linear-gradient';
+
 import * as WebBrowser from 'expo-web-browser';
 
 import { usePhotos } from '@/photos';
@@ -40,25 +42,36 @@ export default function PhotoDetailScreen() {
 
   // ======================================
   // EMERALD THEME COLORS
-  // MATCHING ATTRACTION DETAILS
+  // MATCHING LAKBAY PH HOME SCREEN
   // ======================================
 
-  const colors = {
-    background: isDarkMode ? '#0B1712' : '#F5FBF7',
-    surface: isDarkMode ? '#064332' : '#FFFFFF',
-    text: isDarkMode ? '#D1FAE5' : '#14532D',
-    secondaryText: isDarkMode ? '#A7F3D0' : '#166534',
-    mutedText: isDarkMode ? '#86A99B' : '#729487',
-    primary: isDarkMode ? '#34D399' : '#0D9488',
-    primaryText: '#FFFFFF',
-    border: isDarkMode ? '#176B50' : '#B7E4C7',
-    photographerBackground: isDarkMode
-      ? '#103F34'
-      : '#E8F5EE',
-    placeholderBackground: isDarkMode
-      ? '#103F34'
-      : '#D8F3DC',
-  };
+  const colors = isDarkMode
+    ? {
+        background: ['#03291F', '#064332', '#0B563D'] as [string, string, ...string[]],
+        surface: 'rgba(9, 74, 49, 0.94)',
+        text: '#ECFDF5',
+        secondaryText: '#B7E4C7',
+        mutedText: '#86B99A',
+        primary: '#34D399',
+        primaryText: '#03291F',
+        border: 'rgba(110, 231, 183, 0.28)',
+        photographerBackground: 'rgba(5, 50, 35, 0.84)',
+        placeholderBackground: '#164E3B',
+        divider: 'rgba(167, 243, 208, 0.22)',
+      }
+    : {
+        background: ['#B7E4C7', '#D8F3DC', '#ECFDF3'] as [string, string, ...string[]],
+        surface: 'rgba(247, 255, 249, 0.97)',
+        text: '#123B2A',
+        secondaryText: '#3F6B52',
+        mutedText: '#648B72',
+        primary: '#15803D',
+        primaryText: '#FFFFFF',
+        border: 'rgba(22, 101, 52, 0.24)',
+        photographerBackground: 'rgba(232, 250, 238, 0.96)',
+        placeholderBackground: '#D1FAE5',
+        divider: 'rgba(22, 101, 52, 0.18)',
+      };
 
   // ======================================
   // ROUTE PARAMETERS
@@ -164,241 +177,243 @@ export default function PhotoDetailScreen() {
   // ======================================
 
   return (
-    <SafeAreaView
-      style={[
-        styles.screen,
-        { backgroundColor: colors.background },
-      ]}
-      edges={['top', 'left', 'right']}
+    <LinearGradient
+      colors={colors.background}
+      style={styles.screen}
     >
-      <Stack.Screen
-        options={{
-          title: 'LAKBAY PH',
-          headerShown: false,
-        }}
-      />
-
-      <ScrollView
-        style={{ backgroundColor: colors.background }}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={['top', 'left', 'right']}
       >
-        {/* HEADER */}
+        <Stack.Screen
+          options={{
+            title: 'LAKBAY PH',
+            headerShown: false,
+          }}
+        />
 
-        <View style={styles.header}>
-          <IconButton
-            icon="arrow-left"
-            size={26}
-            iconColor={colors.text}
-            onPress={handleGoBack}
-            accessibilityLabel="Go back"
-          />
-
-          <Text
-            variant="titleMedium"
-            style={[
-              styles.headerTitle,
-              { color: colors.primary },
-            ]}
-          >
-            LAKBAY PH
-          </Text>
-
-          <View style={styles.headerSpacer} />
-        </View>
-
-        {/* MAIN IMAGE */}
-
-        <View
-          style={[
-            styles.imageContainer,
-            { backgroundColor: colors.placeholderBackground },
-          ]}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.mainImage}
-            contentFit="cover"
-            transition={400}
-            accessibilityLabel={altText || 'Destination photograph'}
-          />
+          {/* HEADER */}
 
-          {/* PREVIOUS PHOTO */}
-
-          <View style={styles.navLeft}>
+          <View style={styles.header}>
             <IconButton
-              icon="chevron-left"
-              size={32}
-              iconColor="#FFFFFF"
-              containerColor="rgba(0, 0, 0, 0.45)"
-              onPress={() => goToAdjacentPhoto(-1)}
-              disabled={currentIndex <= 0}
-              accessibilityLabel="Previous photo"
+              icon="arrow-left"
+              size={26}
+              iconColor={colors.text}
+              onPress={handleGoBack}
+              accessibilityLabel="Go back"
             />
+
+            <Text
+              variant="titleMedium"
+              style={[
+                styles.headerTitle,
+                { color: colors.primary },
+              ]}
+            >
+              LAKBAY PH
+            </Text>
+
+            <View style={styles.headerSpacer} />
           </View>
 
-          {/* NEXT PHOTO */}
+          {/* MAIN IMAGE */}
 
-          <View style={styles.navRight}>
-            <IconButton
-              icon="chevron-right"
-              size={32}
-              iconColor="#FFFFFF"
-              containerColor="rgba(0, 0, 0, 0.45)"
-              onPress={() => goToAdjacentPhoto(1)}
-              disabled={currentIndex >= photos.length - 1}
-              accessibilityLabel="Next photo"
-            />
-          </View>
-        </View>
-
-        {/* PHOTO INFORMATION CARD */}
-
-        <View
-          style={[
-            styles.detailsCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Text
+          <View
             style={[
-              styles.overline,
-              { color: colors.primary },
+              styles.imageContainer,
+              { backgroundColor: colors.placeholderBackground },
             ]}
           >
-            DESTINATION PHOTO
-          </Text>
-
-          <Text
-            variant="headlineMedium"
-            style={[
-              styles.destinationName,
-              { color: colors.text },
-            ]}
-          >
-            {searchedLocation}
-          </Text>
-
-          {/* LOCATION */}
-
-          <View style={styles.locationRow}>
-            <MaterialCommunityIcons
-              name="map-marker"
-              size={25}
-              color={colors.primary}
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.mainImage}
+              contentFit="cover"
+              transition={400}
+              accessibilityLabel={altText || 'Destination photograph'}
             />
 
-            <View style={styles.locationTextContainer}>
-              <Text
-                style={[
-                  styles.locationName,
-                  { color: colors.text },
-                ]}
-              >
-                {searchedLocation}
-              </Text>
+            {/* PREVIOUS PHOTO */}
 
-              <Text
-                style={[
-                  styles.locationSubtext,
-                  { color: colors.mutedText },
-                ]}
-              >
-                Explore this destination in the Philippines
-              </Text>
+            <View style={styles.navLeft}>
+              <IconButton
+                icon="chevron-left"
+                size={32}
+                iconColor="#FFFFFF"
+                containerColor="rgba(0, 0, 0, 0.45)"
+                onPress={() => goToAdjacentPhoto(-1)}
+                disabled={currentIndex <= 0}
+                accessibilityLabel="Previous photo"
+              />
+            </View>
+
+            {/* NEXT PHOTO */}
+
+            <View style={styles.navRight}>
+              <IconButton
+                icon="chevron-right"
+                size={32}
+                iconColor="#FFFFFF"
+                containerColor="rgba(0, 0, 0, 0.45)"
+                onPress={() => goToAdjacentPhoto(1)}
+                disabled={currentIndex < 0 || currentIndex >= photos.length - 1}
+                accessibilityLabel="Next photo"
+              />
             </View>
           </View>
 
-          {/* DIVIDER */}
+          {/* PHOTO INFORMATION CARD */}
 
           <View
             style={[
-              styles.divider,
-              { backgroundColor: colors.border },
-            ]}
-          />
-
-          {/* PHOTOGRAPHER */}
-
-          <View
-            style={[
-              styles.photographerContainer,
+              styles.detailsCard,
               {
-                backgroundColor: colors.photographerBackground,
+                backgroundColor: colors.surface,
                 borderColor: colors.border,
               },
             ]}
           >
-            <Text style={styles.cameraIcon}>📸</Text>
+            <Text
+              style={[
+                styles.overline,
+                { color: colors.primary },
+              ]}
+            >
+              DESTINATION PHOTO
+            </Text>
 
-            <View style={styles.photographerInfo}>
-              <Text
-                style={[
-                  styles.photographerLabel,
-                  { color: colors.mutedText },
-                ]}
-              >
-                Photograph captured by
-              </Text>
+            <Text
+              variant="headlineMedium"
+              style={[
+                styles.destinationName,
+                { color: colors.text },
+              ]}
+            >
+              {searchedLocation}
+            </Text>
 
-              <Text
+            {/* LOCATION */}
+
+            <View style={styles.locationRow}>
+              <MaterialCommunityIcons
+                name="map-marker"
+                size={25}
+                color={colors.primary}
+              />
+
+              <View style={styles.locationTextContainer}>
+                <Text
+                  style={[
+                    styles.locationName,
+                    { color: colors.text },
+                  ]}
+                >
+                  {searchedLocation}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.locationSubtext,
+                    { color: colors.mutedText },
+                  ]}
+                >
+                  Explore this destination in the Philippines
+                </Text>
+              </View>
+            </View>
+
+            {/* DIVIDER */}
+
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: colors.divider },
+              ]}
+            />
+
+            {/* PHOTOGRAPHER */}
+
+            <View
+              style={[
+                styles.photographerContainer,
+                {
+                  backgroundColor: colors.photographerBackground,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={styles.cameraIcon}>📸</Text>
+
+              <View style={styles.photographerInfo}>
+                <Text
+                  style={[
+                    styles.photographerLabel,
+                    { color: colors.mutedText },
+                  ]}
+                >
+                  Photograph captured by
+                </Text>
+
+                <Text
+                  style={[
+                    styles.photographerName,
+                    { color: colors.text },
+                  ]}
+                >
+                  {photographer}
+                </Text>
+              </View>
+            </View>
+
+            {/* ACTION BUTTONS */}
+
+            <View style={styles.buttonContainer}>
+              <Button
+                mode="outlined"
+                icon="open-in-new"
+                onPress={handleOpenPhotographer}
+                disabled={!photographerUrl}
                 style={[
-                  styles.photographerName,
-                  { color: colors.text },
+                  styles.profileButton,
+                  { borderColor: colors.primary },
                 ]}
+                textColor={colors.primary}
+                labelStyle={styles.buttonLabel}
               >
-                {photographer}
-              </Text>
+                View Profile
+              </Button>
+
+              <Button
+                mode="contained"
+                icon="share-variant"
+                onPress={handleShare}
+                style={styles.shareButton}
+                buttonColor={colors.primary}
+                textColor={colors.primaryText}
+                labelStyle={styles.buttonLabel}
+              >
+                Share Spot
+              </Button>
             </View>
           </View>
 
-          {/* ACTION BUTTONS */}
+          {/* FOOTER */}
 
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="outlined"
-              icon="open-in-new"
-              onPress={handleOpenPhotographer}
-              disabled={!photographerUrl}
-              style={[
-                styles.profileButton,
-                { borderColor: colors.primary },
-              ]}
-              textColor={colors.primary}
-              labelStyle={styles.buttonLabel}
-            >
-              View Profile
-            </Button>
-
-            <Button
-              mode="contained"
-              icon="share-variant"
-              onPress={handleShare}
-              style={styles.shareButton}
-              buttonColor={colors.primary}
-              textColor={colors.primaryText}
-              labelStyle={styles.buttonLabel}
-            >
-              Share Spot
-            </Button>
-          </View>
-        </View>
-
-        {/* FOOTER */}
-
-        <Text
-          style={[
-            styles.footer,
-            { color: colors.mutedText },
-          ]}
-        >
-          Discover the Philippines with LAKBAY PH.
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
+          <Text
+            style={[
+              styles.footer,
+              { color: colors.mutedText },
+            ]}
+          >
+            Discover the Philippines with LAKBAY PH.
+          </Text>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -409,6 +424,15 @@ export default function PhotoDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+
+  scrollView: {
+    backgroundColor: 'transparent',
   },
 
   scrollContent: {
@@ -478,11 +502,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 28,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowColor: '#064E45',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 5,
   },
 
   overline: {
