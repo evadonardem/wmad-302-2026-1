@@ -6,6 +6,7 @@ import {
   Share,
   StyleSheet,
   View,
+  Linking,
 } from 'react-native';
 
 import { Image } from 'expo-image';
@@ -106,6 +107,31 @@ export default function AttractionDetailScreen() {
       });
     } catch (error) {
       console.warn('Unable to share attraction:', error);
+    }
+  };
+
+  // ======================================
+  // GOOGLE MAPS DIRECTIONS
+  // ======================================
+
+  const handleGetDirections = async () => {
+    const searchLocation = [
+      attractionName,
+      attractionLocation,
+      destination,
+      province,
+      'Philippines',
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    const googleMapsUrl =
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchLocation)}`;
+
+    try {
+      await Linking.openURL(googleMapsUrl);
+    } catch (error) {
+      console.warn('Unable to open Google Maps:', error);
     }
   };
 
@@ -324,6 +350,22 @@ export default function AttractionDetailScreen() {
           {/* ACTION BUTTONS */}
 
           <View style={styles.buttonContainer}>
+            {/* GOOGLE MAPS BUTTON */}
+
+            <Button
+              mode="contained"
+              icon="google-maps"
+              onPress={handleGetDirections}
+              style={styles.directionsButton}
+              buttonColor={colors.primary}
+              textColor={colors.primaryText}
+              labelStyle={styles.buttonLabel}
+            >
+              Get Directions
+            </Button>
+
+            {/* BACK BUTTON */}
+
             <Button
               mode="outlined"
               icon="arrow-left"
@@ -337,6 +379,8 @@ export default function AttractionDetailScreen() {
             >
               Back to Attractions
             </Button>
+
+            {/* SHARE BUTTON */}
 
             <Button
               mode="contained"
@@ -534,6 +578,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     marginTop: 28,
+  },
+
+  directionsButton: {
+    width: '100%',
+    borderRadius: 12,
   },
 
   backButton: {
