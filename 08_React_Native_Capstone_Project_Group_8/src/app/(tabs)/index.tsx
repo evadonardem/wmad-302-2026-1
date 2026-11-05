@@ -328,6 +328,7 @@ export default function SearchScreen() {
 
   const [lastSearchedCity, setLastSearchedCity] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [suggestionsVisible, setSuggestionsVisible] = useState(false);
 
   // PAGINATION STATE
 
@@ -366,6 +367,37 @@ export default function SearchScreen() {
 
   const [attractionError, setAttractionError] =
     useState('');
+
+  const searchSuggestions = searchInput.trim().length >= 2
+    ? [
+        ...POPULAR_DESTINATIONS
+          .filter((destination) => {
+            const query = searchInput.trim().toLowerCase();
+            return (
+              destination.name.toLowerCase().includes(query) ||
+              destination.province.toLowerCase().includes(query)
+            );
+          })
+          .map((destination) => ({
+            id: destination.id,
+            title: destination.name,
+            subtitle: `${destination.province}, Philippines`,
+            kind: 'destination' as const,
+            destination,
+          })),
+        ...attractions
+          .filter((attraction) =>
+            attraction.name.toLowerCase().includes(searchInput.trim().toLowerCase())
+          )
+          .map((attraction) => ({
+            id: String(attraction.id),
+            title: attraction.name,
+            subtitle: attraction.location || selectedDestination?.name || 'Tourist attraction',
+            kind: 'attraction' as const,
+            attraction,
+          })),
+      ].slice(0, 6)
+    : [];
 
   const { q } = useLocalSearchParams<{ q?: string }>();
 
@@ -682,9 +714,12 @@ export default function SearchScreen() {
 
             <TextInput
               label="Search Places"
-              placeholder="Search a tourist destination..."
+              placeholder="Type a destination or place..."
               value={searchInput}
-              onChangeText={setSearchInput}
+              onChangeText={(value) => {
+                setSearchInput(value);
+                setSuggestionsVisible(true);
+              }}
               style={[styles.searchInput, { backgroundColor: palette.glassStrong }]}
               textColor={palette.text}
               outlineColor={palette.border}
@@ -699,6 +734,82 @@ export default function SearchScreen() {
               }
               onSubmitEditing={() => doSearch(searchInput)}
             />
+
+            {suggestionsVisible && searchInput.trim().length >= 2 && (
+              <View
+                style={[
+                  styles.suggestionsContainer,
+                  {
+                    backgroundColor: palette.glassStrong,
+                    borderColor: palette.border,
+                  },
+                ]}
+              >
+                {searchSuggestions.length > 0 ? (
+                  searchSuggestions.map((suggestion) => (
+                    <Pressable
+                      key={`${suggestion.kind}-${suggestion.id}`}
+                      style={({ pressed }) => [
+                        styles.suggestionItem,
+                        {
+                          borderBottomColor: palette.divider,
+                          backgroundColor: pressed
+                            ? palette.primarySoft
+                            : 'transparent',
+                        },
+                      ]}
+                      onPress={() => {
+                        setSuggestionsVisible(false);
+                        if (suggestion.kind === 'destination') {
+                          handleDestinationClick({
+                            ...suggestion.destination,
+                            imageUrl:
+                            popularDestinationImageCache.get(suggestion.destination.id) || '',
+                          });
+                        } else {
+                          handleAttractionClick(suggestion.attraction);
+                        }
+                      }}
+                    >
+                      <View style={styles.suggestionIcon}>
+                        <Text style={{ color: palette.primary, fontSize: 18 }}>
+                          {suggestion.kind === 'destination' ? '⌖' : '⌕'}
+                        </Text>
+                      </View>
+                      <View style={styles.suggestionTextContainer}>
+                        <Text
+                          style={[
+                            styles.suggestionTitle,
+                            { color: palette.text },
+                          ]}
+                        >
+                          {suggestion.title}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.suggestionSubtitle,
+                            { color: palette.muted },
+                          ]}
+                        >
+                          {suggestion.subtitle}
+                        </Text>
+                      </View>
+                      <Text style={{ color: palette.subtle }}>›</Text>
+                    </Pressable>
+                  ))
+                ) : (
+                  <Text
+                    style={[
+                      styles.noSuggestionsText,
+                      { color: palette.muted },
+                    ]}
+                  >
+                    No matching saved destinations. Press Search to look up
+                    “{searchInput.trim()}”.
+                  </Text>
+                )}
+              </View>
+            )}
 
             <Text variant="labelMedium" style={[styles.orText, { color: palette.muted }]}>
               — Or select by location —
@@ -1223,6 +1334,52 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 12,
     opacity: 0.6,
+  },
+
+  suggestionsContainer: {
+    marginTop: -10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+
+  suggestionItem: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+
+  suggestionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  suggestionTextContainer: {
+    flex: 1,
+  },
+
+  suggestionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  suggestionSubtitle: {
+    fontSize: 11,
+    marginTop: 3,
+  },
+
+  noSuggestionsText: {
+    padding: 14,
+    fontSize: 12,
+    lineHeight: 18,
   },
 
   // POPULAR DESTINATIONS
