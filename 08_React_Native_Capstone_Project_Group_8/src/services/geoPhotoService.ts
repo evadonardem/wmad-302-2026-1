@@ -1,3 +1,4 @@
+
 // ======================================
 // API CONFIGURATION
 // ======================================
@@ -13,19 +14,14 @@ declare const process: {
 
 const PEXELS_API_KEY = process.env.EXPO_PUBLIC_PEXELS_API_KEY;
 
-
 // ======================================
 // IMAGE CACHE AND PEXELS REQUEST CONTROL
 // ======================================
 
-// These caches keep successfully loaded photos available while the app is running.
-// They prevent repeated navigation and refreshes from requesting the same photos.
 const pexelsSearchCache = new Map<string, any[]>();
 const attractionCache = new Map<string, TouristAttraction[]>();
 const destinationImageCache = new Map<string, string>();
 
-// Pexels can return HTTP 429 when too many requests arrive together.
-// Queue requests and leave a short gap between them.
 let pexelsRequestQueue: Promise<void> = Promise.resolve();
 let lastPexelsRequestTime = 0;
 const PEXELS_REQUEST_GAP_MS = 800;
@@ -33,7 +29,6 @@ const PEXELS_REQUEST_GAP_MS = 800;
 const wait = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-// Used only when Pexels has no cached photo available.
 const FALLBACK_IMAGE_URL =
   'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&q=80';
 
@@ -46,6 +41,13 @@ export type Region = {
   name: string;
   regionName: string;
   islandGroupCode: string;
+  psgcCode: string;
+};
+
+export type Province = {
+  code: string;
+  name: string;
+  regionCode: string;
   psgcCode: string;
 };
 
@@ -139,10 +141,12 @@ const TOURIST_ATTRACTIONS: Record<string, AttractionInfo[]> = {
       description: 'A peaceful garden featuring beautiful plants, cultural displays, and relaxing walking paths.',
       searchQuery: 'Baguio Botanical Garden Philippines',
     },
-    ...createAttractions('baguio-city-extra', 'Baguio City', 'Baguio City, Benguet', [
-      'Camp John Hay',
-      'Wright Park',
-    ]),
+    ...createAttractions(
+      'baguio-city-extra',
+      'Baguio City',
+      'Baguio City, Benguet',
+      ['Camp John Hay', 'Wright Park']
+    ),
   ],
 
   // 2. EL NIDO
@@ -175,10 +179,12 @@ const TOURIST_ATTRACTIONS: Record<string, AttractionInfo[]> = {
       description: 'A tropical beach featuring white sand, clear water, and beautiful island scenery.',
       searchQuery: 'Seven Commandos Beach El Nido',
     },
-    ...createAttractions('elnido-palawan-extra', 'El Nido', 'El Nido, Palawan', [
-      'Secret Lagoon',
-      'Shimizu Island',
-    ]),
+    ...createAttractions(
+      'elnido-palawan-extra',
+      'El Nido',
+      'El Nido, Palawan',
+      ['Secret Lagoon', 'Shimizu Island']
+    ),
   ],
 
   // 3. BORACAY ISLAND
@@ -211,10 +217,12 @@ const TOURIST_ATTRACTIONS: Record<string, AttractionInfo[]> = {
       description: 'A famous volcanic rock formation with a small religious shrine beside White Beach.',
       searchQuery: "Willy's Rock Boracay Philippines",
     },
-    ...createAttractions('boracay-island-extra', 'Boracay Island', 'Boracay Island, Aklan', [
-      'Ilig-Iligan Beach',
-      'Mount Luho Viewpoint',
-    ]),
+    ...createAttractions(
+      'boracay-island-extra',
+      'Boracay Island',
+      'Boracay Island, Aklan',
+      ['Ilig-Iligan Beach', 'Mount Luho Viewpoint']
+    ),
   ],
 
   // 4. MT. APO
@@ -247,10 +255,12 @@ const TOURIST_ATTRACTIONS: Record<string, AttractionInfo[]> = {
       description: 'Mountain trails passing through forests, grasslands, and volcanic landscapes.',
       searchQuery: 'Mount Apo hiking trail Philippines',
     },
-    ...createAttractions('mt-apo-extra', 'Mt. Apo', 'Davao Region, Mindanao', [
-      'Mossy Forest',
-      'Tudaya Falls',
-    ]),
+    ...createAttractions(
+      'mt-apo-extra',
+      'Mt. Apo',
+      'Davao Region, Mindanao',
+      ['Mossy Forest', 'Tudaya Falls']
+    ),
   ],
 
   // 5. SIARGAO ISLAND
@@ -283,261 +293,388 @@ const TOURIST_ATTRACTIONS: Record<string, AttractionInfo[]> = {
       description: 'A small sandbar surrounded by clear blue water, perfect for island-hopping stops.',
       searchQuery: 'Naked Island Siargao Philippines',
     },
-    ...createAttractions('siargao-island-extra', 'Siargao Island', 'Siargao, Surigao del Norte', [
-      'Daku Island',
-      'Guyam Island',
-    ]),
+    ...createAttractions(
+      'siargao-island-extra',
+      'Siargao Island',
+      'Siargao, Surigao del Norte',
+      ['Daku Island', 'Guyam Island']
+    ),
   ],
 
   // 6. VIGAN CITY
-  'vigan-city': createAttractions('vigan-city', 'Vigan City', 'Vigan City, Ilocos Sur', [
-    'Calle Crisologo',
-    'Bantay Bell Tower',
-    'Plaza Salcedo',
-    'Syquia Mansion Museum',
-    'Vigan Cathedral',
-    'Pagburnayan Jar Factory',
-  ]),
+  'vigan-city': createAttractions(
+    'vigan-city',
+    'Vigan City',
+    'Vigan City, Ilocos Sur',
+    [
+      'Calle Crisologo',
+      'Bantay Bell Tower',
+      'Plaza Salcedo',
+      'Syquia Mansion Museum',
+      'Vigan Cathedral',
+      'Pagburnayan Jar Factory',
+    ]
+  ),
 
   // 7. SAGADA
-  'sagada': createAttractions('sagada', 'Sagada', 'Sagada, Mountain Province', [
-    'Hanging Coffins',
-    'Sumaguing Cave',
-    'Bomod-ok Falls',
-    'Echo Valley',
-    'Kiltepan Viewpoint',
-    'Lake Danum',
-  ]),
+  'sagada': createAttractions(
+    'sagada',
+    'Sagada',
+    'Sagada, Mountain Province',
+    [
+      'Hanging Coffins',
+      'Sumaguing Cave',
+      'Bomod-ok Falls',
+      'Echo Valley',
+      'Kiltepan Viewpoint',
+      'Lake Danum',
+    ]
+  ),
 
   // 8. BANAUE
-  'banaue': createAttractions('banaue', 'Banaue', 'Banaue, Ifugao', [
-    'Banaue Rice Terraces',
-    'Batad Rice Terraces',
-    'Tappiya Falls',
-    'Banaue Viewpoint',
-    'Tam-an Village',
-    'Banga-an Village',
-  ]),
+  'banaue': createAttractions(
+    'banaue',
+    'Banaue',
+    'Banaue, Ifugao',
+    [
+      'Banaue Rice Terraces',
+      'Batad Rice Terraces',
+      'Tappiya Falls',
+      'Banaue Viewpoint',
+      'Tam-an Village',
+      'Banga-an Village',
+    ]
+  ),
 
   // 9. BOHOL
-  'bohol': createAttractions('bohol', 'Bohol', 'Bohol, Philippines', [
-    'Chocolate Hills',
-    'Loboc River',
-    'Alona Beach',
-    'Philippine Tarsier Sanctuary',
-    'Panglao Island',
-    'Baclayon Church',
-  ]),
+  'bohol': createAttractions(
+    'bohol',
+    'Bohol',
+    'Bohol, Philippines',
+    [
+      'Chocolate Hills',
+      'Loboc River',
+      'Alona Beach',
+      'Philippine Tarsier Sanctuary',
+      'Panglao Island',
+      'Baclayon Church',
+    ]
+  ),
 
   // 10. CEBU CITY
-  'cebu-city': createAttractions('cebu-city', 'Cebu City', 'Cebu City, Cebu', [
-    'Magellan Cross',
-    'Basilica Minore del Santo Niño',
-    'Fort San Pedro',
-    'Temple of Leah',
-    'Taoist Temple',
-    'Sirao Flower Garden',
-  ]),
+  'cebu-city': createAttractions(
+    'cebu-city',
+    'Cebu City',
+    'Cebu City, Cebu',
+    [
+      'Magellan Cross',
+      'Basilica Minore del Santo Niño',
+      'Fort San Pedro',
+      'Temple of Leah',
+      'Taoist Temple',
+      'Sirao Flower Garden',
+    ]
+  ),
 
   // 11. PUERTO PRINCESA
-  'puerto-princesa': createAttractions('puerto-princesa', 'Puerto Princesa', 'Puerto Princesa, Palawan', [
-    'Puerto Princesa Underground River',
-    'Honda Bay',
-    'Mitra Ranch',
-    'Baker’s Hill',
-    'Iwahig Firefly Watching',
-    'Palawan Wildlife Rescue and Conservation Center',
-  ]),
+  'puerto-princesa': createAttractions(
+    'puerto-princesa',
+    'Puerto Princesa',
+    'Puerto Princesa, Palawan',
+    [
+      'Puerto Princesa Underground River',
+      'Honda Bay',
+      'Mitra Ranch',
+      'Baker’s Hill',
+      'Iwahig Firefly Watching',
+      'Palawan Wildlife Rescue and Conservation Center',
+    ]
+  ),
 
   // 12. CORON
-  'coron': createAttractions('coron', 'Coron', 'Coron, Palawan', [
-    'Kayangan Lake',
-    'Barracuda Lake',
-    'Twin Lagoon',
-    'Banul Beach',
-    'Skeleton Wreck',
-    'Maquinit Hot Spring',
-  ]),
+  'coron': createAttractions(
+    'coron',
+    'Coron',
+    'Coron, Palawan',
+    [
+      'Kayangan Lake',
+      'Barracuda Lake',
+      'Twin Lagoon',
+      'Banul Beach',
+      'Skeleton Wreck',
+      'Maquinit Hot Spring',
+    ]
+  ),
 
   // 13. BATANES
-  'batanes': createAttractions('batanes', 'Batanes', 'Batanes, Philippines', [
-    'Marlboro Hills',
-    'Basco Lighthouse',
-    'Valugan Boulder Beach',
-    'Morong Beach',
-    'Tayid Lighthouse',
-    'Chawa View Deck',
-  ]),
+  'batanes': createAttractions(
+    'batanes',
+    'Batanes',
+    'Batanes, Philippines',
+    [
+      'Marlboro Hills',
+      'Basco Lighthouse',
+      'Valugan Boulder Beach',
+      'Morong Beach',
+      'Tayid Lighthouse',
+      'Chawa View Deck',
+    ]
+  ),
 
   // 14. LA UNION
-  'la-union': createAttractions('la-union', 'La Union', 'La Union, Philippines', [
-    'Urbiztondo Beach',
-    'Tangadan Falls',
-    'Ma-Cho Temple',
-    'Poro Point Lighthouse',
-    'Immuki Island',
-    'Pebble Beach',
-  ]),
+  'la-union': createAttractions(
+    'la-union',
+    'La Union',
+    'La Union, Philippines',
+    [
+      'Urbiztondo Beach',
+      'Tangadan Falls',
+      'Ma-Cho Temple',
+      'Poro Point Lighthouse',
+      'Immuki Island',
+      'Pebble Beach',
+    ]
+  ),
 
   // 15. TAGAYTAY
-  'tagaytay': createAttractions('tagaytay', 'Tagaytay', 'Tagaytay, Cavite', [
-    'People’s Park in the Sky',
-    'Sky Ranch Tagaytay',
-    'Picnic Grove',
-    'Puzzle Mansion',
-    'Our Lady of Lourdes Church',
-    'Museo Orlina',
-  ]),
+  'tagaytay': createAttractions(
+    'tagaytay',
+    'Tagaytay',
+    'Tagaytay, Cavite',
+    [
+      'People’s Park in the Sky',
+      'Sky Ranch Tagaytay',
+      'Picnic Grove',
+      'Puzzle Mansion',
+      'Our Lady of Lourdes Church',
+      'Museo Orlina',
+    ]
+  ),
 
   // 16. BATANGAS
-  'batangas': createAttractions('batangas', 'Batangas', 'Batangas, Philippines', [
-    'Anilao Beach',
-    'Masasa Beach',
-    'Fortune Island',
-    'Taal Heritage Town',
-    'Sepoc Beach',
-    'Sombrero Island',
-  ]),
+  'batangas': createAttractions(
+    'batangas',
+    'Batangas',
+    'Batangas, Philippines',
+    [
+      'Anilao Beach',
+      'Masasa Beach',
+      'Fortune Island',
+      'Taal Heritage Town',
+      'Sepoc Beach',
+      'Sombrero Island',
+    ]
+  ),
 
   // 17. CAMIGUIN
-  'camiguin': createAttractions('camiguin', 'Camiguin', 'Camiguin, Philippines', [
-    'White Island',
-    'Sunken Cemetery',
-    'Katibawasan Falls',
-    'Ardent Hot Springs',
-    'Tuasan Falls',
-    'Mantigue Island',
-  ]),
+  'camiguin': createAttractions(
+    'camiguin',
+    'Camiguin',
+    'Camiguin, Philippines',
+    [
+      'White Island',
+      'Sunken Cemetery',
+      'Katibawasan Falls',
+      'Ardent Hot Springs',
+      'Tuasan Falls',
+      'Mantigue Island',
+    ]
+  ),
 
   // 18. DAVAO CITY
-  'davao-city': createAttractions('davao-city', 'Davao City', 'Davao City, Philippines', [
-    'Eden Nature Park',
-    'Philippine Eagle Center',
-    'People’s Park',
-    'Jack’s Ridge',
-    'Davao Crocodile Park',
-    'Museo Dabawenyo',
-  ]),
+  'davao-city': createAttractions(
+    'davao-city',
+    'Davao City',
+    'Davao City, Philippines',
+    [
+      'Eden Nature Park',
+      'Philippine Eagle Center',
+      'People’s Park',
+      'Jack’s Ridge',
+      'Davao Crocodile Park',
+      'Museo Dabawenyo',
+    ]
+  ),
 
   // 19. CAGAYAN DE ORO
-  'cagayan-de-oro': createAttractions('cagayan-de-oro', 'Cagayan de Oro', 'Cagayan de Oro, Misamis Oriental', [
-    'Mapawa Nature Park',
-    'Seven Seas Waterpark',
-    'Gaston Park',
-    'Macahambus Cave',
-    'Cagayan de Oro River',
-    'Museum of Three Cultures',
-  ]),
+  'cagayan-de-oro': createAttractions(
+    'cagayan-de-oro',
+    'Cagayan de Oro',
+    'Cagayan de Oro, Misamis Oriental',
+    [
+      'Mapawa Nature Park',
+      'Seven Seas Waterpark',
+      'Gaston Park',
+      'Macahambus Cave',
+      'Cagayan de Oro River',
+      'Museum of Three Cultures',
+    ]
+  ),
 
   // 20. ILOILO CITY
-  'iloilo-city': createAttractions('iloilo-city', 'Iloilo City', 'Iloilo City, Philippines', [
-    'Molo Church',
-    'Jaro Cathedral',
-    'Calle Real',
-    'Iloilo River Esplanade',
-    'Museo Iloilo',
-    'Casa Mariquit',
-  ]),
+  'iloilo-city': createAttractions(
+    'iloilo-city',
+    'Iloilo City',
+    'Iloilo City, Philippines',
+    [
+      'Molo Church',
+      'Jaro Cathedral',
+      'Calle Real',
+      'Iloilo River Esplanade',
+      'Museo Iloilo',
+      'Casa Mariquit',
+    ]
+  ),
 
   // 21. BACOLOD CITY
-  'bacolod-city': createAttractions('bacolod-city', 'Bacolod City', 'Bacolod City, Negros Occidental', [
-    'The Ruins',
-    'San Sebastian Cathedral',
-    'Capitol Park and Lagoon',
-    'Negros Museum',
-    'Panaad Park and Stadium',
-    'Balay Negrense',
-  ]),
+  'bacolod-city': createAttractions(
+    'bacolod-city',
+    'Bacolod City',
+    'Bacolod City, Negros Occidental',
+    [
+      'The Ruins',
+      'San Sebastian Cathedral',
+      'Capitol Park and Lagoon',
+      'Negros Museum',
+      'Panaad Park and Stadium',
+      'Balay Negrense',
+    ]
+  ),
 
   // 22. DUMAGUETE
-  'dumaguete': createAttractions('dumaguete', 'Dumaguete', 'Dumaguete, Negros Oriental', [
-    'Rizal Boulevard',
-    'Silliman University',
-    'Twin Lakes of Balinsasayao',
-    'Casaroro Falls',
-    'Pulangbato Falls',
-    'Dumaguete Belfry',
-  ]),
+  'dumaguete': createAttractions(
+    'dumaguete',
+    'Dumaguete',
+    'Dumaguete, Negros Oriental',
+    [
+      'Rizal Boulevard',
+      'Silliman University',
+      'Twin Lakes of Balinsasayao',
+      'Casaroro Falls',
+      'Pulangbato Falls',
+      'Dumaguete Belfry',
+    ]
+  ),
 
   // 23. SAMAL ISLAND
-  'samal-island': createAttractions('samal-island', 'Samal Island', 'Samal Island, Davao del Norte', [
-    'Hagimit Falls',
-    'Monfort Bat Sanctuary',
-    'Kaputian Beach',
-    'Coral Garden Marine Park',
-    'Isla Reta Beach',
-    'Vanishing Island',
-  ]),
+  'samal-island': createAttractions(
+    'samal-island',
+    'Samal Island',
+    'Samal Island, Davao del Norte',
+    [
+      'Hagimit Falls',
+      'Monfort Bat Sanctuary',
+      'Kaputian Beach',
+      'Coral Garden Marine Park',
+      'Isla Reta Beach',
+      'Vanishing Island',
+    ]
+  ),
 
   // 24. LAKE SEBU
-  'lake-sebu': createAttractions('lake-sebu', 'Lake Sebu', 'Lake Sebu, South Cotabato', [
-    'Seven Falls',
+  'lake-sebu': createAttractions(
+    'lake-sebu',
     'Lake Sebu',
-    'Tboli Cultural Village',
-    'Lake Seloton',
-    'Lake Lahit',
-    'Tboli Museum',
-  ]),
+    'Lake Sebu, South Cotabato',
+    [
+      'Seven Falls',
+      'Lake Sebu',
+      'Tboli Cultural Village',
+      'Lake Seloton',
+      'Lake Lahit',
+      'Tboli Museum',
+    ]
+  ),
 
   // 25. ZAMBOANGA CITY
-  'zamboanga-city': createAttractions('zamboanga-city', 'Zamboanga City', 'Zamboanga City, Philippines', [
-    'Great Santa Cruz Island',
-    'Fort Pilar',
-    'Pasonanca Park',
-    'Merloquet Falls',
-    'Yakan Weaving Village',
-    'Paseo del Mar',
-  ]),
+  'zamboanga-city': createAttractions(
+    'zamboanga-city',
+    'Zamboanga City',
+    'Zamboanga City, Philippines',
+    [
+      'Great Santa Cruz Island',
+      'Fort Pilar',
+      'Pasonanca Park',
+      'Merloquet Falls',
+      'Yakan Weaving Village',
+      'Paseo del Mar',
+    ]
+  ),
 
   // 26. HUNDRED ISLANDS
-  'hundred-islands': createAttractions('hundred-islands', 'Hundred Islands', 'Alaminos, Pangasinan', [
-    'Governor Island',
-    'Quezon Island',
-    'Children’s Island',
-    'Marcos Island',
-    'Cuenco Island',
-    'Pilgrimage Island',
-  ]),
+  'hundred-islands': createAttractions(
+    'hundred-islands',
+    'Hundred Islands',
+    'Alaminos, Pangasinan',
+    [
+      'Governor Island',
+      'Quezon Island',
+      'Children’s Island',
+      'Marcos Island',
+      'Cuenco Island',
+      'Pilgrimage Island',
+    ]
+  ),
 
   // 27. TAAL VOLCANO
-  'taal-volcano': createAttractions('taal-volcano', 'Taal Volcano', 'Batangas, Philippines', [
-    'Taal Volcano Viewpoint',
-    'Taal Lake',
-    'Taal Heritage Town',
-    'Taal Basilica',
-    'Taal Volcano Island View',
-    'Taal Volcano Protected Landscape',
-  ]),
+  'taal-volcano': createAttractions(
+    'taal-volcano',
+    'Taal Volcano',
+    'Batangas, Philippines',
+    [
+      'Taal Volcano Viewpoint',
+      'Taal Lake',
+      'Taal Heritage Town',
+      'Taal Basilica',
+      'Taal Volcano Island View',
+      'Taal Volcano Protected Landscape',
+    ]
+  ),
 
   // 28. MAYON VOLCANO
-  'mayon-volcano': createAttractions('mayon-volcano', 'Mayon Volcano', 'Albay, Philippines', [
-    'Cagsawa Ruins',
-    'Mayon Skyline View Deck',
-    'Daraga Church',
-    'Sumlang Lake',
-    'Ligñon Hill Nature Park',
-    'Quitinday Green Hills',
-  ]),
+  'mayon-volcano': createAttractions(
+    'mayon-volcano',
+    'Mayon Volcano',
+    'Albay, Philippines',
+    [
+      'Cagsawa Ruins',
+      'Mayon Skyline View Deck',
+      'Daraga Church',
+      'Sumlang Lake',
+      'Ligñon Hill Nature Park',
+      'Quitinday Green Hills',
+    ]
+  ),
 
   // 29. TUBBATAHA REEF
-  'tubbataha-reef': createAttractions('tubbataha-reef', 'Tubbataha Reef', 'Sulu Sea, Palawan', [
-    'North Atoll',
-    'South Atoll',
-    'Jessie Beazley Reef',
-    'Tubbataha Ranger Station',
-    'Bird Islet',
-    'Shark Airport',
-  ]),
+  'tubbataha-reef': createAttractions(
+    'tubbataha-reef',
+    'Tubbataha Reef',
+    'Sulu Sea, Palawan',
+    [
+      'North Atoll',
+      'South Atoll',
+      'Jessie Beazley Reef',
+      'Tubbataha Ranger Station',
+      'Bird Islet',
+      'Shark Airport',
+    ]
+  ),
 
   // 30. APO ISLAND
-  'apo-island': createAttractions('apo-island', 'Apo Island', 'Dauin, Negros Oriental', [
-    'Apo Island Marine Sanctuary',
-    'Apo Island Lighthouse',
-    'Apo Island Beach',
-    'Apo Island Snorkeling Area',
-    'Apo Island Turtle Sanctuary',
-    'Rocky Point',
-  ]),
+  'apo-island': createAttractions(
+    'apo-island',
+    'Apo Island',
+    'Dauin, Negros Oriental',
+    [
+      'Apo Island Marine Sanctuary',
+      'Apo Island Lighthouse',
+      'Apo Island Beach',
+      'Apo Island Snorkeling Area',
+      'Apo Island Turtle Sanctuary',
+      'Rocky Point',
+    ]
+  ),
 };
 
 // ======================================
@@ -547,18 +684,22 @@ const TOURIST_ATTRACTIONS: Record<string, AttractionInfo[]> = {
 const searchPexels = async (query: string): Promise<any[]> => {
   const normalizedQuery = query.trim().toLowerCase();
 
-  // Return the saved result immediately when this query was already successful.
+  // Return cached photos when available.
   const cachedPhotos = pexelsSearchCache.get(normalizedQuery);
+
   if (cachedPhotos && cachedPhotos.length > 0) {
     return cachedPhotos;
   }
 
   if (!PEXELS_API_KEY) {
-    throw new Error('Pexels API key is missing. Check your .env file.');
+    throw new Error(
+      'Pexels API key is missing. Check your .env file.'
+    );
   }
 
   const requestTask = pexelsRequestQueue.then(async () => {
     const elapsed = Date.now() - lastPexelsRequestTime;
+
     if (elapsed < PEXELS_REQUEST_GAP_MS) {
       await wait(PEXELS_REQUEST_GAP_MS - elapsed);
     }
@@ -571,7 +712,7 @@ const searchPexels = async (query: string): Promise<any[]> => {
 
     const url = `${PEXELS_SEARCH_URL}?${params.toString()}`;
 
-    // Retry temporary rate-limit and server errors up to three times.
+    // Retry temporary rate-limit and server errors.
     for (let attempt = 0; attempt < 3; attempt += 1) {
       lastPexelsRequestTime = Date.now();
 
@@ -584,7 +725,9 @@ const searchPexels = async (query: string): Promise<any[]> => {
 
       if (response.ok) {
         const data = await response.json();
-        const photos = Array.isArray(data.photos) ? data.photos : [];
+        const photos = Array.isArray(data.photos)
+          ? data.photos
+          : [];
 
         if (photos.length > 0) {
           pexelsSearchCache.set(normalizedQuery, photos);
@@ -597,17 +740,18 @@ const searchPexels = async (query: string): Promise<any[]> => {
         response.status === 429 || response.status >= 500;
 
       if (!canRetry || attempt === 2) {
-        throw new Error(`Pexels request failed: ${response.status}`);
+        throw new Error(
+          `Pexels request failed: ${response.status}`
+        );
       }
 
-      // Exponential backoff: 1.5 seconds, then 3 seconds.
       await wait(1500 * Math.pow(2, attempt));
     }
 
     return [];
   });
 
-  // Keep the queue usable even if one request fails.
+  // Keep the queue usable even if a request fails.
   pexelsRequestQueue = requestTask.then(
     () => undefined,
     () => undefined
@@ -616,7 +760,10 @@ const searchPexels = async (query: string): Promise<any[]> => {
   return requestTask;
 };
 
-// Get one image for a popular destination, reusing the cached result.
+// ======================================
+// GET DESTINATION IMAGE
+// ======================================
+
 export const getDestinationImage = async (
   searchQuery: string
 ): Promise<string> => {
@@ -629,11 +776,18 @@ export const getDestinationImage = async (
 
   try {
     const photos = await searchPexels(searchQuery);
-    const imageUrl = photos[0]?.src?.large || FALLBACK_IMAGE_URL;
+    const imageUrl =
+      photos[0]?.src?.large || FALLBACK_IMAGE_URL;
+
     destinationImageCache.set(cacheKey, imageUrl);
+
     return imageUrl;
   } catch (error) {
-    console.warn(`Could not load destination image for ${searchQuery}:`, error);
+    console.warn(
+      `Could not load destination image for ${searchQuery}:`,
+      error
+    );
+
     return FALLBACK_IMAGE_URL;
   }
 };
@@ -647,7 +801,9 @@ export const getRegions = async (): Promise<Region[]> => {
     const response = await fetch(`${PSGC_BASE_URL}/regions/`);
 
     if (!response.ok) {
-      throw new Error(`PSGC request failed: ${response.status}`);
+      throw new Error(
+        `PSGC request failed: ${response.status}`
+      );
     }
 
     return await response.json();
@@ -658,7 +814,68 @@ export const getRegions = async (): Promise<Region[]> => {
 };
 
 // ======================================
+// PSGC: GET PROVINCES BY REGION
+// ======================================
+
+export const getProvincesByRegion = async (
+  regionCode: string
+): Promise<Province[]> => {
+  if (!regionCode) return [];
+
+  try {
+    const response = await fetch(
+      `${PSGC_BASE_URL}/regions/${regionCode}/provinces/`
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `PSGC request failed: ${response.status}`
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching provinces:', error);
+    return [];
+  }
+};
+
+// ======================================
 // PSGC: GET CITIES AND MUNICIPALITIES
+// BY PROVINCE
+// ======================================
+
+export const getCitiesMunicipalitiesByProvince = async (
+  provinceCode: string
+): Promise<City[]> => {
+  if (!provinceCode) return [];
+
+  try {
+    const response = await fetch(
+      `${PSGC_BASE_URL}/provinces/${provinceCode}/cities-municipalities/`
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `PSGC request failed: ${response.status}`
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(
+      'Error fetching cities and municipalities by province:',
+      error
+    );
+
+    return [];
+  }
+};
+
+// ======================================
+// PSGC: GET CITIES AND MUNICIPALITIES
+// DIRECTLY BY REGION
+// Used for NCR and regions without provinces
 // ======================================
 
 export const getCitiesMunicipalitiesByRegion = async (
@@ -672,12 +889,18 @@ export const getCitiesMunicipalitiesByRegion = async (
     );
 
     if (!response.ok) {
-      throw new Error(`PSGC request failed: ${response.status}`);
+      throw new Error(
+        `PSGC request failed: ${response.status}`
+      );
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching cities/municipalities:', error);
+    console.error(
+      'Error fetching cities and municipalities by region:',
+      error
+    );
+
     return [];
   }
 };
@@ -697,9 +920,11 @@ export const searchPhotosByLocation = async (
     return photos.map((photo: any) => ({
       id: photo.id,
       imageUrl: photo.src.large,
-      photographer: photo.photographer || 'Unknown Photographer',
+      photographer:
+        photo.photographer || 'Unknown Photographer',
       photographerUrl: photo.photographer_url || '',
-      altText: photo.alt || `${locationName} tourist attraction`,
+      altText:
+        photo.alt || `${locationName} tourist attraction`,
     }));
   } catch (error) {
     console.error('Error searching photos:', error);
@@ -718,25 +943,38 @@ export const getTouristAttractions = async (
   const attractions = TOURIST_ATTRACTIONS[destinationId];
 
   if (!attractions) {
-    console.warn(`No tourist attractions found for ${destinationId}`);
+    console.warn(
+      `No tourist attractions found for ${destinationId}`
+    );
+
     return [];
   }
 
-  // Return all six saved attraction records without making new API requests.
+  // Return cached attraction records when available.
   const cachedAttractions = attractionCache.get(destinationId);
-  if (cachedAttractions && cachedAttractions.length === attractions.length) {
+
+  if (
+    cachedAttractions &&
+    cachedAttractions.length === attractions.length
+  ) {
     return cachedAttractions;
   }
 
   const results = await Promise.all(
     attractions.map(async (attraction) => {
       try {
-        const photos = await searchPexels(attraction.searchQuery);
+        const photos = await searchPexels(
+          attraction.searchQuery
+        );
+
         const photo = photos[0];
 
         return {
           ...attraction,
-          imageUrl: photo?.src?.large || destinationFallbackImage || FALLBACK_IMAGE_URL,
+          imageUrl:
+            photo?.src?.large ||
+            destinationFallbackImage ||
+            FALLBACK_IMAGE_URL,
           photographer: photo?.photographer || '',
           photographerUrl: photo?.photographer_url || '',
         };
@@ -746,10 +984,12 @@ export const getTouristAttractions = async (
           error
         );
 
-        // Keep a visible image even if this attraction's Pexels request fails.
+        // Keep a visible image even if Pexels fails.
         return {
           ...attraction,
-          imageUrl: destinationFallbackImage || FALLBACK_IMAGE_URL,
+          imageUrl:
+            destinationFallbackImage ||
+            FALLBACK_IMAGE_URL,
           photographer: '',
           photographerUrl: '',
         };
@@ -758,5 +998,6 @@ export const getTouristAttractions = async (
   );
 
   attractionCache.set(destinationId, results);
+
   return results;
 };
