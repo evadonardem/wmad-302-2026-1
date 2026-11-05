@@ -565,7 +565,7 @@ const searchPexels = async (query: string): Promise<any[]> => {
 
     const params = new URLSearchParams({
       query,
-      per_page: '5',
+      per_page: '9',
       orientation: 'landscape',
     });
 
