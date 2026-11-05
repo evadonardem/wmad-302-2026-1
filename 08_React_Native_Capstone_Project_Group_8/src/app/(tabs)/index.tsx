@@ -265,7 +265,7 @@ type PopularDestination = (typeof POPULAR_DESTINATIONS)[number] & {
 // PAGINATION SETTINGS
 // ======================================
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 5;
 
 const TOTAL_PAGES = Math.ceil(
   POPULAR_DESTINATIONS.length / ITEMS_PER_PAGE
