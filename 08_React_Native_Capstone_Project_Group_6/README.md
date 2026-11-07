@@ -1,17 +1,17 @@
 # React Native Capstone Project: PH Tourist Spot Searcher (Group Project)
 
 ## Objective
-Collaborate in teams of three to build a theme-responsive **React Native (Expo)** application that maps geographical data of the Philippines and searches for stunning location visuals. You will combine the official **Philippine Standard Geographic Code (PSGC) API** with the **Pexels Image API**, and present everything through **React Native Paper** Material Design 3 components.
+Collaborate in teams of three to build a theme-responsive **React Native (Expo)** application that maps geographical data of the Philippines and searches for location visuals. You will combine the official **Philippine Standard Geographic Code (PSGC) API** with the **Wikimedia Commons API**, and present everything through **React Native Paper** Material Design 3 components.
 
-The user journey follows a strict chain sequence: **Select Region** → **Select City/Municipality** within that region → Click **Search** to display real-time tourist attraction photos fetched directly from Pexels — optionally narrowing regions first with an **island-group filter**, and revisiting past queries from a **Recent Searches** screen. The app is structured around **Expo Router**: a bottom tab navigator (Search / About) hosts the main screens, each photo card opens a **modal detail route** on a **dynamic path segment** (`/photo/[id]`) carrying its data as **route params**, with a **prev/next viewer**, a **redirect guard**, and **pull-to-refresh** on the results list. The same codebase runs on Android, iOS, and the web.
+The user journey follows a strict chain sequence: **Select Region** → **Select City/Municipality** within that region → Click **Search** to display matching tourist attraction photos from Wikimedia Commons — optionally narrowing regions first with an **island-group filter**, and revisiting past queries from a **Recent Searches** screen. The app is structured around **Expo Router**: a bottom tab navigator (Search / About) hosts the main screens, each photo card opens a **modal detail route** on a **dynamic path segment** (`/photo/[id]`) carrying its data as **route params**, with a **prev/next viewer**, a **redirect guard**, and **pull-to-refresh** on the results list. The same codebase runs on Android, iOS, and the web.
 
 ---
 
 ## Technical Specifications & Architecture Flow
 1. **Dynamic Regional Fetching:** On initial mount, load all administrative regions of the Philippines via the PSGC API endpoints (`/regions/`).
 2. **Dependent Chained Pickers:** When a region is chosen, immediately query that region's precise sub-municipalities and cities (`/regions/{regionCode}/cities-municipalities/`) to populate the nested picker dynamically. React Native has no built-in `<Select>` — you will build chained pickers from Paper `<Menu>` components.
-3. **Pexels Image Resolution:** Use the localized text descriptor of the selected municipality to build a focused keyword string (e.g., `"Vigan City tourist spot"`) and fetch high-definition image streams via the Pexels search route.
-4. **Environment Variables:** Application access keys must be extracted safely from localized environment files using Expo's standard `EXPO_PUBLIC_` loading mechanics.
+3. **Wikimedia Commons Image Search:** Search Commons for photos matching the selected municipality and use its image metadata for thumbnails, details, and attribution. No API key is required.
+4. **Image Attribution:** Display the available contributor and source-page metadata for Commons images.
 5. **Bottom-Tab Navigation:** Register a two-tab navigator (Search, About) with icons via file-based routing.
 6. **Modal Detail Route & Params:** Push a `/photo/[id]` route from any gallery card — the id rides in the URL path, the remaining data as search params — read them back with `useLocalSearchParams`, guard against incomplete links with `<Redirect>`, and browse results with a prev/next viewer that `router.replace`s the current entry.
 7. **Pull-to-Refresh:** Wrap the dashboard in a `ScrollView` + `RefreshControl` that re-runs the most recent search.
@@ -20,16 +20,8 @@ The user journey follows a strict chain sequence: **Select Region** → **Select
 
 ---
 
-## Security & Local Environment Setup
-To protect private access tokens from leaking into public code history repositories, this project reads credentials through Expo environment flags:
-
-1. Look at the root folder layout and locate the template file named `.env.example`.
-2. Duplicate this file within the root directory and rename the newly created duplicate file to exactly `.env`.
-3. Open `.env` and paste your group's private credential token line:
-   ```text
-   EXPO_PUBLIC_PEXELS_API_KEY=your_actual_private_pexels_api_token_here
-   ```
-4. Only variables prefixed with `EXPO_PUBLIC_` are exposed to the app — never place raw secrets in source files. Verify that `.env` is recognized by your `.gitignore` configuration before committing anything.
+## Photo Search
+Photo search uses the public Wikimedia Commons API and does not require an account, API key, or `.env` setup. Photo availability varies by location. Follow the source-page link to review each image's licensing and attribution details.
 
 ---
 
@@ -40,7 +32,7 @@ To protect private access tokens from leaking into public code history repositor
 * **Deliverables:**
   * Implement Axios asynchronous `GET` calls fetching regions from the PSGC root.
   * Implement dynamic parameter parsing logic fetching specific cities/municipalities from nested paths using string interpolation.
-  * Build the Pexels image data handler. Configure custom authorization request header tokens safely (reading `process.env.EXPO_PUBLIC_PEXELS_API_KEY`) and structure clean response arrays containing photo URLs and photographer attribution details.
+  * Build a Wikimedia Commons image search handler and map image URLs, descriptions, and contributor attribution into the app's photo model.
 
 ### **Developer 2: Cascading Form & State Manager**
 * **Core File:** `src/components/LocationForm.tsx`
@@ -110,7 +102,7 @@ To protect private access tokens from leaking into public code history repositor
 |   |   |  |  | Paper <Card>    |  |   |  | Paper <Card>    |  |   |  | Paper <Card>    |  ||   |   |
 |   |   |  |  |                 |  |   |  |                 |  |   |  |                 |  ||   |   |
 |   |   |  |  |  <Card.Cover>   |  |   |  |  <Card.Cover>   |  |   |  |  <Card.Cover>   |  ||   |   |
-|   |   |  |  |  Pexels Photo   |  |   |  |  Pexels Photo   |  |   |  |  Pexels Photo   |  ||   |   |
+|   |   |  |  | Commons Photo  |  |   |  | Commons Photo  |  |   |  | Commons Photo  |  ||   |   |
 |   |   |  |  |  imageUrl       |  |   |  |  imageUrl       |  |   |  |  imageUrl       |  ||   |   |
 |   |   |  |  |                 |  |   |  |                 |  |   |  |                 |  ||   |   |
 |   |   |  |  |  <Card.Content> |  |   |  |  <Card.Content> |  |   |  |  <Card.Content> |  ||   |   |
@@ -162,7 +154,7 @@ To protect private access tokens from leaking into public code history repositor
    npm install
    ```
 
-2. Create your `.env` file (see Security setup above), then start the app
+2. Start the app (no API key or `.env` setup is required)
 
    ```bash
    npx expo start
@@ -255,8 +247,10 @@ To assist with testing and structuring data mappings, refer to the verified sign
 
 ---
 
-### 2. Pexels Media Search API
+### 2. Wikimedia Commons Media Search API
 
-* **Endpoint:** `GET https://pexels.com{keyword}&per_page=12`
-* **Required Headers:** `Authorization: YOUR_API_KEY`
-* **Example Query:** `GET https://pexels.comBaguio%20City%20tourist%20spot&per_page=12`
+* **Endpoint:** `GET https://commons.wikimedia.org/w/api.php`
+* **Authentication:** None; the request uses `origin=*` for browser access.
+* **Search:** `action=query&generator=search&gsrnamespace=6&gsrsearch=Baguio%20City%20Philippines`
+* **Image metadata:** `prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=1000`
+* **Attribution:** Open each image's Wikimedia Commons source page to review its creator and license.
