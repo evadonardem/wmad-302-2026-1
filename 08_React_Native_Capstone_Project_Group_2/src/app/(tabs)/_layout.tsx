@@ -34,6 +34,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="information-circle-outline" color={String(color)} size={size} />,
         }}
       />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Favorites',
+          tabBarIcon: ({ color, size }) => <Ionicons name="heart-outline" color={String(color)} size={size} />,
+        }}
+      />
     </Tabs>
   );
 }
