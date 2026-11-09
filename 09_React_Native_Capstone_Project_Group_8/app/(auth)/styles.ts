@@ -1,3 +1,4 @@
+
 /**
  * Shared Styles for Auth Screens
  */
@@ -56,6 +57,64 @@ export const styles = StyleSheet.create({
   input: {
     marginBottom: 16,
   },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  optionalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  halfInput: {
+    width: '48%',
+  },
+  genderSelector: {
+    marginBottom: 16,
+  },
+  genderLabel: {
+    color: '#8D6E63',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  genderOptions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  genderOption: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D7CCC8',
+    borderRadius: 8,
+  },
+  genderOptionSelected: {
+    backgroundColor: '#E85D04',
+    borderColor: '#E85D04',
+  },
+  genderOptionText: {
+    color: '#8D6E63',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  genderOptionTextSelected: {
+    color: '#FFFFFF',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  checkbox: {
+    marginRight: 4,
+  },
+  termsText: {
+    flex: 1,
+    color: '#8D6E63',
+    fontSize: 13,
+    lineHeight: 20,
+  },
   eyeIcon: {
     padding: 8,
   },
@@ -74,6 +133,12 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
   },
   loginButton: {
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 12,
+    height: 52,
+  },
+  registerButton: {
     marginTop: 8,
     marginBottom: 16,
     borderRadius: 12,
@@ -107,7 +172,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 20,
   },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
   registerText: {
+    fontSize: 14,
+    color: '#8D6E63',
+  },
+  loginText: {
     fontSize: 14,
     color: '#8D6E63',
   },
@@ -128,5 +202,22 @@ export const styles = StyleSheet.create({
     color: '#8D6E63',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  guideContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+  },
+  guideTitle: {
+    color: '#E85D04',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  guideText: {
+    color: '#8D6E63',
+    fontSize: 13,
+    lineHeight: 21,
   },
 });
