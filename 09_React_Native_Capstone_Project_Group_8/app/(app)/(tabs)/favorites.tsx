@@ -1,3 +1,4 @@
+
 /**
  * Favorites Screen - Cookbook
  * TODO: Students implement
@@ -8,7 +9,15 @@
  * - Create collections/folders
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Card, Title, Chip, Button, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -88,9 +97,15 @@ export default function FavoritesScreen() {
     >
       <Card style={styles.card} elevation={1}>
         <View style={styles.cardContent}>
-          <Image source={{ uri: item.image }} style={styles.recipeImage} resizeMode="cover" />
+          <Image
+            source={{ uri: item.image }}
+            style={styles.recipeImage}
+            resizeMode="cover"
+          />
           <View style={styles.info}>
-            <Title style={styles.title} numberOfLines={1}>{item.name}</Title>
+            <Title style={styles.title} numberOfLines={1}>
+              {item.name}
+            </Title>
             <View style={styles.meta}>
               <Chip style={styles.difficultyChip}>{item.difficulty}</Chip>
               <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
@@ -102,7 +117,7 @@ export default function FavoritesScreen() {
           <IconButton
             icon="heart"
             size={24}
-            color="#C62828"
+            iconColor="#C62828"
             onPress={() => removeFavorite(item.id)}
             accessibilityLabel="Remove from favorites"
           />
@@ -124,9 +139,15 @@ export default function FavoritesScreen() {
     <View style={styles.container}>
       {favorites.length === 0 ? (
         <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="heart-outline" size={80} color="#BCAAA4" />
+          <MaterialCommunityIcons
+            name="heart-outline"
+            size={80}
+            color="#BCAAA4"
+          />
           <Text style={styles.emptyTitle}>No Favorites Yet</Text>
-          <Text style={styles.emptyText}>Recipes you love will appear here</Text>
+          <Text style={styles.emptyText}>
+            Recipes you love will appear here
+          </Text>
           <Button
             mode="contained"
             onPress={() => router.push('/(app)/(tabs)/search')}
@@ -145,7 +166,9 @@ export default function FavoritesScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListHeaderComponent={
             <View style={styles.header}>
-              <Title style={styles.headerTitle}>Your Favorites ({favorites.length})</Title>
+              <Title style={styles.headerTitle}>
+                Your Favorites ({favorites.length})
+              </Title>
             </View>
           }
         />
@@ -153,18 +176,18 @@ export default function FavoritesScreen() {
 
       {/* Student Guide */}
       <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
+        <Text style={styles.guideTitle}>
+          📝 Student Implementation Guide
+        </Text>
         <Text style={styles.guideText}>
-          Complete the favorites functionality:\n
-          1. Store favorite IDs in AsyncStorage\n
-          2. Fetch recipes by ID on load\n
-          3. Add/remove with persistence\n
-          4. Add "Add to Favorites" on recipe detail\n
+          Complete the favorites functionality:{'\n'}
+          1. Store favorite IDs in AsyncStorage{'\n'}
+          2. Fetch recipes by ID on load{'\n'}
+          3. Add/remove with persistence{'\n'}
+          4. Add "Add to Favorites" on recipe detail{'\n'}
           5. Create collections (Breakfast, Dinner, etc.)
         </Text>
       </View>
     </View>
   );
 }
-
-import { Image } from 'react-native';

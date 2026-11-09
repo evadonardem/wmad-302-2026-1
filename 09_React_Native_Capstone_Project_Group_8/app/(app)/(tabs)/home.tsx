@@ -1,3 +1,4 @@
+
 /**
  * Home Screen - Cookbook Discover Tab
  * Students implement: Recipe grid, categories, featured recipes
@@ -16,7 +17,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Subtitle, Chip, Avatar, Button } from 'react-native-paper';
+import { Card, Title, Chip, Avatar, Button } from 'react-native-paper';
 import { styles } from './homeStyles';
 
 // Types for DummyJSON Recipes API
@@ -118,7 +119,9 @@ export default function HomeScreen() {
           <View style={styles.cuisineRow}>
             <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
             {item.mealType.slice(0, 2).map((meal) => (
-              <Chip key={meal} style={styles.mealChip}>{meal}</Chip>
+              <Chip key={meal} style={styles.mealChip}>
+                {meal}
+              </Chip>
             ))}
           </View>
           <View style={styles.ratingRow}>
@@ -144,7 +147,11 @@ export default function HomeScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={fetchRecipes} style={styles.retryButton}>
+        <Button
+          mode="contained"
+          onPress={() => fetchRecipes()}
+          style={styles.retryButton}
+        >
           Retry
         </Button>
       </View>
@@ -155,7 +162,11 @@ export default function HomeScreen() {
     <ScrollView
       style={styles.scrollView}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E85D04']} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#E85D04']}
+        />
       }
       contentContainerStyle={styles.scrollContent}
     >
@@ -165,9 +176,15 @@ export default function HomeScreen() {
           <Text style={styles.welcomeGreeting}>
             {user ? `Welcome back, ${user.firstName}!` : 'Welcome to Cookbook!'}
           </Text>
-          <Text style={styles.welcomeSubtitle}>Discover delicious recipes</Text>
+          <Text style={styles.welcomeSubtitle}>
+            Discover delicious recipes
+          </Text>
         </View>
-        <Avatar.Icon size={56} icon="chef-hat" style={styles.welcomeAvatar} />
+        <Avatar.Icon
+          size={56}
+          icon="chef-hat"
+          style={styles.welcomeAvatar}
+        />
       </View>
 
       {/* Categories */}
@@ -177,7 +194,14 @@ export default function HomeScreen() {
         </View>
         <FlatList
           data={[
-            'Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Vegetarian',
+            'Beef',
+            'Chicken',
+            'Dessert',
+            'Lamb',
+            'Pasta',
+            'Pork',
+            'Seafood',
+            'Vegetarian',
           ]}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -185,7 +209,9 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.categoryChip, { backgroundColor: '#FFF3E0' }]}
-              onPress={() => router.push(`/(app)/(tabs)/search?category=${item}`)}
+              onPress={() =>
+                router.push(`/(app)/(tabs)/search?category=${item}`)
+              }
             >
               <Text style={styles.categoryChipText}>{item}</Text>
             </TouchableOpacity>
@@ -198,7 +224,10 @@ export default function HomeScreen() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Title style={styles.sectionTitle}>Featured Recipes</Title>
-          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/search')} style={styles.seeAll}>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/(tabs)/search')}
+            style={styles.seeAll}
+          >
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
