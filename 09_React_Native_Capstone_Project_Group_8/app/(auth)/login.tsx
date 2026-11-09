@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
@@ -14,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, TextInput as PaperTextInput, Divider } from 'react-native-paper';

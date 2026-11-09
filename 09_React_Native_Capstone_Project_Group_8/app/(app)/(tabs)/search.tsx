@@ -1,13 +1,8 @@
-
 /**
  * Search Screen - Cookbook
- * TODO: Students implement
- * - Search recipes by query (GET /recipes/search?q=)
- * - Filter by category, cuisine, difficulty
- * - Filter by meal type, prep time
- * - Sort by rating, time, calories
- * - Infinite scroll pagination
+ * Search recipes by query and category
  */
+
 import React, { useState } from 'react';
 import {
   View,
@@ -23,6 +18,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Card, Title, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { recipeApi } from '@/services/recipeApi';
 import { styles } from './searchStyles';
 
 interface Recipe {
@@ -39,6 +35,7 @@ interface Recipe {
 
 export default function SearchScreen() {
   const router = useRouter();
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,27 +52,38 @@ export default function SearchScreen() {
     'Vegetarian',
   ];
 
+  // Search recipes using the existing API service
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() && !selectedCategory) {
+      setResults([]);
+      return;
+    }
 
     setLoading(true);
 
     try {
-      // TODO: Student implementation
-      // const response = await fetch(
-      //   `https://dummyjson.com/recipes/search?q=${encodeURIComponent(query)}`
-      // );
-      // const data = await response.json();
-      // setResults(data.recipes || []);
+      let response;
 
-      Alert.alert('TODO', 'Implement search: GET /recipes/search?q=' + query);
-    } catch {
-      Alert.alert('Error', 'Unable to search recipes.');
+      if (selectedCategory) {
+        response = await recipeApi.getRecipesByCategory(selectedCategory);
+      } else {
+        response = await recipeApi.searchRecipes(query.trim());
+      }
+
+      setResults(response.recipes || []);
+    } catch (error) {
+      console.error('Search error:', error);
+      Alert.alert(
+        'Error',
+        'Unable to search recipes. Please try again.'
+      );
+      setResults([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Display each recipe result
   const renderResult = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.resultCard}
@@ -160,7 +168,10 @@ export default function SearchScreen() {
 
           {query ? (
             <TouchableOpacity
-              onPress={() => setQuery('')}
+              onPress={() => {
+                setQuery('');
+                setResults([]);
+              }}
               style={styles.clearButton}
             >
               <MaterialCommunityIcons
@@ -204,11 +215,35 @@ export default function SearchScreen() {
                 styles.filterChip,
                 selectedCategory === item && styles.filterChipSelected,
               ]}
-              onPress={() =>
-                setSelectedCategory(
-                  selectedCategory === item ? null : item
-                )
-              }
+              onPress={() => {
+                const newCategory =
+                  selectedCategory === item ? null : item;
+
+                setSelectedCategory(newCategory);
+
+                if (newCategory) {
+                  setLoading(true);
+
+                  recipeApi
+                    .getRecipesByCategory(newCategory)
+                    .then((response) => {
+                      setResults(response.recipes || []);
+                    })
+                    .catch((error) => {
+                      console.error('Category search error:', error);
+                      Alert.alert(
+                        'Error',
+                        'Unable to load recipes for this category.'
+                      );
+                      setResults([]);
+                    })
+                    .finally(() => {
+                      setLoading(false);
+                    });
+                } else {
+                  setResults([]);
+                }
+              }}
             >
               <Text
                 style={[
@@ -236,7 +271,7 @@ export default function SearchScreen() {
           <View style={styles.loadingCenter}>
             <ActivityIndicator size="large" color="#E85D04" />
           </View>
-        ) : results.length === 0 && query ? (
+        ) : results.length === 0 && (query || selectedCategory) ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
               name="magnify"
@@ -254,6 +289,7 @@ export default function SearchScreen() {
             renderItem={renderResult}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.resultsList}
+            scrollEnabled={false}
             ItemSeparatorComponent={() => (
               <View style={styles.separator} />
             )}
