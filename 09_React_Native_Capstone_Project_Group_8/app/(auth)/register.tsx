@@ -1,395 +1,314 @@
 
 /**
- * Register Screen - SKELETON WITH TODOs
- * Students complete this screen to learn auth flow
+ * Auth Context with useReducer
+ * Handles authentication, persistence hydration, and token refresh.
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  TouchableOpacity,
-} from 'react-native';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
 
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import {
-  Card,
-  Button,
-  TextInput as PaperTextInput,
-  Checkbox,
-} from 'react-native-paper';
+import { AuthState, AuthAction } from '@/types/auth';
+import { authApi } from '@/services/authApi';
 
-import { styles } from './styles';
+// Initial state
+const initialState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
+};
 
-export default function RegisterScreen() {
-  const router = useRouter();
-  const { register, isLoading, error, clearError } = useAuth();
+// Reducer
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case 'AUTH_START':
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
+      };
 
-  // Form state
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    age: '',
-    gender: 'male' as 'male' | 'female',
-  });
+    case 'AUTH_SUCCESS':
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      };
 
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    case 'AUTH_FAILURE':
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: action.payload,
+      };
 
-  // Validation helpers
-  const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) {
-      return 'First name is required';
-    }
+    case 'AUTH_LOGOUT':
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      };
 
-    if (!formData.lastName.trim()) {
-      return 'Last name is required';
-    }
+    case 'AUTH_HYDRATE':
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: !!action.payload,
+        isLoading: false,
+      };
 
-    if (!formData.username.trim()) {
-      return 'Username is required';
-    }
+    case 'AUTH_UPDATE_USER':
+      return {
+        ...state,
+        user: state.user
+          ? { ...state.user, ...action.payload }
+          : null,
+      };
 
-    if (formData.username.length < 3) {
-      return 'Username must be at least 3 characters';
-    }
+    case 'AUTH_CLEAR_ERROR':
+      return {
+        ...state,
+        error: null,
+      };
 
-    if (!formData.email.trim()) {
-      return 'Email is required';
-    }
+    default:
+      return state;
+  }
+}
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      return 'Invalid email format';
-    }
+// Context interface
+interface AuthContextType extends AuthState {
+  login: (username: string, password: string) => Promise<void>;
 
-    if (!formData.password) {
-      return 'Password is required';
-    }
+  register: (data: {
+    firstName: string;
+    lastName: string;
+    username: string;
+    password: string;
+    email: string;
+    age?: number;
+    gender?: 'male' | 'female';
+  }) => Promise<void>;
 
-    if (formData.password.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
+  logout: () => Promise<void>;
 
-    if (formData.password !== formData.confirmPassword) {
-      return 'Passwords do not match';
-    }
+  clearError: () => void;
 
-    if (
-      formData.age &&
-      (parseInt(formData.age, 10) < 13 ||
-        parseInt(formData.age, 10) > 120 ||
-        isNaN(parseInt(formData.age, 10)))
-    ) {
-      return 'Age must be between 13 and 120';
-    }
+  refreshUser: () => Promise<void>;
+}
 
-    if (!agreedToTerms) {
-      return 'You must agree to the Terms of Service';
-    }
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-    return null;
-  };
+// Provider
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Handle registration
-  const handleRegister = async () => {
-    const validationError = validateForm();
+  // Restore authentication from AsyncStorage.
+  useEffect(() => {
+    const hydrateAuth = async () => {
+      try {
+        const storedUser = await authApi.getStoredUser();
 
-    if (validationError) {
-      Alert.alert('Validation Error', validationError);
+        if (storedUser?.token && storedUser?.refreshToken) {
+          try {
+            const freshUser = await authApi.getMe();
+
+            const mergedUser = {
+              ...freshUser,
+              token: storedUser.token,
+              refreshToken: storedUser.refreshToken,
+            };
+
+            dispatch({
+              type: 'AUTH_HYDRATE',
+              payload: mergedUser,
+            });
+          } catch {
+            // Try refreshing an expired token.
+            try {
+              await authApi.refreshAccessToken();
+
+              const storedAgain = await authApi.getStoredUser();
+
+              dispatch({
+                type: 'AUTH_HYDRATE',
+                payload: storedAgain,
+              });
+            } catch {
+              await authApi.logout();
+
+              dispatch({
+                type: 'AUTH_HYDRATE',
+                payload: null,
+              });
+            }
+          }
+        } else {
+          dispatch({
+            type: 'AUTH_HYDRATE',
+            payload: null,
+          });
+        }
+      } catch {
+        dispatch({
+          type: 'AUTH_HYDRATE',
+          payload: null,
+        });
+      }
+    };
+
+    hydrateAuth();
+  }, []);
+
+  // Login
+  const login = useCallback(
+    async (username: string, password: string) => {
+      dispatch({ type: 'AUTH_START' });
+
+      try {
+        const user = await authApi.login({
+          username,
+          password,
+        });
+
+        dispatch({
+          type: 'AUTH_SUCCESS',
+          payload: user,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : 'Login failed';
+
+        dispatch({
+          type: 'AUTH_FAILURE',
+          payload: message,
+        });
+
+        throw error;
+      }
+    },
+    []
+  );
+
+  // Register
+  const register = useCallback(
+    async (data: {
+      firstName: string;
+      lastName: string;
+      username: string;
+      password: string;
+      email: string;
+      age?: number;
+      gender?: 'male' | 'female';
+    }) => {
+      dispatch({ type: 'AUTH_START' });
+
+      try {
+        await authApi.register(data);
+
+        // Registration does not automatically log in the user.
+        // Return to the unauthenticated state.
+        dispatch({
+          type: 'AUTH_HYDRATE',
+          payload: null,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Registration failed';
+
+        dispatch({
+          type: 'AUTH_FAILURE',
+          payload: message,
+        });
+
+        throw error;
+      }
+    },
+    []
+  );
+
+  // Logout
+  const logout = useCallback(async () => {
+    await authApi.logout();
+
+    dispatch({
+      type: 'AUTH_LOGOUT',
+    });
+  }, []);
+
+  // Clear authentication error
+  const clearError = useCallback(() => {
+    dispatch({
+      type: 'AUTH_CLEAR_ERROR',
+    });
+  }, []);
+
+  // Refresh current user
+  const refreshUser = useCallback(async () => {
+    if (!state.isAuthenticated) {
       return;
     }
 
-    // TODO: Student Implementation
-    // 1. Call authApi.register() with formData
-    // 2. Auto-login or redirect to login
-    // 3. Handle success/error states
-
     try {
-      Alert.alert(
-        'TODO: Implement Register',
-        'Complete the register function by:\n1. Calling authApi.register()\n2. Auto-login or redirect to login\n3. Handle errors',
-        [{ text: 'OK' }]
-      );
-    } catch (err) {
-      console.error('Registration error:', err);
-    }
-  };
+      const user = await authApi.getMe();
+      const storedUser = await authApi.getStoredUser();
 
-  // Handle input changes
-  const handleFieldChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+      if (storedUser) {
+        const mergedUser = {
+          ...user,
+          token: storedUser.token,
+          refreshToken: storedUser.refreshToken,
+        };
 
-    if (error) {
-      clearError();
+        dispatch({
+          type: 'AUTH_SUCCESS',
+          payload: mergedUser,
+        });
+      }
+    } catch {
+      // The API interceptor handles token refresh.
     }
-  };
-
-  // Display registration errors
-  React.useEffect(() => {
-    if (error) {
-      Alert.alert(
-        'Registration Failed',
-        error,
-        [{ text: 'OK', onPress: clearError }]
-      );
-    }
-  }, [error, clearError]);
+  }, [state.isAuthenticated]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <AuthContext.Provider
+      value={{
+        ...state,
+        login,
+        register,
+        logout,
+        clearError,
+        refreshUser,
+      }}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Logo / Brand */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>🍳</Text>
-          <Text style={styles.appName}>Cookbook</Text>
-          <Text style={styles.tagline}>Create Your Account</Text>
-        </View>
-
-        {/* Register Card */}
-        <Card style={styles.card} elevation={3}>
-          <Card.Content style={styles.cardContent}>
-            <Text style={styles.title}>Create Account</Text>
-
-            <Text style={styles.subtitle}>
-              Start building your recipe collection
-            </Text>
-
-            {/* Name Fields Row */}
-            <View style={styles.nameRow}>
-              <PaperTextInput
-                label="First Name"
-                mode="outlined"
-                value={formData.firstName}
-                onChangeText={(v) => handleFieldChange('firstName', v)}
-                style={[styles.input, styles.halfInput]}
-                autoCapitalize="words"
-                autoComplete="given-name"
-                returnKeyType="next"
-                disabled={isLoading}
-              />
-
-              <PaperTextInput
-                label="Last Name"
-                mode="outlined"
-                value={formData.lastName}
-                onChangeText={(v) => handleFieldChange('lastName', v)}
-                style={[styles.input, styles.halfInput]}
-                autoCapitalize="words"
-                autoComplete="family-name"
-                returnKeyType="next"
-                disabled={isLoading}
-              />
-            </View>
-
-            {/* Username */}
-            <PaperTextInput
-              label="Username"
-              mode="outlined"
-              value={formData.username}
-              onChangeText={(v) => handleFieldChange('username', v)}
-              style={styles.input}
-              autoCapitalize="none"
-              autoComplete="username"
-              returnKeyType="next"
-              disabled={isLoading}
-            />
-
-            {/* Email */}
-            <PaperTextInput
-              label="Email"
-              mode="outlined"
-              value={formData.email}
-              onChangeText={(v) => handleFieldChange('email', v)}
-              style={styles.input}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              returnKeyType="next"
-              disabled={isLoading}
-            />
-
-            {/* Password */}
-            <PaperTextInput
-              label="Password"
-              mode="outlined"
-              value={formData.password}
-              onChangeText={(v) => handleFieldChange('password', v)}
-              style={styles.input}
-              secureTextEntry={!showPassword}
-              autoComplete="new-password"
-              returnKeyType="next"
-              disabled={isLoading}
-              right={
-                <PaperTextInput.Icon
-                  icon={showPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowPassword(!showPassword)}
-                />
-              }
-            />
-
-            {/* Confirm Password */}
-            <PaperTextInput
-              label="Confirm Password"
-              mode="outlined"
-              value={formData.confirmPassword}
-              onChangeText={(v) => handleFieldChange('confirmPassword', v)}
-              style={styles.input}
-              secureTextEntry={!showConfirmPassword}
-              autoComplete="new-password"
-              returnKeyType="next"
-              disabled={isLoading}
-              right={
-                <PaperTextInput.Icon
-                  icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                  onPress={() =>
-                    setShowConfirmPassword(!showConfirmPassword)
-                  }
-                />
-              }
-            />
-
-            {/* Optional Fields */}
-            <View style={styles.optionalRow}>
-              <PaperTextInput
-                label="Age (Optional)"
-                mode="outlined"
-                value={formData.age}
-                onChangeText={(v) => handleFieldChange('age', v)}
-                style={[styles.input, styles.halfInput]}
-                keyboardType="numeric"
-                returnKeyType="next"
-                disabled={isLoading}
-              />
-
-              <View style={[styles.halfInput, styles.genderSelector]}>
-                <Text style={styles.genderLabel}>Gender</Text>
-
-                <View style={styles.genderOptions}>
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'male')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'male' &&
-                        styles.genderOptionSelected,
-                    ]}
-                    disabled={isLoading}
-                  >
-                    <Text
-                      style={[
-                        styles.genderOptionText,
-                        formData.gender === 'male' &&
-                          styles.genderOptionTextSelected,
-                      ]}
-                    >
-                      ♂ Male
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'female')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'female' &&
-                        styles.genderOptionSelected,
-                    ]}
-                    disabled={isLoading}
-                  >
-                    <Text
-                      style={[
-                        styles.genderOptionText,
-                        formData.gender === 'female' &&
-                          styles.genderOptionTextSelected,
-                      ]}
-                    >
-                      ♀ Female
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            {/* Terms Checkbox */}
-            <View style={styles.termsContainer}>
-              <Checkbox
-                status={agreedToTerms ? 'checked' : 'unchecked'}
-                onPress={() => setAgreedToTerms(!agreedToTerms)}
-                disabled={isLoading}
-              />
-
-              <Text style={styles.termsText}>
-                I agree to the{' '}
-                <Text style={styles.linkText}>Terms of Service</Text>
-                {' '}and{' '}
-                <Text style={styles.linkText}>Privacy Policy</Text>
-              </Text>
-            </View>
-
-            {/* Register Button */}
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              loading={isLoading}
-              style={styles.registerButton}
-              disabled={isLoading}
-              contentStyle={styles.buttonContent}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
-              )}
-            </Button>
-
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>
-                Already have an account?{' '}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => router.replace('/(auth)/login')}
-                style={styles.link}
-              >
-                <Text style={styles.linkText}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Student Guide */}
-        <View style={styles.guideContainer}>
-          <Text style={styles.guideTitle}>
-            📝 Student Implementation Guide
-          </Text>
-
-          <Text style={styles.guideText}>
-            Complete the handleRegister function to:
-            {'\n'}1. Call authApi.register() with form data
-            {'\n'}2. Auto-login or redirect to login
-            {'\n'}3. Handle success/error states
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {children}
+    </AuthContext.Provider>
   );
 }
+
+// Hook
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+
+  return context;
+}
+
+export { AuthContext };

@@ -2,7 +2,6 @@
 /**
  * Auth API Service - DummyJSON Authentication
  * Docs: https://dummyjson.com/docs/auth
- * Base URL: https://dummyjson.com/auth
  */
 
 import axios, {
@@ -23,7 +22,9 @@ const API_BASE_URL = 'https://dummyjson.com/auth';
 
 class AuthApiService {
   private client: AxiosInstance;
-  private refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
+
+  private refreshTokenPromise: Promise<RefreshTokenResponse> | null =
+    null;
 
   constructor() {
     this.client = axios.create({
@@ -34,7 +35,7 @@ class AuthApiService {
       },
     });
 
-    // Request interceptor to add auth token
+    // Add the stored access token to requests.
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         const user = await authStorage.getUser();
@@ -49,16 +50,23 @@ class AuthApiService {
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor for token refresh
+    // Handle expired access tokens.
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
+        const requestUrl = originalRequest?.url || '';
+
+        const isAuthRequest =
+          requestUrl.includes('/login') ||
+          requestUrl.includes('/refresh');
+
         if (
           error.response?.status === 401 &&
           originalRequest &&
-          !originalRequest._retry
+          !originalRequest._retry &&
+          !isAuthRequest
         ) {
           originalRequest._retry = true;
 
@@ -72,7 +80,7 @@ class AuthApiService {
           } catch (refreshError) {
             await this.clearTokens();
 
-            console.warn('Token refresh failed, user logged out');
+            console.warn('Token refresh failed. User logged out.');
 
             return Promise.reject(refreshError);
           }
@@ -83,66 +91,126 @@ class AuthApiService {
     );
   }
 
-  private async getAccessToken(): Promise<string | null> {
-    const user = await authStorage.getUser();
-    return user?.token || null;
-  }
-
-  private async getRefreshToken(): Promise<string | null> {
-    const user = await authStorage.getUser();
-    return user?.refreshToken || null;
-  }
-
+  // Save authenticated user information.
   private async setTokens(user: AuthUser): Promise<void> {
     await authStorage.setUser(user);
   }
 
+  // Remove stored authentication information.
   private async clearTokens(): Promise<void> {
     await authStorage.clearUser();
   }
 
   /**
-   * Login user with username/email and password
+   * Login user.
    * POST /auth/login
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await this.client.post<AuthUser>('/login', {
-      username: credentials.username,
-      password: credentials.password,
-      expiresInMins: credentials.expiresInMins || 60,
-    });
+    try {
+      const response = await this.client.post<RefreshTokenResponse>(
+        '/login',
+        {
+          username: credentials.username,
+          password: credentials.password,
+          expiresInMins: credentials.expiresInMins || 60,
+        }
+      );
 
-    await this.setTokens(response.data);
+      const apiUser = response.data;
 
-    return response.data;
+      // Convert DummyJSON accessToken to the project's token property.
+      const user: AuthUser = {
+        id: apiUser.id,
+        username: apiUser.username,
+        email: apiUser.email,
+        firstName: apiUser.firstName,
+        lastName: apiUser.lastName,
+        gender: apiUser.gender,
+        image: apiUser.image,
+        token: apiUser.accessToken,
+        refreshToken: apiUser.refreshToken,
+      };
+
+      await this.setTokens(user);
+
+      return user;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          error.response?.data?.message || 'Login failed. Please try again.'
+        );
+      }
+
+      throw error;
+    }
   }
 
   /**
-   * Register new user
-   * POST /auth/register
-   * TODO: Student implementation
+   * Register new user.
+   * POST https://dummyjson.com/users/add
+   *
+   * Important:
+   * DummyJSON simulates user creation.
+   * Newly created users are not permanently saved.
    */
-  async register(data: RegisterData): Promise<AuthUser> {
-    // TODO: Implement registration.
-    // 1. Call POST /users/add with registration data.
-    // 2. On success, call login() to get tokens.
-    // 3. Return user with tokens.
-    void data;
+  async register(data: RegisterData): Promise<void> {
+    try {
+      const response = await axios.post<{ id: number }>(
+        'https://dummyjson.com/users/add',
+        {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          username: data.username,
+          password: data.password,
+          email: data.email,
+          age: data.age,
+          gender: data.gender,
+          image: data.image,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
 
-    throw new Error('TODO: Implement register');
+      if (!response.data || !response.data.id) {
+        throw new Error('Registration failed. Please try again.');
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.message ||
+          'Unable to create your account. Please try again.';
+
+        throw new Error(message);
+      }
+
+      throw error;
+    }
   }
 
   /**
-   * Get current user profile
+   * Get current user profile.
    * GET /auth/me
    */
   async getMe(): Promise<AuthUser> {
-    const response = await this.client.get<AuthUser>('/me');
-    return response.data;
+    const response = await this.client.get<
+      Omit<AuthUser, 'token' | 'refreshToken'>
+    >('/me');
+
+    const storedUser = await this.getStoredUser();
+
+    return {
+      ...response.data,
+      token: storedUser?.token || '',
+      refreshToken: storedUser?.refreshToken || '',
+    };
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token.
    * POST /auth/refresh
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
@@ -150,10 +218,11 @@ class AuthApiService {
       return this.refreshTokenPromise;
     }
 
-    const refreshToken = await this.getRefreshToken();
+    const currentUser = await this.getStoredUser();
+    const refreshToken = currentUser?.refreshToken;
 
     if (!refreshToken) {
-      throw new Error('No refresh token available');
+      throw new Error('No refresh token available.');
     }
 
     this.refreshTokenPromise = this.client
@@ -162,17 +231,13 @@ class AuthApiService {
         expiresInMins: 60,
       })
       .then(async (response) => {
-        const currentUser = await this.getStoredUser();
+        const updatedUser: AuthUser = {
+          ...currentUser,
+          token: response.data.accessToken,
+          refreshToken: response.data.refreshToken,
+        };
 
-        if (currentUser) {
-          const updatedUser: AuthUser = {
-            ...currentUser,
-            token: response.data.accessToken,
-            refreshToken: response.data.refreshToken,
-          };
-
-          await this.setTokens(updatedUser);
-        }
+        await this.setTokens(updatedUser);
 
         return response.data;
       })
@@ -188,31 +253,32 @@ class AuthApiService {
   }
 
   /**
-   * Get stored user data
+   * Get stored user information.
    */
   async getStoredUser(): Promise<AuthUser | null> {
-    return (await authStorage.getUser()) as AuthUser | null;
+    return authStorage.getUser() as Promise<AuthUser | null>;
   }
 
   /**
-   * Logout - clear local tokens
+   * Logout user.
+   * Clears locally stored authentication information.
    */
   async logout(): Promise<void> {
     await this.clearTokens();
   }
 
   /**
-   * Check if user has valid tokens stored
+   * Check whether authentication tokens exist.
    */
   async hasValidTokens(): Promise<boolean> {
     const user = await this.getStoredUser();
 
-    return !!(user?.token && user?.refreshToken);
+    return Boolean(user?.token && user?.refreshToken);
   }
 }
 
-// Export singleton instance
+// Export singleton instance.
 export const authApi = new AuthApiService();
 
-// Export class for testing
+// Export class for testing.
 export { AuthApiService };

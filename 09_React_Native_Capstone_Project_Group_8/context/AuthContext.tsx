@@ -88,7 +88,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-// Context
+// Context interface
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
 
@@ -103,7 +103,9 @@ interface AuthContextType extends AuthState {
   }) => Promise<void>;
 
   logout: () => Promise<void>;
+
   clearError: () => void;
+
   refreshUser: () => Promise<void>;
 }
 
@@ -113,7 +115,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Hydrate authentication from AsyncStorage on mount
+  // Restore authentication from AsyncStorage.
   useEffect(() => {
     const hydrateAuth = async () => {
       try {
@@ -134,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               payload: mergedUser,
             });
           } catch {
-            // Token may have expired. Try refreshing it.
+            // Try refreshing an expired token.
             try {
               await authApi.refreshAccessToken();
 
@@ -145,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 payload: storedAgain,
               });
             } catch {
-              // Refresh failed. Clear stored authentication.
               await authApi.logout();
 
               dispatch({
@@ -215,12 +216,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'AUTH_START' });
 
       try {
-        // TODO: Implement registration.
-        const user = await authApi.register(data);
+        await authApi.register(data);
 
+        // Registration does not automatically log in the user.
+        // Return to the unauthenticated state.
         dispatch({
-          type: 'AUTH_SUCCESS',
-          payload: user,
+          type: 'AUTH_HYDRATE',
+          payload: null,
         });
       } catch (error: unknown) {
         const message =
