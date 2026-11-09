@@ -1,3 +1,4 @@
+
 /**
  * Profile Screen - Cookbook
  * TODO: Students implement
@@ -8,10 +9,10 @@
  * - Logout
  */
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Button, List, Avatar, Divider } from 'react-native-paper';
+import { Card, Button, List, Avatar, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from './profileStyles';
 
@@ -27,22 +28,18 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = () => {
-    // TODO: Navigate to edit profile screen
     Alert.alert('TODO', 'Implement edit profile: PUT /users/{id}');
   };
 
   const handleSettings = () => {
-    // TODO: Navigate to settings
     Alert.alert('TODO', 'Implement settings screen');
   };
 
   const handleMyRecipes = () => {
-    // TODO: Navigate to user's created recipes
     Alert.alert('TODO', 'Implement my recipes screen');
   };
 
   const handleCookbook = () => {
-    // TODO: Navigate to personal cookbook/collections
     Alert.alert('TODO', 'Implement personal cookbook');
   };
 
@@ -96,9 +93,21 @@ export default function ProfileScreen() {
               title="My Recipes"
               description="Recipes you've created"
               left={(props) => (
-                <MaterialCommunityIcons name="book-edit" size={24} color="#E85D04" style={props.style} />
+                <MaterialCommunityIcons
+                  name="book-edit"
+                  size={24}
+                  color="#E85D04"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#8D6E63"
+                  style={props.style}
+                />
+              )}
               onPress={handleMyRecipes}
             />
             <Divider style={styles.divider} />
@@ -106,9 +115,21 @@ export default function ProfileScreen() {
               title="My Cookbook"
               description="Personal collections & meal plans"
               left={(props) => (
-                <MaterialCommunityIcons name="book-heart" size={24} color="#E85D04" style={props.style} />
+                <MaterialCommunityIcons
+                  name="book-open-page-variant"
+                  size={24}
+                  color="#E85D04"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#8D6E63"
+                  style={props.style}
+                />
+              )}
               onPress={handleCookbook}
             />
             <Divider style={styles.divider} />
@@ -116,9 +137,21 @@ export default function ProfileScreen() {
               title="Favorites"
               description="Your saved recipes"
               left={(props) => (
-                <MaterialCommunityIcons name="heart" size={24} color="#E85D04" style={props.style} />
+                <MaterialCommunityIcons
+                  name="heart"
+                  size={24}
+                  color="#E85D04"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#8D6E63"
+                  style={props.style}
+                />
+              )}
               onPress={() => router.push('/(app)/(tabs)/favorites')}
             />
           </List.Section>
@@ -132,9 +165,21 @@ export default function ProfileScreen() {
               title="Edit Profile"
               description="Update your information"
               left={(props) => (
-                <MaterialCommunityIcons name="account-edit" size={24} color="#E85D04" style={props.style} />
+                <MaterialCommunityIcons
+                  name="account-edit"
+                  size={24}
+                  color="#E85D04"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#8D6E63"
+                  style={props.style}
+                />
+              )}
               onPress={handleEditProfile}
             />
             <Divider style={styles.divider} />
@@ -142,9 +187,21 @@ export default function ProfileScreen() {
               title="Settings"
               description="Notifications, theme, privacy"
               left={(props) => (
-                <MaterialCommunityIcons name="cog" size={24} color="#E85D04" style={props.style} />
+                <MaterialCommunityIcons
+                  name="cog"
+                  size={24}
+                  color="#E85D04"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#8D6E63"
+                  style={props.style}
+                />
+              )}
               onPress={handleSettings}
             />
           </List.Section>
@@ -168,11 +225,11 @@ export default function ProfileScreen() {
       <View style={styles.guideContainer}>
         <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
         <Text style={styles.guideText}>
-          Complete the profile functionality:\n
-          1. Edit profile: PUT /users/{id}\n
-          2. Fetch user stats (recipes, favorites)\n
-          3. Settings: theme, notifications, privacy\n
-          4. My Recipes: filter by userId\n
+          Complete the profile functionality:{'\n'}
+          1. Edit profile: PUT /users/{'{id}'}{' \n'}
+          2. Fetch user stats (recipes, favorites){'\n'}
+          3. Settings: theme, notifications, privacy{' \n'}
+          4. My Recipes: filter by userId{' \n'}
           5. Cookbook: create collections/folders
         </Text>
       </View>
