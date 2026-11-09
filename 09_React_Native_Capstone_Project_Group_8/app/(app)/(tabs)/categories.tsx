@@ -143,7 +143,7 @@ export default function CategoriesScreen() {
           1. Add category images from assets{'\n'}
           2. Show recipe count per category{'\n'}
           3. Add sub-categories (e.g., Beef → Steaks, Roasts){'\n'}
-          4. Add "Popular" and "Trending" sections{'\n'}
+          4. Add &quot;Popular&quot; and &quot;Trending&quot; sections{'\n'}
           5. Implement pull-to-refresh
         </Text>
       </View>

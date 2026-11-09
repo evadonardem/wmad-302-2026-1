@@ -184,7 +184,7 @@ export default function FavoritesScreen() {
           1. Store favorite IDs in AsyncStorage{'\n'}
           2. Fetch recipes by ID on load{'\n'}
           3. Add/remove with persistence{'\n'}
-          4. Add "Add to Favorites" on recipe detail{'\n'}
+          4. Add &quot;Add to Favorites&quot; on recipe detail{'\n'}
           5. Create collections (Breakfast, Dinner, etc.)
         </Text>
       </View>

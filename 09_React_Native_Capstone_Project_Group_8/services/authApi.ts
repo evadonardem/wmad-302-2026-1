@@ -1,11 +1,23 @@
+
 /**
  * Auth API Service - DummyJSON Authentication
  * Docs: https://dummyjson.com/docs/auth
  * Base URL: https://dummyjson.com/auth
  */
 
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
+import axios, {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from 'axios';
+
+import {
+  LoginCredentials,
+  RegisterData,
+  AuthUser,
+  RefreshTokenResponse,
+} from '@/types/auth';
+
+import { authStorage } from '@/utils/storage';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
 
@@ -24,11 +36,14 @@ class AuthApiService {
 
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        const token = this.getAccessToken();
+      async (config: InternalAxiosRequestConfig) => {
+        const user = await authStorage.getUser();
+        const token = user?.token;
+
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
         return config;
       },
       (error) => Promise.reject(error)
@@ -40,19 +55,25 @@ class AuthApiService {
       async (error) => {
         const originalRequest = error.config;
 
-        // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+          error.response?.status === 401 &&
+          originalRequest &&
+          !originalRequest._retry
+        ) {
           originalRequest._retry = true;
 
           try {
             const tokens = await this.refreshAccessToken();
-            originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+
+            originalRequest.headers.Authorization =
+              `Bearer ${tokens.accessToken}`;
+
             return this.client(originalRequest);
           } catch (refreshError) {
-            // Refresh failed, redirect to login
-            this.clearTokens();
-            // TODO: Student to implement navigation redirect to login
+            await this.clearTokens();
+
             console.warn('Token refresh failed, user logged out');
+
             return Promise.reject(refreshError);
           }
         }
@@ -62,38 +83,22 @@ class AuthApiService {
     );
   }
 
-  private getAccessToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || user.accessToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+  private async getAccessToken(): Promise<string | null> {
+    const user = await authStorage.getUser();
+    return user?.token || null;
   }
 
-  private getRefreshToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.refreshToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+  private async getRefreshToken(): Promise<string | null> {
+    const user = await authStorage.getUser();
+    return user?.refreshToken || null;
   }
 
-  private setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
+  private async setTokens(user: AuthUser): Promise<void> {
+    await authStorage.setUser(user);
   }
 
-  private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+  private async clearTokens(): Promise<void> {
+    await authStorage.clearUser();
   }
 
   /**
@@ -106,25 +111,29 @@ class AuthApiService {
       password: credentials.password,
       expiresInMins: credentials.expiresInMins || 60,
     });
-    this.setTokens(response.data);
+
+    await this.setTokens(response.data);
+
     return response.data;
   }
 
   /**
    * Register new user
    * POST /auth/register
-   * TODO: Students to complete this implementation
+   * TODO: Student implementation
    */
   async register(data: RegisterData): Promise<AuthUser> {
-    // TODO: Student implementation
-    // 1. Call POST /auth/register with data
-    // 2. On success, call login() to get tokens
-    // 3. Return user with tokens
-    throw new Error('TODO: Implement register - call /auth/register then login');
+    // TODO: Implement registration.
+    // 1. Call POST /users/add with registration data.
+    // 2. On success, call login() to get tokens.
+    // 3. Return user with tokens.
+    void data;
+
+    throw new Error('TODO: Implement register');
   }
 
   /**
-   * Get current user profile (requires valid token)
+   * Get current user profile
    * GET /auth/me
    */
   async getMe(): Promise<AuthUser> {
@@ -137,12 +146,12 @@ class AuthApiService {
    * POST /auth/refresh
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
-    // Prevent multiple simultaneous refresh calls
     if (this.refreshTokenPromise) {
       return this.refreshTokenPromise;
     }
 
-    const refreshToken = this.getRefreshToken();
+    const refreshToken = await this.getRefreshToken();
+
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -152,21 +161,23 @@ class AuthApiService {
         refreshToken,
         expiresInMins: 60,
       })
-      .then((response) => {
-        // Update stored tokens with new ones
-        const currentUser = this.getStoredUser();
+      .then(async (response) => {
+        const currentUser = await this.getStoredUser();
+
         if (currentUser) {
-          const updatedUser = {
+          const updatedUser: AuthUser = {
             ...currentUser,
             token: response.data.accessToken,
             refreshToken: response.data.refreshToken,
           };
-          this.setTokens(updatedUser);
+
+          await this.setTokens(updatedUser);
         }
+
         return response.data;
       })
-      .catch((error) => {
-        this.clearTokens();
+      .catch(async (error) => {
+        await this.clearTokens();
         throw error;
       })
       .finally(() => {
@@ -179,28 +190,23 @@ class AuthApiService {
   /**
    * Get stored user data
    */
-  getStoredUser(): AuthUser | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
+  async getStoredUser(): Promise<AuthUser | null> {
+    return (await authStorage.getUser()) as AuthUser | null;
   }
 
   /**
    * Logout - clear local tokens
-   * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only
    */
-  logout(): void {
-    this.clearTokens();
+  async logout(): Promise<void> {
+    await this.clearTokens();
   }
 
   /**
    * Check if user has valid tokens stored
    */
-  hasValidTokens(): boolean {
-    const user = this.getStoredUser();
+  async hasValidTokens(): Promise<boolean> {
+    const user = await this.getStoredUser();
+
     return !!(user?.token && user?.refreshToken);
   }
 }
