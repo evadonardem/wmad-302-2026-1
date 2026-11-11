@@ -1,14 +1,10 @@
 
 /**
  * Favorites Screen - Cookbook
- * TODO: Students implement
- * - Store favorite recipe IDs in AsyncStorage or context
- * - Fetch favorite recipes by IDs (GET /recipes/{id})
- * - Remove from favorites
- * - Add notes to favorites
- * - Create collections/folders
+ * Loads and manages favorite recipes using AsyncStorage.
  */
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,9 +14,12 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Card, Title, Chip, Button, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import { favoritesStorage } from '@/utils/storage';
 import { styles } from './favoritesStyles';
 
 interface Recipe {
@@ -37,63 +36,115 @@ interface Recipe {
 
 export default function FavoritesScreen() {
   const router = useRouter();
+
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // TODO: Student implementation
-  // 1. Load favorite IDs from AsyncStorage on mount
-  // 2. Fetch each recipe by ID (or batch if API supports)
-  // 3. Implement remove from favorites
-  // 4. Persist changes to AsyncStorage
-
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  const loadFavorites = async () => {
+  // Load favorite recipes from AsyncStorage.
+  const loadFavorites = useCallback(async () => {
     try {
-      // TODO: Get favorite IDs from AsyncStorage
-      // const favoriteIds = await AsyncStorage.getItem('favoriteRecipeIds');
-      // const ids = favoriteIds ? JSON.parse(favoriteIds) : [];
-      //
-      // if (ids.length > 0) {
-      //   const recipes = await Promise.all(
-      //     ids.map((id: number) => fetch(`https://dummyjson.com/recipes/${id}`).then(r => r.json()))
-      //   );
-      //   setFavorites(recipes);
-      // }
+      setLoading(true);
 
-      // Mock data for demo
-      setFavorites([]);
+      // Get saved favorite recipe IDs.
+      const favoriteIds = await favoritesStorage.getIds();
+
+      // Display empty state if there are no favorites.
+      if (favoriteIds.length === 0) {
+        setFavorites([]);
+        return;
+      }
+
+      // Fetch each favorite recipe from DummyJSON.
+      const recipeResults = await Promise.all(
+        favoriteIds.map(async (id) => {
+          try {
+            const response = await fetch(
+              `https://dummyjson.com/recipes/${id}`
+            );
+
+            if (!response.ok) {
+              return null;
+            }
+
+            const recipe: Recipe = await response.json();
+
+            return recipe;
+          } catch (error) {
+            console.error(`Failed to load recipe ${id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Remove recipes that failed to load.
+      const loadedRecipes = recipeResults.filter(
+        (recipe): recipe is Recipe => recipe !== null
+      );
+
+      setFavorites(loadedRecipes);
     } catch (error) {
       console.error('Failed to load favorites:', error);
+
+      Alert.alert(
+        'Error',
+        'Unable to load your favorite recipes. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Reload favorites whenever this tab becomes active.
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [loadFavorites])
+  );
+
+  // Remove a recipe from favorites.
   const removeFavorite = (recipeId: number) => {
     Alert.alert(
       'Remove from Favorites',
       'Are you sure you want to remove this recipe?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Remove from AsyncStorage and update state
-            setFavorites((prev) => prev.filter((r) => r.id !== recipeId));
+          onPress: async () => {
+            try {
+              // Remove the recipe ID from AsyncStorage.
+              await favoritesStorage.removeId(recipeId);
+
+              // Update the Favorites screen.
+              setFavorites((previousFavorites) =>
+                previousFavorites.filter(
+                  (recipe) => recipe.id !== recipeId
+                )
+              );
+            } catch (error) {
+              console.error('Failed to remove favorite:', error);
+
+              Alert.alert(
+                'Error',
+                'Unable to remove this recipe from favorites.'
+              );
+            }
           },
         },
       ]
     );
   };
 
+  // Display each favorite recipe.
   const renderFavorite = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.favoriteCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      onPress={() => router.push(`/(app)/recipe/${item.id}`)}
+      activeOpacity={0.8}
     >
       <Card style={styles.card} elevation={1}>
         <View style={styles.cardContent}>
@@ -102,18 +153,29 @@ export default function FavoritesScreen() {
             style={styles.recipeImage}
             resizeMode="cover"
           />
+
           <View style={styles.info}>
             <Title style={styles.title} numberOfLines={1}>
               {item.name}
             </Title>
+
             <View style={styles.meta}>
-              <Chip style={styles.difficultyChip}>{item.difficulty}</Chip>
-              <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
+              <Chip style={styles.difficultyChip}>
+                {item.difficulty}
+              </Chip>
+
+              <Chip style={styles.cuisineChip}>
+                {item.cuisine}
+              </Chip>
             </View>
+
             <Text style={styles.details}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes}min · 👥 {item.servings} · ⭐ {item.rating}
+              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
+              {' · '}👥 {item.servings}
+              {' · '}⭐ {item.rating}
             </Text>
           </View>
+
           <IconButton
             icon="heart"
             size={24}
@@ -126,15 +188,20 @@ export default function FavoritesScreen() {
     </TouchableOpacity>
   );
 
+  // Loading screen.
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#E85D04" />
-        <Text style={styles.loadingText}>Loading favorites...</Text>
+
+        <Text style={styles.loadingText}>
+          Loading favorites...
+        </Text>
       </View>
     );
   }
 
+  // Main Favorites screen.
   return (
     <View style={styles.container}>
       {favorites.length === 0 ? (
@@ -144,17 +211,24 @@ export default function FavoritesScreen() {
             size={80}
             color="#BCAAA4"
           />
-          <Text style={styles.emptyTitle}>No Favorites Yet</Text>
+
+          <Text style={styles.emptyTitle}>
+            No Favorites Yet
+          </Text>
+
           <Text style={styles.emptyText}>
             Recipes you love will appear here
           </Text>
+
           <Button
             mode="contained"
             onPress={() => router.push('/(app)/(tabs)/search')}
             style={styles.browseButton}
             contentStyle={styles.buttonContent}
           >
-            <Text style={styles.buttonText}>Browse Recipes</Text>
+            <Text style={styles.buttonText}>
+              Browse Recipes
+            </Text>
           </Button>
         </View>
       ) : (
@@ -163,7 +237,9 @@ export default function FavoritesScreen() {
           renderItem={renderFavorite}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={() => (
+            <View style={styles.separator} />
+          )}
           ListHeaderComponent={
             <View style={styles.header}>
               <Title style={styles.headerTitle}>
@@ -173,21 +249,6 @@ export default function FavoritesScreen() {
           }
         />
       )}
-
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>
-          📝 Student Implementation Guide
-        </Text>
-        <Text style={styles.guideText}>
-          Complete the favorites functionality:{'\n'}
-          1. Store favorite IDs in AsyncStorage{'\n'}
-          2. Fetch recipes by ID on load{'\n'}
-          3. Add/remove with persistence{'\n'}
-          4. Add &quot;Add to Favorites&quot; on recipe detail{'\n'}
-          5. Create collections (Breakfast, Dinner, etc.)
-        </Text>
-      </View>
     </View>
   );
 }
