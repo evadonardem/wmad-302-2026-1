@@ -1,6 +1,7 @@
 
 /**
  * Favorites Screen - Cookbook
+ * Green and white design.
  * Loads and manages favorite recipes using AsyncStorage.
  */
 
@@ -16,7 +17,13 @@ import {
 } from 'react-native';
 
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Card, Title, Chip, Button, IconButton } from 'react-native-paper';
+import {
+  Card,
+  Title,
+  Chip,
+  Button,
+  IconButton,
+} from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { favoritesStorage } from '@/utils/storage';
@@ -45,16 +52,13 @@ export default function FavoritesScreen() {
     try {
       setLoading(true);
 
-      // Get saved favorite recipe IDs.
       const favoriteIds = await favoritesStorage.getIds();
 
-      // Display empty state if there are no favorites.
       if (favoriteIds.length === 0) {
         setFavorites([]);
         return;
       }
 
-      // Fetch each favorite recipe from DummyJSON.
       const recipeResults = await Promise.all(
         favoriteIds.map(async (id) => {
           try {
@@ -67,7 +71,6 @@ export default function FavoritesScreen() {
             }
 
             const recipe: Recipe = await response.json();
-
             return recipe;
           } catch (error) {
             console.error(`Failed to load recipe ${id}:`, error);
@@ -76,7 +79,6 @@ export default function FavoritesScreen() {
         })
       );
 
-      // Remove recipes that failed to load.
       const loadedRecipes = recipeResults.filter(
         (recipe): recipe is Recipe => recipe !== null
       );
@@ -116,10 +118,8 @@ export default function FavoritesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Remove the recipe ID from AsyncStorage.
               await favoritesStorage.removeId(recipeId);
 
-              // Update the Favorites screen.
               setFavorites((previousFavorites) =>
                 previousFavorites.filter(
                   (recipe) => recipe.id !== recipeId
@@ -139,15 +139,15 @@ export default function FavoritesScreen() {
     );
   };
 
-  // Display each favorite recipe.
+  // Display an individual favorite recipe.
   const renderFavorite = ({ item }: { item: Recipe }) => (
-    <TouchableOpacity
-      style={styles.favoriteCard}
-      onPress={() => router.push(`/(app)/recipe/${item.id}`)}
-      activeOpacity={0.8}
-    >
-      <Card style={styles.card} elevation={1}>
-        <View style={styles.cardContent}>
+    <Card style={styles.card} elevation={3}>
+      <View style={styles.cardContent}>
+        <TouchableOpacity
+          style={styles.recipeContent}
+          onPress={() => router.push(`/(app)/recipe/${item.id}`)}
+          activeOpacity={0.8}
+        >
           <Image
             source={{ uri: item.image }}
             style={styles.recipeImage}
@@ -155,69 +155,109 @@ export default function FavoritesScreen() {
           />
 
           <View style={styles.info}>
-            <Title style={styles.title} numberOfLines={1}>
+            <Title style={styles.title} numberOfLines={2}>
               {item.name}
             </Title>
 
             <View style={styles.meta}>
-              <Chip style={styles.difficultyChip}>
+              <Chip
+                compact
+                style={styles.difficultyChip}
+                textStyle={styles.chipText}
+              >
                 {item.difficulty}
               </Chip>
 
-              <Chip style={styles.cuisineChip}>
+              <Chip
+                compact
+                style={styles.cuisineChip}
+                textStyle={styles.chipText}
+              >
                 {item.cuisine}
               </Chip>
             </View>
 
-            <Text style={styles.details}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
-              {' · '}👥 {item.servings}
-              {' · '}⭐ {item.rating}
-            </Text>
-          </View>
+            <View style={styles.detailsRow}>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={15}
+                color="#43A52F"
+              />
 
+              <Text style={styles.details}>
+                {item.prepTimeMinutes + item.cookTimeMinutes} min
+              </Text>
+
+              <MaterialCommunityIcons
+                name="account-group-outline"
+                size={15}
+                color="#43A52F"
+              />
+
+              <Text style={styles.details}>
+                {item.servings}
+              </Text>
+            </View>
+
+            <View style={styles.ratingRow}>
+              <MaterialCommunityIcons
+                name="star"
+                size={16}
+                color="#F9A825"
+              />
+
+              <Text style={styles.ratingText}>
+                {item.rating.toFixed(1)}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.favoriteAction}>
           <IconButton
             icon="heart"
-            size={24}
-            iconColor="#C62828"
+            size={25}
+            iconColor="#E53935"
             onPress={() => removeFavorite(item.id)}
             accessibilityLabel="Remove from favorites"
           />
         </View>
-      </Card>
-    </TouchableOpacity>
+      </View>
+    </Card>
   );
 
   // Loading screen.
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
+        <ActivityIndicator size="large" color="#FFFFFF" />
 
         <Text style={styles.loadingText}>
-          Loading favorites...
+          Loading your favorites...
         </Text>
       </View>
     );
   }
 
-  // Main Favorites screen.
-  return (
-    <View style={styles.container}>
-      {favorites.length === 0 ? (
+  // Empty Favorites screen.
+  if (favorites.length === 0) {
+    return (
+      <View style={styles.container}>
         <View style={styles.emptyState}>
-          <MaterialCommunityIcons
-            name="heart-outline"
-            size={80}
-            color="#BCAAA4"
-          />
+          <View style={styles.emptyIconContainer}>
+            <MaterialCommunityIcons
+              name="heart-outline"
+              size={64}
+              color="#43A52F"
+            />
+          </View>
 
           <Text style={styles.emptyTitle}>
             No Favorites Yet
           </Text>
 
           <Text style={styles.emptyText}>
-            Recipes you love will appear here
+            Save the recipes you love and they will appear here.
           </Text>
 
           <Button
@@ -225,30 +265,57 @@ export default function FavoritesScreen() {
             onPress={() => router.push('/(app)/(tabs)/search')}
             style={styles.browseButton}
             contentStyle={styles.buttonContent}
+            buttonColor="#43A52F"
+            textColor="#FFFFFF"
           >
-            <Text style={styles.buttonText}>
-              Browse Recipes
-            </Text>
+            Browse Recipes
           </Button>
         </View>
-      ) : (
-        <FlatList
-          data={favorites}
-          renderItem={renderFavorite}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => (
-            <View style={styles.separator} />
-          )}
-          ListHeaderComponent={
-            <View style={styles.header}>
-              <Title style={styles.headerTitle}>
-                Your Favorites ({favorites.length})
-              </Title>
+      </View>
+    );
+  }
+
+  // Main Favorites screen.
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={favorites}
+        renderItem={renderFavorite}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => (
+          <View style={styles.separator} />
+        )}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.headerOverline}>
+              YOUR COOKBOOK
+            </Text>
+
+            <Title style={styles.headerTitle}>
+              My Favorites
+            </Title>
+
+            <Text style={styles.headerSubtitle}>
+              Your favorite recipes, all in one place.
+            </Text>
+
+            <View style={styles.countContainer}>
+              <MaterialCommunityIcons
+                name="heart"
+                size={18}
+                color="#FFFFFF"
+              />
+
+              <Text style={styles.countText}>
+                {favorites.length}{' '}
+                {favorites.length === 1 ? 'Recipe' : 'Recipes'} Saved
+              </Text>
             </View>
-          }
-        />
-      )}
+          </View>
+        }
+      />
     </View>
   );
 }

@@ -1,129 +1,225 @@
+
 /**
- * Favorites Screen Styles - Cookbook
+ * Favorites Screen Styles
+ * Fresh green and white Cookbook design.
  */
+
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#43A52F',
   },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#43A52F',
   },
+
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#8D6E63',
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
+
+  // Empty Favorites
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
   },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginTop: 20,
+
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
   },
+
+  emptyTitle: {
+    fontSize: 25,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 24,
+  },
+
   emptyText: {
-    fontSize: 16,
-    color: '#8D6E63',
-    marginTop: 8,
+    fontSize: 15,
+    lineHeight: 23,
+    color: '#F1F8E9',
+    marginTop: 10,
     textAlign: 'center',
   },
+
   browseButton: {
-    marginTop: 24,
+    marginTop: 28,
     borderRadius: 12,
-    height: 52,
   },
+
   buttonContent: {
-    paddingHorizontal: 32,
+    paddingHorizontal: 28,
+    height: 48,
   },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+
+  // Favorites list
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 120,
+    paddingTop: 12,
+    paddingBottom: 110,
   },
+
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 4,
+    paddingTop: 20,
+    paddingBottom: 22,
   },
-  headerTitle: {
-    fontSize: 20,
+
+  headerOverline: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#3E2723',
+    letterSpacing: 2,
+    color: '#D9F2D3',
+    marginBottom: 6,
   },
-  favoriteCard: {
-    marginBottom: 8,
+
+  headerTitle: {
+    fontSize: 29,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
+
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#F1F8E9',
+    marginTop: 4,
+  },
+
+  countContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#2E8B25',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 16,
+    gap: 7,
+  },
+
+  countText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Recipe card
   card: {
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
   },
+
   cardContent: {
     flexDirection: 'row',
-    padding: 12,
+    alignItems: 'center',
+    padding: 10,
   },
+
+  recipeContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 0,
+  },
+
   recipeImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
+    width: 108,
+    height: 116,
+    borderRadius: 12,
+    backgroundColor: '#E8F5E9',
   },
+
   info: {
     flex: 1,
     justifyContent: 'center',
+    paddingLeft: 12,
+    minWidth: 0,
   },
+
   title: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#3E2723',
-    marginBottom: 4,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: '#1B5E20',
+    marginBottom: 7,
   },
+
   meta: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 4,
-  },
-  difficultyChip: {
-    backgroundColor: '#FFF3E0',
-  },
-  cuisineChip: {
-    backgroundColor: '#E8F5E9',
-  },
-  details: {
-    fontSize: 12,
-    color: '#8D6E63',
-  },
-  separator: {
-    height: 8,
-  },
-  guideContainer: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFCC80',
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#E85D04',
+    flexWrap: 'wrap',
+    gap: 5,
     marginBottom: 8,
   },
-  guideText: {
-    fontSize: 13,
-    color: '#5D4037',
-    lineHeight: 20,
+
+  difficultyChip: {
+    backgroundColor: '#E8F5E9',
+    height: 27,
+  },
+
+  cuisineChip: {
+    backgroundColor: '#F1F8E9',
+    height: 27,
+  },
+
+  chipText: {
+    fontSize: 10,
+    color: '#2E7D32',
+    marginVertical: 0,
+    marginHorizontal: 7,
+  },
+
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+
+  details: {
+    fontSize: 11,
+    color: '#687868',
+    fontWeight: '500',
+    marginRight: 5,
+  },
+
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 7,
+    gap: 3,
+  },
+
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#52634F',
+  },
+
+  favoriteAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 2,
+  },
+
+  separator: {
+    height: 12,
   },
 });
