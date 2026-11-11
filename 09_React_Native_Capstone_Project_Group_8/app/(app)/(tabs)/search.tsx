@@ -4,7 +4,7 @@
  * Searches and filters the complete DummyJSON recipe catalog.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import {
   Image,
 } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Card, Title, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -26,65 +26,6 @@ import type { Recipe } from '@/types/recipe';
 import { styles } from './searchStyles';
 
 const PAGE_SIZE = 10;
-
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  Beef: ['beef', 'steak', 'brisket', 'veal'],
-  Chicken: ['chicken'],
-  Lamb: ['lamb', 'mutton'],
-  Pork: ['pork', 'bacon', 'ham', 'prosciutto', 'pancetta'],
-  Seafood: [
-    'seafood',
-    'fish',
-    'shrimp',
-    'prawn',
-    'salmon',
-    'tuna',
-    'crab',
-    'lobster',
-    'squid',
-    'octopus',
-    'mussel',
-    'clam',
-    'oyster',
-    'scallop',
-    'anchovy',
-    'sardine',
-    'cod',
-    'tilapia',
-  ],
-};
-
-const MEAT_KEYWORDS = [
-  'beef',
-  'chicken',
-  'pork',
-  'bacon',
-  'ham',
-  'lamb',
-  'mutton',
-  'turkey',
-  'duck',
-  'goat',
-  'veal',
-  'sausage',
-  'fish',
-  'shrimp',
-  'prawn',
-  'salmon',
-  'tuna',
-  'crab',
-  'lobster',
-  'squid',
-  'octopus',
-  'mussel',
-  'clam',
-  'oyster',
-  'scallop',
-  'anchovy',
-  'sardine',
-  'cod',
-  'tilapia',
-];
 
 const CATEGORIES = [
   'Beef',
@@ -97,8 +38,126 @@ const CATEGORIES = [
   'Vegetarian',
 ];
 
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  Beef: ['beef', 'steak', 'brisket', 'veal'],
+  Chicken: ['chicken'],
+  Lamb: ['lamb', 'mutton'],
+  Pork: ['pork', 'bacon', 'ham', 'prosciutto', 'pancetta'],
+  Seafood: [
+    'seafood', 'fish', 'shrimp', 'prawn', 'salmon',
+    'tuna', 'crab', 'lobster', 'squid', 'octopus',
+    'mussel', 'clam', 'oyster', 'scallop', 'anchovy',
+    'sardine', 'cod', 'tilapia',
+  ],
+};
+
+const MEAT_KEYWORDS = [
+  'beef', 'chicken', 'pork', 'bacon', 'ham', 'lamb',
+  'mutton', 'turkey', 'duck', 'goat', 'veal', 'sausage',
+  'fish', 'shrimp', 'prawn', 'salmon', 'tuna', 'crab',
+  'lobster', 'squid', 'octopus', 'mussel', 'clam',
+  'oyster', 'scallop', 'anchovy', 'sardine', 'cod',
+  'tilapia',
+];
+
+// Check whether a recipe belongs to a selected category.
+function matchesCategory(
+  recipe: Recipe,
+  category: string
+): boolean {
+  const searchableText = [
+    recipe.name,
+    recipe.cuisine,
+    ...recipe.ingredients,
+    ...recipe.tags,
+  ].join(' ').toLowerCase();
+
+  const tags = recipe.tags.map((tag) => tag.toLowerCase());
+
+  if (category === 'Vegetarian') {
+    const hasMeat = MEAT_KEYWORDS.some((keyword) =>
+      new RegExp(`\\b${keyword}\\b`, 'i').test(searchableText)
+    );
+
+    return tags.includes('vegetarian') && !hasMeat;
+  }
+
+  if (category === 'Dessert') {
+    return (
+      tags.includes('dessert') ||
+      recipe.mealType.some(
+        (type) => type.toLowerCase() === 'dessert'
+      )
+    );
+  }
+
+  if (category === 'Pasta') {
+    return (
+      tags.includes('pasta') ||
+      /\bpasta\b|\bspaghetti\b|\bpenne\b|\bmacaroni\b|\bfettuccine\b|\blasagna\b/i.test(
+        searchableText
+      )
+    );
+  }
+
+  const keywords = CATEGORY_KEYWORDS[category];
+
+  if (!keywords) {
+    return false;
+  }
+
+  return keywords.some((keyword) =>
+    new RegExp(`\\b${keyword}\\b`, 'i').test(searchableText)
+  );
+}
+
+// Filter recipes using both keyword and category.
+function getFilteredRecipes(
+  recipes: Recipe[],
+  searchQuery: string,
+  category: string | null
+): Recipe[] {
+  let filteredRecipes = [...recipes];
+
+  if (category) {
+    filteredRecipes = filteredRecipes.filter((recipe) =>
+      matchesCategory(recipe, category)
+    );
+  }
+
+  if (searchQuery.trim()) {
+    const searchTerm = searchQuery.trim().toLowerCase();
+
+    filteredRecipes = filteredRecipes.filter((recipe) => {
+      const searchableText = [
+        recipe.name,
+        recipe.cuisine,
+        recipe.difficulty,
+        ...recipe.ingredients,
+        ...recipe.tags,
+        ...recipe.mealType,
+      ].join(' ').toLowerCase();
+
+      return searchableText.includes(searchTerm);
+    });
+  }
+
+  return filteredRecipes;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
+
+  // Read a category passed from the Categories Screen.
+  const { category: categoryParam } = useLocalSearchParams<{
+    category?: string;
+  }>();
+
+  const incomingCategory =
+    typeof categoryParam === 'string' &&
+    CATEGORIES.includes(categoryParam)
+      ? categoryParam
+      : null;
 
   const [query, setQuery] = useState('');
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
@@ -107,9 +166,8 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    null
-  );
+  const [selectedCategory, setSelectedCategory] =
+    useState<string | null>(null);
 
   const [hasLoadedCatalog, setHasLoadedCatalog] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -131,96 +189,7 @@ export default function SearchScreen() {
     return recipes;
   };
 
-  // Check whether a recipe belongs to a selected category.
-  const matchesCategory = (
-    recipe: Recipe,
-    category: string
-  ): boolean => {
-    const searchableText = [
-      recipe.name,
-      recipe.cuisine,
-      ...recipe.ingredients,
-      ...recipe.tags,
-    ]
-      .join(' ')
-      .toLowerCase();
-
-    const tags = recipe.tags.map((tag) => tag.toLowerCase());
-
-    if (category === 'Vegetarian') {
-      const hasMeat = MEAT_KEYWORDS.some((keyword) =>
-        new RegExp(`\\b${keyword}\\b`, 'i').test(searchableText)
-      );
-
-      return tags.includes('vegetarian') && !hasMeat;
-    }
-
-    if (category === 'Dessert') {
-      return (
-        tags.includes('dessert') ||
-        recipe.mealType.some(
-          (type) => type.toLowerCase() === 'dessert'
-        )
-      );
-    }
-
-    if (category === 'Pasta') {
-      return (
-        tags.includes('pasta') ||
-        /\bpasta\b|\bspaghetti\b|\bpenne\b|\bmacaroni\b|\bfettuccine\b|\blasagna\b/i.test(
-          searchableText
-        )
-      );
-    }
-
-    const keywords = CATEGORY_KEYWORDS[category];
-
-    if (!keywords) {
-      return false;
-    }
-
-    return keywords.some((keyword) =>
-      new RegExp(`\\b${keyword}\\b`, 'i').test(searchableText)
-    );
-  };
-
-  // Get recipes matching the keyword and category.
-  const getFilteredRecipes = (
-    recipes: Recipe[],
-    searchQuery: string,
-    category: string | null
-  ): Recipe[] => {
-    let filteredRecipes = [...recipes];
-
-    if (category) {
-      filteredRecipes = filteredRecipes.filter((recipe) =>
-        matchesCategory(recipe, category)
-      );
-    }
-
-    if (searchQuery.trim()) {
-      const searchTerm = searchQuery.trim().toLowerCase();
-
-      filteredRecipes = filteredRecipes.filter((recipe) => {
-        const searchableText = [
-          recipe.name,
-          recipe.cuisine,
-          recipe.difficulty,
-          ...recipe.ingredients,
-          ...recipe.tags,
-          ...recipe.mealType,
-        ]
-          .join(' ')
-          .toLowerCase();
-
-        return searchableText.includes(searchTerm);
-      });
-    }
-
-    return filteredRecipes;
-  };
-
-  // Display the first matching recipes.
+  // Display matching recipes.
   const applyFilters = (
     recipes: Recipe[],
     searchQuery: string,
@@ -339,6 +308,69 @@ export default function SearchScreen() {
     setHasSearched(false);
   };
 
+  // Automatically load a category sent by the Categories Screen.
+  useEffect(() => {
+    if (!incomingCategory) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSelectedCategory = async () => {
+      setSelectedCategory(incomingCategory);
+      setLoading(true);
+
+      try {
+        const response = await recipeApi.getRecipes({ limit: 0 });
+
+        if (cancelled) {
+          return;
+        }
+
+        const recipes = response.recipes || [];
+
+        setAllRecipes(recipes);
+        setHasLoadedCatalog(true);
+
+        const filteredRecipes = getFilteredRecipes(
+          recipes,
+          '',
+          incomingCategory
+        );
+
+        setResults(filteredRecipes.slice(0, PAGE_SIZE));
+        setTotalResults(filteredRecipes.length);
+        setVisibleCount(
+          Math.min(PAGE_SIZE, filteredRecipes.length)
+        );
+        setHasSearched(true);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Category loading error:', error);
+
+          Alert.alert(
+            'Search Error',
+            'Unable to load this category. Please try again.'
+          );
+
+          setResults([]);
+          setTotalResults(0);
+          setHasSearched(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadSelectedCategory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [incomingCategory]);
+
   // Display a recipe card.
   const renderResult = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
@@ -425,7 +457,6 @@ export default function SearchScreen() {
             returnKeyType="search"
           />
 
-          {/* FIXED: Always perform search when pressed. */}
           <TouchableOpacity
             onPress={handleSearch}
             disabled={loading}
