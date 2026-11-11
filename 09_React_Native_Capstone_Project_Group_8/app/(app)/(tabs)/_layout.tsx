@@ -1,7 +1,7 @@
 
 /**
  * Tabs Layout - Cookbook App Navigation
- * Tabs: Discover, Search, Favorites, Meal Plan, Profile
+ * Green and white design
  */
 
 import { Tabs } from 'expo-router';
@@ -13,22 +13,26 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#E85D04',
-        tabBarInactiveTintColor: '#8D6E63',
+
+        tabBarActiveTintColor: '#43A52F',
+        tabBarInactiveTintColor: '#8A9687',
+
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 0,
           elevation: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
+          shadowOpacity: 0.08,
           shadowRadius: 8,
           paddingTop: 8,
           paddingBottom: 8,
+          height: 65,
         },
+
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: '600',
         },
       }}
     >
@@ -36,9 +40,9 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
-              name="chef-hat"
+              name={focused ? 'home' : 'home-outline'}
               size={24}
               color={color}
             />

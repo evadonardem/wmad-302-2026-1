@@ -291,6 +291,9 @@ export default function HomeScreen() {
         </View>
 
         <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.featuredList}
           data={recipes.slice(0, 10)}
           renderItem={renderRecipe}
           keyExtractor={(item) => item.id.toString()}
