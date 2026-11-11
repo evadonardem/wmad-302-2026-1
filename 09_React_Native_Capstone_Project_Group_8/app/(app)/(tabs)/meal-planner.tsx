@@ -41,17 +41,17 @@ const MEALS: {
   {
     type: 'Breakfast',
     icon: 'weather-sunny',
-    color: '#F9A825',
+    color: '#43A52F',
   },
   {
     type: 'Lunch',
     icon: 'white-balance-sunny',
-    color: '#E85D04',
+    color: '#2E7D32',
   },
   {
     type: 'Dinner',
     icon: 'weather-night',
-    color: '#5E60CE',
+    color: '#1B5E20',
   },
 ];
 
@@ -260,7 +260,7 @@ export default function MealPlannerScreen() {
           <MaterialCommunityIcons
             name="calendar-check"
             size={48}
-            color="#E85D04"
+            color="#43A52F"
           />
         </View>
 
@@ -274,7 +274,7 @@ export default function MealPlannerScreen() {
               <MaterialCommunityIcons
                 name="chevron-left"
                 size={28}
-                color="#E85D04"
+                color="#43A52F"
               />
             </TouchableOpacity>
 
@@ -296,7 +296,7 @@ export default function MealPlannerScreen() {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={28}
-                color="#E85D04"
+                color="#43A52F"
               />
             </TouchableOpacity>
           </View>
@@ -304,7 +304,7 @@ export default function MealPlannerScreen() {
           {!isToday && (
             <Button
               mode="text"
-              textColor="#E85D04"
+              textColor="#43A52F"
               onPress={() => setSelectedDate(getDateKey(new Date()))}
             >
               Return to Today
@@ -314,7 +314,7 @@ export default function MealPlannerScreen() {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#E85D04" />
+            <ActivityIndicator size="large" color="#43A52F" />
 
             <Text style={styles.loadingText}>
               Loading your meal plan...
@@ -352,7 +352,7 @@ export default function MealPlannerScreen() {
                       <MaterialCommunityIcons
                         name="food-outline"
                         size={35}
-                        color="#BCAAA4"
+                        color="#81C784"
                       />
 
                       <Text style={styles.emptyMealText}>
@@ -439,7 +439,7 @@ export default function MealPlannerScreen() {
 
             <Button
               mode="contained"
-              buttonColor="#E85D04"
+              buttonColor="#43A52F"
               textColor="#FFFFFF"
               icon="plus"
               style={styles.browseButton}
@@ -460,7 +460,7 @@ export default function MealPlannerScreen() {
 const styles = {
   container: {
     flex: 1,
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#F5FAF3',
   },
   scrollContent: {
     padding: 20,
@@ -474,7 +474,7 @@ const styles = {
     marginBottom: 20,
   },
   headerSubtitle: {
-    color: '#E85D04',
+    color: '#43A52F',
     fontSize: 11,
     fontWeight: 'bold' as const,
     letterSpacing: 1.5,
@@ -482,7 +482,7 @@ const styles = {
   headerTitle: {
     fontSize: 29,
     fontWeight: 'bold' as const,
-    color: '#333333',
+    color: '#1B5E20',
     marginTop: 5,
   },
   headerDescription: {
@@ -513,13 +513,13 @@ const styles = {
   dateLabel: {
     fontSize: 10,
     fontWeight: 'bold' as const,
-    color: '#E85D04',
+    color: '#43A52F',
     letterSpacing: 1,
   },
   dateText: {
     fontSize: 15,
     fontWeight: 'bold' as const,
-    color: '#333333',
+    color: '#1B5E20',
     marginTop: 4,
     textAlign: 'center' as const,
   },
@@ -545,10 +545,10 @@ const styles = {
   mealTitle: {
     fontSize: 21,
     fontWeight: 'bold' as const,
-    color: '#333333',
+    color: '#1B5E20',
   },
   countBadge: {
-    backgroundColor: '#FFF0E5',
+    backgroundColor: '#E8F5E9',
     minWidth: 25,
     height: 25,
     borderRadius: 13,
@@ -556,7 +556,7 @@ const styles = {
     justifyContent: 'center' as const,
   },
   countText: {
-    color: '#E85D04',
+    color: '#2E7D32',
     fontSize: 12,
     fontWeight: 'bold' as const,
   },
@@ -566,7 +566,7 @@ const styles = {
     padding: 22,
     alignItems: 'center' as const,
     borderWidth: 1,
-    borderColor: '#F0E6DE',
+    borderColor: '#C8E6C9',
     borderStyle: 'dashed' as const,
   },
   emptyMealText: {
@@ -575,7 +575,7 @@ const styles = {
     marginTop: 8,
   },
   addRecipeText: {
-    color: '#E85D04',
+    color: '#43A52F',
     fontWeight: 'bold' as const,
     marginTop: 10,
   },
@@ -605,7 +605,7 @@ const styles = {
     marginLeft: 12,
   },
   recipeName: {
-    color: '#333333',
+    color: '#1B5E20',
     fontSize: 15,
     fontWeight: 'bold' as const,
   },
