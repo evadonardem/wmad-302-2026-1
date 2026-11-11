@@ -1,6 +1,7 @@
+
 /**
  * Search Screen - Cookbook
- * Search recipes by query and category
+ * Searches and filters the complete DummyJSON recipe catalog.
  */
 
 import React, { useState } from 'react';
@@ -15,79 +16,335 @@ import {
   Alert,
   Image,
 } from 'react-native';
+
 import { useRouter } from 'expo-router';
 import { Card, Title, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { recipeApi } from '@/services/recipeApi';
+import type { Recipe } from '@/types/recipe';
 import { styles } from './searchStyles';
 
-interface Recipe {
-  id: number;
-  name: string;
-  image: string;
-  difficulty: string;
-  cuisine: string;
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  servings: number;
-  rating: number;
-}
+const PAGE_SIZE = 10;
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  Beef: ['beef', 'steak', 'brisket', 'veal'],
+  Chicken: ['chicken'],
+  Lamb: ['lamb', 'mutton'],
+  Pork: ['pork', 'bacon', 'ham', 'prosciutto', 'pancetta'],
+  Seafood: [
+    'seafood',
+    'fish',
+    'shrimp',
+    'prawn',
+    'salmon',
+    'tuna',
+    'crab',
+    'lobster',
+    'squid',
+    'octopus',
+    'mussel',
+    'clam',
+    'oyster',
+    'scallop',
+    'anchovy',
+    'sardine',
+    'cod',
+    'tilapia',
+  ],
+};
+
+const MEAT_KEYWORDS = [
+  'beef',
+  'chicken',
+  'pork',
+  'bacon',
+  'ham',
+  'lamb',
+  'mutton',
+  'turkey',
+  'duck',
+  'goat',
+  'veal',
+  'sausage',
+  'fish',
+  'shrimp',
+  'prawn',
+  'salmon',
+  'tuna',
+  'crab',
+  'lobster',
+  'squid',
+  'octopus',
+  'mussel',
+  'clam',
+  'oyster',
+  'scallop',
+  'anchovy',
+  'sardine',
+  'cod',
+  'tilapia',
+];
+
+const CATEGORIES = [
+  'Beef',
+  'Chicken',
+  'Dessert',
+  'Lamb',
+  'Pasta',
+  'Pork',
+  'Seafood',
+  'Vegetarian',
+];
 
 export default function SearchScreen() {
   const router = useRouter();
 
   const [query, setQuery] = useState('');
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [results, setResults] = useState<Recipe[]>([]);
+
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const categories = [
-    'Beef',
-    'Chicken',
-    'Dessert',
-    'Lamb',
-    'Pasta',
-    'Pork',
-    'Seafood',
-    'Vegetarian',
-  ];
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    null
+  );
 
-  // Search recipes using the existing API service
+  const [hasLoadedCatalog, setHasLoadedCatalog] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [totalResults, setTotalResults] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Load all recipes from DummyJSON.
+  const loadCatalog = async (): Promise<Recipe[]> => {
+    if (hasLoadedCatalog && allRecipes.length > 0) {
+      return allRecipes;
+    }
+
+    const response = await recipeApi.getRecipes({ limit: 0 });
+    const recipes = response.recipes || [];
+
+    setAllRecipes(recipes);
+    setHasLoadedCatalog(true);
+
+    return recipes;
+  };
+
+  // Check whether a recipe belongs to a selected category.
+  const matchesCategory = (
+    recipe: Recipe,
+    category: string
+  ): boolean => {
+    const searchableText = [
+      recipe.name,
+      recipe.cuisine,
+      ...recipe.ingredients,
+      ...recipe.tags,
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    const tags = recipe.tags.map((tag) => tag.toLowerCase());
+
+    if (category === 'Vegetarian') {
+      const hasMeat = MEAT_KEYWORDS.some((keyword) =>
+        new RegExp(`\\b${keyword}\\b`, 'i').test(searchableText)
+      );
+
+      return tags.includes('vegetarian') && !hasMeat;
+    }
+
+    if (category === 'Dessert') {
+      return (
+        tags.includes('dessert') ||
+        recipe.mealType.some(
+          (type) => type.toLowerCase() === 'dessert'
+        )
+      );
+    }
+
+    if (category === 'Pasta') {
+      return (
+        tags.includes('pasta') ||
+        /\bpasta\b|\bspaghetti\b|\bpenne\b|\bmacaroni\b|\bfettuccine\b|\blasagna\b/i.test(
+          searchableText
+        )
+      );
+    }
+
+    const keywords = CATEGORY_KEYWORDS[category];
+
+    if (!keywords) {
+      return false;
+    }
+
+    return keywords.some((keyword) =>
+      new RegExp(`\\b${keyword}\\b`, 'i').test(searchableText)
+    );
+  };
+
+  // Get recipes matching the keyword and category.
+  const getFilteredRecipes = (
+    recipes: Recipe[],
+    searchQuery: string,
+    category: string | null
+  ): Recipe[] => {
+    let filteredRecipes = [...recipes];
+
+    if (category) {
+      filteredRecipes = filteredRecipes.filter((recipe) =>
+        matchesCategory(recipe, category)
+      );
+    }
+
+    if (searchQuery.trim()) {
+      const searchTerm = searchQuery.trim().toLowerCase();
+
+      filteredRecipes = filteredRecipes.filter((recipe) => {
+        const searchableText = [
+          recipe.name,
+          recipe.cuisine,
+          recipe.difficulty,
+          ...recipe.ingredients,
+          ...recipe.tags,
+          ...recipe.mealType,
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return searchableText.includes(searchTerm);
+      });
+    }
+
+    return filteredRecipes;
+  };
+
+  // Display the first matching recipes.
+  const applyFilters = (
+    recipes: Recipe[],
+    searchQuery: string,
+    category: string | null
+  ) => {
+    const filteredRecipes = getFilteredRecipes(
+      recipes,
+      searchQuery,
+      category
+    );
+
+    setResults(filteredRecipes.slice(0, PAGE_SIZE));
+    setTotalResults(filteredRecipes.length);
+    setVisibleCount(Math.min(PAGE_SIZE, filteredRecipes.length));
+    setHasSearched(true);
+  };
+
+  // Search using the complete recipe catalog.
   const handleSearch = async () => {
     if (!query.trim() && !selectedCategory) {
-      setResults([]);
+      handleClear();
       return;
     }
 
     setLoading(true);
 
     try {
-      let response;
+      const recipes = await loadCatalog();
 
-      if (selectedCategory) {
-        response = await recipeApi.getRecipesByCategory(selectedCategory);
-      } else {
-        response = await recipeApi.searchRecipes(query.trim());
-      }
-
-      setResults(response.recipes || []);
+      applyFilters(recipes, query, selectedCategory);
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('Recipe search error:', error);
+
       Alert.alert(
-        'Error',
-        'Unable to search recipes. Please try again.'
+        'Search Error',
+        'Unable to load recipes. Please check your internet connection and try again.'
       );
+
       setResults([]);
+      setTotalResults(0);
+      setHasSearched(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Display each recipe result
+  // Select or deselect a category.
+  const handleCategoryPress = async (category: string) => {
+    const newCategory =
+      selectedCategory === category ? null : category;
+
+    setSelectedCategory(newCategory);
+
+    if (!newCategory && !query.trim()) {
+      setResults([]);
+      setTotalResults(0);
+      setVisibleCount(PAGE_SIZE);
+      setHasSearched(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const recipes = await loadCatalog();
+
+      applyFilters(recipes, query, newCategory);
+    } catch (error) {
+      console.error('Category filter error:', error);
+
+      Alert.alert(
+        'Error',
+        'Unable to filter recipes. Please try again.'
+      );
+
+      setResults([]);
+      setTotalResults(0);
+      setHasSearched(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Display the next 10 matching recipes.
+  const handleLoadMore = () => {
+    if (loadingMore || visibleCount >= totalResults) {
+      return;
+    }
+
+    setLoadingMore(true);
+
+    const filteredRecipes = getFilteredRecipes(
+      allRecipes,
+      query,
+      selectedCategory
+    );
+
+    const nextCount = Math.min(
+      visibleCount + PAGE_SIZE,
+      totalResults
+    );
+
+    setResults(filteredRecipes.slice(0, nextCount));
+    setVisibleCount(nextCount);
+
+    setLoadingMore(false);
+  };
+
+  // Clear search and category filters.
+  const handleClear = () => {
+    setQuery('');
+    setSelectedCategory(null);
+    setResults([]);
+    setTotalResults(0);
+    setVisibleCount(PAGE_SIZE);
+    setHasSearched(false);
+  };
+
+  // Display a recipe card.
   const renderResult = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.resultCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      activeOpacity={0.8}
+      onPress={() => router.push(`/(app)/recipe/${item.id}`)}
     >
       <Card style={styles.card} elevation={1}>
         <View style={styles.resultContent}>
@@ -113,8 +370,9 @@ export default function SearchScreen() {
             </View>
 
             <Text style={styles.resultDetails}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes}min · 👥{' '}
-              {item.servings} · ⭐ {item.rating}
+              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
+              {' · '}👥 {item.servings}
+              {' · '}⭐ {item.rating}
             </Text>
           </View>
         </View>
@@ -126,6 +384,7 @@ export default function SearchScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
     >
       {/* Search Bar */}
       <View style={styles.searchBarContainer}>
@@ -158,7 +417,7 @@ export default function SearchScreen() {
                 paddingHorizontal: 12,
               },
             ]}
-            placeholder="Search recipes..."
+            placeholder="Search recipes or ingredients..."
             placeholderTextColor="#8D6E63"
             value={query}
             onChangeText={setQuery}
@@ -166,37 +425,22 @@ export default function SearchScreen() {
             returnKeyType="search"
           />
 
-          {query ? (
-            <TouchableOpacity
-              onPress={() => {
-                setQuery('');
-                setResults([]);
-              }}
-              style={styles.clearButton}
-            >
+          {/* FIXED: Always perform search when pressed. */}
+          <TouchableOpacity
+            onPress={handleSearch}
+            disabled={loading}
+            style={styles.searchButton}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
               <MaterialCommunityIcons
-                name="close"
+                name="magnify"
                 size={24}
-                color="#8D6E63"
+                color="#FFFFFF"
               />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={handleSearch}
-              disabled={loading}
-              style={styles.searchButton}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <MaterialCommunityIcons
-                  name="magnify"
-                  size={24}
-                  color="white"
-                />
-              )}
-            </TouchableOpacity>
-          )}
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -205,45 +449,20 @@ export default function SearchScreen() {
         <Title style={styles.filterTitle}>Categories</Title>
 
         <FlatList
-          data={categories}
+          data={CATEGORIES}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterList}
+          keyExtractor={(item) => item}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
                 styles.filterChip,
-                selectedCategory === item && styles.filterChipSelected,
+                selectedCategory === item &&
+                  styles.filterChipSelected,
               ]}
-              onPress={() => {
-                const newCategory =
-                  selectedCategory === item ? null : item;
-
-                setSelectedCategory(newCategory);
-
-                if (newCategory) {
-                  setLoading(true);
-
-                  recipeApi
-                    .getRecipesByCategory(newCategory)
-                    .then((response) => {
-                      setResults(response.recipes || []);
-                    })
-                    .catch((error) => {
-                      console.error('Category search error:', error);
-                      Alert.alert(
-                        'Error',
-                        'Unable to load recipes for this category.'
-                      );
-                      setResults([]);
-                    })
-                    .finally(() => {
-                      setLoading(false);
-                    });
-                } else {
-                  setResults([]);
-                }
-              }}
+              onPress={() => handleCategoryPress(item)}
+              disabled={loading}
             >
               <Text
                 style={[
@@ -256,61 +475,110 @@ export default function SearchScreen() {
               </Text>
             </TouchableOpacity>
           )}
-          keyExtractor={(item) => item}
         />
       </View>
 
       {/* Results */}
       <View style={styles.resultsSection}>
         <Title style={styles.resultsTitle}>
-          Results {query ? `for "${query}"` : ''}
-          {results.length > 0 && ` (${results.length})`}
+          Results
+          {selectedCategory ? ` - ${selectedCategory}` : ''}
+          {query.trim() ? ` for "${query.trim()}"` : ''}
+          {hasSearched ? ` (${totalResults})` : ''}
         </Title>
 
         {loading ? (
           <View style={styles.loadingCenter}>
             <ActivityIndicator size="large" color="#E85D04" />
+
+            <Text style={{ marginTop: 10, color: '#8D6E63' }}>
+              Loading recipes...
+            </Text>
           </View>
-        ) : results.length === 0 && (query || selectedCategory) ? (
+        ) : results.length > 0 ? (
+          <>
+            <FlatList
+              data={results}
+              renderItem={renderResult}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.resultsList}
+              scrollEnabled={false}
+              ItemSeparatorComponent={() => (
+                <View style={styles.separator} />
+              )}
+            />
+
+            {visibleCount < totalResults && (
+              <TouchableOpacity
+                onPress={handleLoadMore}
+                disabled={loadingMore}
+                style={{
+                  backgroundColor: '#E85D04',
+                  paddingVertical: 12,
+                  paddingHorizontal: 20,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  marginVertical: 16,
+                }}
+              >
+                {loadingMore ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text
+                    style={{
+                      color: '#FFFFFF',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Load More Recipes
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+
+            <Text
+              style={{
+                textAlign: 'center',
+                color: '#8D6E63',
+                marginVertical: 10,
+              }}
+            >
+              Showing {results.length} of {totalResults} recipes
+            </Text>
+          </>
+        ) : hasSearched ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons
               name="magnify"
               size={64}
               color="#BCAAA4"
             />
-            <Text style={styles.emptyText}>No recipes found</Text>
+
+            <Text style={styles.emptyText}>
+              No recipes found
+            </Text>
+
             <Text style={styles.emptySubtext}>
-              Try a different search term
+              Try another keyword or category.
             </Text>
           </View>
         ) : (
-          <FlatList
-            data={results}
-            renderItem={renderResult}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.resultsList}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => (
-              <View style={styles.separator} />
-            )}
-          />
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons
+              name="magnify"
+              size={64}
+              color="#BCAAA4"
+            />
+
+            <Text style={styles.emptyText}>
+              Find Your Next Favorite Recipe
+            </Text>
+
+            <Text style={styles.emptySubtext}>
+              Search by recipe name or ingredient, or select a category.
+            </Text>
+          </View>
         )}
-      </View>
-
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>
-          📝 Student Implementation Guide
-        </Text>
-
-        <Text style={styles.guideText}>
-          Complete the search functionality:{'\n'}
-          1. Call GET /recipes/search?q={'{query}'}{' \n'}
-          2. Add category filter: &category={'{category}'}{' \n'}
-          3. Add pagination with skip/limit{' \n'}
-          4. Implement infinite scroll{' \n'}
-          5. Add sort options (rating, time, calories)
-        </Text>
       </View>
     </ScrollView>
   );
