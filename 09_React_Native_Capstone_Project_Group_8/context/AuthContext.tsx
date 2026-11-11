@@ -1,7 +1,8 @@
 
 /**
  * Auth Context with useReducer
- * Handles authentication, persistence hydration, and token refresh.
+ * Handles authentication, persistence hydration, token refresh,
+ * and local profile updates.
  */
 
 import React, {
@@ -13,10 +14,14 @@ import React, {
   ReactNode,
 } from 'react';
 
-import { AuthState, AuthAction } from '@/types/auth';
+import { AuthState, AuthAction, AuthUser } from '@/types/auth';
 import { authApi } from '@/services/authApi';
+import { authStorage } from '@/utils/storage';
 
-// Initial state
+type ProfileUpdates = Partial<
+  Pick<AuthUser, 'firstName' | 'lastName' | 'username' | 'email'>
+>;
+
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
@@ -24,7 +29,6 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Reducer
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'AUTH_START':
@@ -88,7 +92,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-// Context interface
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
 
@@ -104,6 +107,8 @@ interface AuthContextType extends AuthState {
 
   logout: () => Promise<void>;
 
+  updateUser: (updates: ProfileUpdates) => Promise<void>;
+
   clearError: () => void;
 
   refreshUser: () => Promise<void>;
@@ -111,7 +116,6 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
@@ -125,8 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const freshUser = await authApi.getMe();
 
+            // Preserve locally edited profile information.
             const mergedUser = {
               ...freshUser,
+              firstName: storedUser.firstName || freshUser.firstName,
+              lastName: storedUser.lastName || freshUser.lastName,
+              username: storedUser.username || freshUser.username,
+              email: storedUser.email || freshUser.email,
               token: storedUser.token,
               refreshToken: storedUser.refreshToken,
             };
@@ -136,7 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               payload: mergedUser,
             });
           } catch {
-            // Try refreshing an expired token.
             try {
               await authApi.refreshAccessToken();
 
@@ -169,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    hydrateAuth();
+    void hydrateAuth();
   }, []);
 
   // Login
@@ -218,8 +226,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await authApi.register(data);
 
-        // Registration does not automatically log in the user.
-        // Return to the unauthenticated state.
         dispatch({
           type: 'AUTH_HYDRATE',
           payload: null,
@@ -250,26 +256,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Clear authentication error
+  // Update profile and save it locally.
+  const updateUser = useCallback(
+    async (updates: ProfileUpdates) => {
+      if (!state.user) {
+        throw new Error('No authenticated user found.');
+      }
+
+      const updatedUser: AuthUser = {
+        ...state.user,
+        ...updates,
+      };
+
+      // Preserve the existing authentication tokens.
+      await authStorage.setUser(updatedUser);
+
+      dispatch({
+        type: 'AUTH_UPDATE_USER',
+        payload: updates,
+      });
+    },
+    [state.user]
+  );
+
+  // Clear authentication error.
   const clearError = useCallback(() => {
     dispatch({
       type: 'AUTH_CLEAR_ERROR',
     });
   }, []);
 
-  // Refresh current user
+  // Refresh current user while preserving local profile edits.
   const refreshUser = useCallback(async () => {
     if (!state.isAuthenticated) {
       return;
     }
 
     try {
-      const user = await authApi.getMe();
+      const freshUser = await authApi.getMe();
       const storedUser = await authApi.getStoredUser();
 
       if (storedUser) {
         const mergedUser = {
-          ...user,
+          ...freshUser,
+          firstName: storedUser.firstName || freshUser.firstName,
+          lastName: storedUser.lastName || freshUser.lastName,
+          username: storedUser.username || freshUser.username,
+          email: storedUser.email || freshUser.email,
           token: storedUser.token,
           refreshToken: storedUser.refreshToken,
         };
@@ -291,6 +324,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        updateUser,
         clearError,
         refreshUser,
       }}
@@ -300,7 +334,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 
