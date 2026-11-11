@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -153,7 +154,62 @@ export default function MealPlannerScreen() {
     setSelectedDate(getDateKey(date));
   };
 
+  // Remove the recipe from storage and update the screen.
+  const performRemoval = async (entry: MealPlanEntry) => {
+    try {
+      setRemovingId(entry.recipeId);
+
+      await mealPlanStorage.removeEntry(
+        entry.date,
+        entry.mealType,
+        entry.recipeId
+      );
+
+      setPlannedRecipes((previous) =>
+        previous.filter(
+          (item) =>
+            !(
+              item.entry.date === entry.date &&
+              item.entry.mealType === entry.mealType &&
+              item.entry.recipeId === entry.recipeId
+            )
+        )
+      );
+    } catch (error) {
+      console.error('Failed to remove planned recipe:', error);
+
+      Alert.alert(
+        'Error',
+        'Unable to remove this recipe from your meal plan.'
+      );
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  // Use browser confirmation on web and native confirmation on mobile.
   const removeMeal = (entry: MealPlanEntry) => {
+    if (Platform.OS === 'web') {
+      const browserWindow = (
+        globalThis as unknown as {
+          window?: {
+            confirm: (message: string) => boolean;
+          };
+        }
+      ).window;
+
+      const confirmed =
+        browserWindow?.confirm(
+          'Are you sure you want to remove this recipe from your meal plan?'
+        ) ?? false;
+
+      if (confirmed) {
+        void performRemoval(entry);
+      }
+
+      return;
+    }
+
     Alert.alert(
       'Remove Planned Recipe',
       'Are you sure you want to remove this recipe from your meal plan?',
@@ -165,35 +221,8 @@ export default function MealPlannerScreen() {
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              setRemovingId(entry.recipeId);
-
-              await mealPlanStorage.removeEntry(
-                entry.date,
-                entry.mealType,
-                entry.recipeId
-              );
-
-              setPlannedRecipes((previous) =>
-                previous.filter(
-                  (item) =>
-                    !(
-                      item.entry.recipeId === entry.recipeId &&
-                      item.entry.mealType === entry.mealType
-                    )
-                )
-              );
-            } catch (error) {
-              console.error('Failed to remove planned recipe:', error);
-
-              Alert.alert(
-                'Error',
-                'Unable to remove this recipe from your meal plan.'
-              );
-            } finally {
-              setRemovingId(null);
-            }
+          onPress: () => {
+            void performRemoval(entry);
           },
         },
       ]
@@ -342,15 +371,19 @@ export default function MealPlannerScreen() {
                     </View>
                   ) : (
                     recipes.map(({ recipe, entry }) => (
-                      <TouchableOpacity
+                      <Card
                         key={`${entry.date}-${entry.mealType}-${recipe.id}`}
-                        activeOpacity={0.85}
-                        onPress={() =>
-                          router.push(`/(app)/recipe/${recipe.id}`)
-                        }
+                        style={styles.recipeCard}
+                        elevation={1}
                       >
-                        <Card style={styles.recipeCard} elevation={1}>
-                          <View style={styles.recipeRow}>
+                        <View style={styles.recipeRow}>
+                          <TouchableOpacity
+                            style={styles.recipeDetailsButton}
+                            activeOpacity={0.85}
+                            onPress={() =>
+                              router.push(`/(app)/recipe/${recipe.id}`)
+                            }
+                          >
                             <Image
                               source={{ uri: recipe.image }}
                               style={styles.recipeImage}
@@ -374,29 +407,30 @@ export default function MealPlannerScreen() {
                                   recipe.cookTimeMinutes} min
                               </Text>
                             </View>
+                          </TouchableOpacity>
 
-                            <TouchableOpacity
-                              style={styles.removeButton}
-                              disabled={removingId === recipe.id}
-                              onPress={() => removeMeal(entry)}
-                              accessibilityLabel="Remove planned recipe"
-                            >
-                              {removingId === recipe.id ? (
-                                <ActivityIndicator
-                                  size="small"
-                                  color="#C62828"
-                                />
-                              ) : (
-                                <MaterialCommunityIcons
-                                  name="close-circle-outline"
-                                  size={25}
-                                  color="#C62828"
-                                />
-                              )}
-                            </TouchableOpacity>
-                          </View>
-                        </Card>
-                      </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            disabled={removingId === recipe.id}
+                            onPress={() => removeMeal(entry)}
+                            accessibilityLabel="Remove planned recipe"
+                            accessibilityRole="button"
+                          >
+                            {removingId === recipe.id ? (
+                              <ActivityIndicator
+                                size="small"
+                                color="#C62828"
+                              />
+                            ) : (
+                              <MaterialCommunityIcons
+                                name="close-circle-outline"
+                                size={25}
+                                color="#C62828"
+                              />
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </Card>
                     ))
                   )}
                 </View>
@@ -555,6 +589,11 @@ const styles = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     padding: 10,
+  },
+  recipeDetailsButton: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   recipeImage: {
     width: 85,
