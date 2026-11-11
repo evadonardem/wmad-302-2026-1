@@ -1,6 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { Divider, List, Text, useTheme } from 'react-native-paper';
 import { useSearchHistory } from '@/searchHistory';
 
 export default function HistoryScreen() {
@@ -8,12 +8,7 @@ export default function HistoryScreen() {
   const { entries } = useSearchHistory();
 
   const handlePick = (city: string) => {
-    // TODO 5.3 [Cross-Screen Handoff]: Jump back to the Search tab carrying the chosen city as a
-    // route param so the dashboard re-runs the search (see TODO 5.4 over there):
-    //   router.navigate({ pathname: '/', params: { q: city } })
-    // Use router.navigate (not push) so this history screen is not left sitting underneath
-    // the returned stack entry.
-    // [Your code here]
+    router.navigate({ pathname: '/', params: { q: city } });
   };
 
   return (
@@ -22,10 +17,26 @@ export default function HistoryScreen() {
         Tap a city to jump back into that search.
       </Text>
 
-      {/* TODO 5.2 [History List Mapping]: Map through 'entries' (most recent first) and render a
-          row per city — Paper <Button>, <List.Item>, or a plain Pressable all work. Each row's
-          onPress should call handlePick(entry) with that city. Give each row a unique key. */}
-      {/* [Your code here] */}
+      {entries.length > 0 && (
+        <ScrollView
+          style={[styles.list, { backgroundColor: theme.colors.surface }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {entries.map((entry, index) => (
+            <View key={`${entry}-${index}`}>
+              <List.Item
+                title={entry}
+                titleStyle={{ fontWeight: '600' }}
+                left={(props) => <List.Icon {...props} icon="history" color={theme.colors.primary} />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => handlePick(entry)}
+                accessibilityLabel={`Search ${entry} again`}
+              />
+              {index < entries.length - 1 && <Divider />}
+            </View>
+          ))}
+        </ScrollView>
+      )}
 
       {entries.length === 0 && (
         <Text variant="bodyMedium" style={[styles.empty, { color: theme.colors.onSurfaceVariant }]}>
@@ -47,6 +58,10 @@ const styles = StyleSheet.create({
   },
   intro: {
     marginBottom: 8,
+  },
+  list: {
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   empty: {
     textAlign: 'center',

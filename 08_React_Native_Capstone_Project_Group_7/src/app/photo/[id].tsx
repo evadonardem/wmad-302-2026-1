@@ -1,107 +1,183 @@
-import { StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { PanResponder, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router';
-import { Button, IconButton, Text, useTheme } from 'react-native-paper';
+import { Button, IconButton, Snackbar, Text, useTheme } from 'react-native-paper';
 import * as WebBrowser from 'expo-web-browser';
 import { usePhotos } from '@/photos';
+import { downloadPhoto, openLocation, sharePhoto, useEngagement } from '@/services/geoPhotoService';
+
+// Search params may arrive as string | string[]; always coerce to a plain string
+const one = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v) ?? '';
 
 export default function PhotoDetailScreen() {
   const theme = useTheme();
   const { photos } = usePhotos();
+  const { favorites, likes, toggleFavorite, toggleLike } = useEngagement();
+  const [toast, setToast] = useState('');
 
-  // TODO 4.4 [Route Param Extraction]: Replace the placeholder values below with real route
-  // parameters read from this screen's URL using useLocalSearchParams() ('expo-router'):
-  // - 'id' arrives from the dynamic path segment (/photo/[id])
-  // - the rest arrive as search params (?imageUrl=...&photographer=...)
-  // Example: const { id, imageUrl, photographer, photographerUrl, altText } =
-  //            useLocalSearchParams<{ id?: string; imageUrl?: string; photographer?: string; photographerUrl?: string; altText?: string }>();
-  // NOTE: search params always arrive as strings (or string arrays) — coerce types as needed.
-  const id = '';
-  const imageUrl = '';
-  const photographer = '';
-  const photographerUrl = '';
-  const altText = '';
-
-  // TODO 4.8 [Route Guard]: Before rendering anything, check the required params above.
-  // If 'imageUrl' or 'photographer' is missing (someone opened the URL directly, or a stale
-  // link was tapped), bounce safely back to the Search tab:
-  //   return <Redirect href="/" />;
-  // [Your code here]
+  const params = useLocalSearchParams<{
+    id?: string;
+    imageUrl?: string;
+    photographer?: string;
+    photographerUrl?: string;
+    altText?: string;
+    location?: string;
+  }>();
+  const id = one(params.id);
+  const imageUrl = one(params.imageUrl);
+  const photographer = one(params.photographer);
+  const photographerUrl = one(params.photographerUrl);
+  const altText = one(params.altText);
+  const location = one(params.location);
 
   // Position of the current photo inside the shared result set (for prev/next)
   const currentIndex = photos.findIndex((p) => String(p.id) === id);
 
   const goToAdjacentPhoto = (offset: number) => {
-    // TODO 4.7 [Prev/Next Viewer]: Browse the shared result set without closing the modal:
-    // a. Compute the target photo: photos[currentIndex + offset] — guard against out-of-bounds
-    //    (stay put when there is nothing to move to).
-    // b. Swap the CURRENT route for the target with router.replace:
-    //    router.replace({ pathname: '/photo/[id]', params: { id: String(target.id), imageUrl: target.imageUrl, photographer: target.photographer, photographerUrl: target.photographerUrl, altText: target.altText } })
-    // WHY replace instead of push? push would stack every photo on the history stack, so Back
-    // would step through each one — replace keeps a single entry so Back closes the modal.
-    // [Your code here]
+    const target = photos[currentIndex + offset];
+    if (currentIndex < 0 || !target) return; // nothing to move to
+    // replace (not push) so Back closes the modal instead of stepping through every photo
+    router.replace({
+      pathname: '/photo/[id]',
+      params: {
+        id: String(target.id),
+        imageUrl: target.imageUrl,
+        photographer: target.photographer,
+        photographerUrl: target.photographerUrl,
+        altText: target.altText,
+        location,
+      },
+    });
   };
 
+  // Swipe left/right on the photo to browse (phones)
+  const goRef = useRef(goToAdjacentPhoto);
+  goRef.current = goToAdjacentPhoto;
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -50) goRef.current(1);
+        else if (g.dx > 50) goRef.current(-1);
+      },
+    }),
+  ).current;
+
+  // Route guard — opened directly or via a stale link
+  if (!imageUrl || !photographer) {
+    return <Redirect href="/" />;
+  }
+
+  const photo = { imageUrl, photographer, photographerUrl, altText };
+  const liked = likes.has(id);
+  const favorite = favorites.has(id);
+
   const handleOpenPhotographer = () => {
-    if (photographerUrl) {
-      WebBrowser.openBrowserAsync(photographerUrl);
-    }
+    if (photographerUrl) WebBrowser.openBrowserAsync(photographerUrl);
   };
 
   const handleShare = async () => {
-    // TODO 4.5 [Generic Share Sheet]: Open the platform share sheet with React Native's Share API:
-    // a. Call Share.share() with a { title, message, url } payload describing the photo and
-    //    linking to the photographer's profile.
-    // b. Wrap the call in try/catch: platforms/browsers without share support (and user
-    //    cancellations) must fail gracefully without crashing the screen.
-    // Hint: Messenger, WhatsApp, and every other installed app appear inside this sheet —
-    // no per-app deep links required.
-    // [Your code here]
+    const msg = await sharePhoto(photo, location);
+    if (msg) setToast(msg);
   };
+
+  const handleDownload = async () => setToast(await downloadPhoto(photo));
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      {/* Dynamic native header title — takes effect once TODO 4.4 wires the photographer param */}
       <Stack.Screen options={{ title: photographer ? `By ${photographer}` : 'Tourist Spot' }} />
 
-      {/* The hero below renders the imageUrl param once TODO 4.4 is wired. */}
-      <Image
-        source={{ uri: imageUrl }}
-        style={styles.hero}
-        contentFit="cover"
-        transition={200}
-        accessibilityLabel={altText}
-      />
-
-      <View style={[styles.body, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.pagerRow}>
-          <IconButton
-            icon="chevron-left"
-            iconColor={theme.colors.onSurface}
-            size={28}
-            onPress={() => goToAdjacentPhoto(-1)}
-            accessibilityLabel="Previous photo"
-          />
-          <Text variant="titleMedium" style={[styles.photographer, { color: theme.colors.onSurface }]}>
-            📸 Captured by {photographer || '—'}
-          </Text>
-          <IconButton
-            icon="chevron-right"
-            iconColor={theme.colors.onSurface}
-            size={28}
-            onPress={() => goToAdjacentPhoto(1)}
-            accessibilityLabel="Next photo"
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <View {...pan.panHandlers}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.hero}
+            contentFit="cover"
+            transition={200}
+            accessibilityLabel={altText}
           />
         </View>
 
-        <Button mode="outlined" icon="open-in-new" onPress={handleOpenPhotographer} disabled={!photographerUrl}>
-          Visit photographer profile
-        </Button>
+        <View style={[styles.body, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.pagerRow}>
+            <IconButton
+              icon="chevron-left"
+              iconColor={theme.colors.onSurface}
+              size={28}
+              disabled={currentIndex <= 0}
+              onPress={() => goToAdjacentPhoto(-1)}
+              accessibilityLabel="Previous photo"
+            />
+            <View style={styles.pagerCenter}>
+              <Text variant="titleMedium" style={[styles.photographer, { color: theme.colors.onSurface }]}>
+                📸 Captured by {photographer || '—'}
+              </Text>
+              {currentIndex >= 0 && (
+                <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {currentIndex + 1} / {photos.length}
+                </Text>
+              )}
+            </View>
+            <IconButton
+              icon="chevron-right"
+              iconColor={theme.colors.onSurface}
+              size={28}
+              disabled={currentIndex < 0 || currentIndex >= photos.length - 1}
+              onPress={() => goToAdjacentPhoto(1)}
+              accessibilityLabel="Next photo"
+            />
+          </View>
 
-        <Button mode="contained" icon="share-variant" onPress={handleShare} style={styles.shareButton}>
-          Share this spot
-        </Button>
-      </View>
+          {/* Caption */}
+          {!!altText && (
+            <Text variant="bodyLarge" style={[styles.caption, { color: theme.colors.onSurface }]}>
+              {altText}
+            </Text>
+          )}
+          {!!location && (
+            <Text variant="labelLarge" style={{ color: theme.colors.primary, textAlign: 'center' }}>
+              📍 {location}, Philippines
+            </Text>
+          )}
+
+          <View style={styles.actionRow}>
+            <IconButton
+              mode="contained-tonal"
+              icon={liked ? 'heart' : 'heart-outline'}
+              iconColor={liked ? '#E11D48' : undefined}
+              onPress={() => toggleLike(id)}
+              accessibilityLabel="Like"
+            />
+            <IconButton
+              mode="contained-tonal"
+              icon={favorite ? 'star' : 'star-outline'}
+              iconColor={favorite ? '#F59E0B' : undefined}
+              onPress={() => toggleFavorite(id)}
+              accessibilityLabel="Favorite"
+            />
+            <IconButton
+              mode="contained-tonal"
+              icon="map-marker"
+              onPress={() => openLocation(location)}
+              accessibilityLabel="Open location in maps"
+            />
+            <IconButton mode="contained-tonal" icon="download" onPress={handleDownload} accessibilityLabel="Download" />
+          </View>
+
+          <Button mode="outlined" icon="open-in-new" onPress={handleOpenPhotographer} disabled={!photographerUrl}>
+            Visit photographer profile
+          </Button>
+
+          <Button mode="contained" icon="share-variant" onPress={handleShare} style={styles.shareButton}>
+            Share this spot
+          </Button>
+        </View>
+      </ScrollView>
+
+      <Snackbar visible={!!toast} onDismiss={() => setToast('')} duration={2500}>
+        {toast}
+      </Snackbar>
     </View>
   );
 }
@@ -109,6 +185,12 @@ export default function PhotoDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: 820,
+    alignSelf: 'center',
   },
   hero: {
     width: '100%',
@@ -118,19 +200,32 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     gap: 14,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
+    minHeight: 320,
   },
   pagerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  photographer: {
+  pagerCenter: {
     flex: 1,
+    alignItems: 'center',
+  },
+  photographer: {
     fontWeight: '600',
     textAlign: 'center',
+  },
+  caption: {
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
   },
   shareButton: {
     marginTop: 4,

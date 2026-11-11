@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Link } from 'expo-router';
-import { Divider, Text, useTheme } from 'react-native-paper';
+import { Button, Divider, Text, useTheme } from 'react-native-paper';
 
 export default function AboutScreen() {
   const theme = useTheme();
@@ -10,12 +10,11 @@ export default function AboutScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <Text variant="titleLarge" style={[styles.heading, { color: theme.colors.onBackground }]}>
-        🇵🇭 Lakbay PH
+      <Text variant="titleLarge" style={[styles.heading, { color: theme.colors.primary }]}>
+         TechCare
       </Text>
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-        A React Native (Expo) capstone demo that maps Philippine geography and surfaces
-        tourist spot photography — built for the web, Android, and iOS from one codebase.
+        Your ultimate companion for discovering the beautiful tourist spots across the Philippines.
       </Text>
 
       <Divider style={styles.divider} />
@@ -24,9 +23,11 @@ export default function AboutScreen() {
         How it works
       </Text>
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-        Pick a Region, then a City/Municipality inside it, and Search. The app queries the
-        PSGC registry for geography, then asks Pexels for matching tourist spot photos.
-        Tap any photo card to open its detail view, or pull the list down to refresh it.
+        Pick a Region, then a City/Municipality inside it, and Search. The app queries the PSGC
+        registry for geography, then asks Pexels for matching tourist spot photos. Tap any photo
+        to open it, then like, favorite, share, download, or open its location on the map. Swipe
+        or use the arrows to browse more spots, tap the photographer's name to visit their
+        profile, or pull the list down to refresh it.
       </Text>
 
       <Divider style={styles.divider} />
@@ -35,8 +36,8 @@ export default function AboutScreen() {
         Built with
       </Text>
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-        Expo Router (tabs + modal routes) · React Native Paper (Material Design 3) ·
-        Axios · expo-image · TypeScript
+        Expo Router (tabs + modal routes) · React Native Paper (Material Design 3) · Axios ·
+        expo-image · TypeScript
       </Text>
 
       <Divider style={styles.divider} />
@@ -50,11 +51,13 @@ export default function AboutScreen() {
 
       <Divider style={styles.divider} />
 
-      {/* TODO 4.9 [Declarative Navigation]: Render a declarative <Link href="/"> below that jumps
-          back to the Search tab — the JSX-based counterpart to the imperative router.push calls
-          used elsewhere. Style it like a call-to-action (e.g. "Start exploring →"). */}
+      {/* Declarative navigation back to the Search tab */}
       <View style={styles.cta}>
-        {/* [Your <Link> here] */}
+        <Link href="/" asChild>
+          <Button mode="contained" icon="compass">
+            Start exploring →
+          </Button>
+        </Link>
       </View>
     </ScrollView>
   );
@@ -72,13 +75,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heading: {
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   divider: {
     marginVertical: 12,
   },
   cta: {
-    marginTop: 4,
+    marginTop: 24,
     alignItems: 'center',
   },
 });

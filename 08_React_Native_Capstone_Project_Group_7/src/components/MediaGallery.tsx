@@ -1,87 +1,225 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Card, Text } from 'react-native-paper';
+import { ActivityIndicator, IconButton, Snackbar, Text, useTheme } from 'react-native-paper';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import type { Photo } from '@/services/geoPhotoService';
+import {
+  downloadPhoto,
+  openLocation,
+  sharePhoto,
+  useEngagement,
+  type Photo,
+} from '@/services/geoPhotoService';
 
-export default function MediaGallery({ photos, loading }: { photos: Photo[]; loading: boolean }) {
-  // TODO 3.1 [Loading Skeletal Feedbacks]: If the 'loading' prop evaluates true, return a visual
-  // waiting feedback layout instead of the gallery.
-  // Pro Tip: render a Paper <ActivityIndicator /> (or loop mock placeholder Views) to show a
-  // clean visual waiting state while photos are being fetched.
+export default function MediaGallery({
+  photos,
+  loading,
+  locationName,
+}: {
+  photos: Photo[];
+  loading: boolean;
+  locationName?: string;
+}) {
+  const theme = useTheme();
+  const { favorites, likes, toggleFavorite, toggleLike } = useEngagement();
+  const [toast, setToast] = useState('');
+
   if (loading) {
     return (
-      // [Your loading layout here]
-      <></>
+      <View style={styles.center}>
+        <ActivityIndicator animating size="large" />
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 12 }}>
+          Finding tourist spots…
+        </Text>
+      </View>
     );
   }
 
-  // TODO 3.2 [Boundary Validation Checks]: If the photos array contains no records, return a
-  // fallback layout displaying a simple status message like:
-  // "No tourist spots found for this area yet."
   if (!photos || photos.length === 0) {
     return (
-      // [Your empty state boundary here]
-      <></>
+      <View style={styles.center}>
+        <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+          No tourist spots found for this area yet. 🏝️
+        </Text>
+      </View>
     );
   }
 
-  return (
-    // TODO 3.3 [Fluid Layout Architecture]: Build a responsive wrapping grid using flexbox
-    // (the RN substitute for MUI <Grid> breakpoints): a row container with flexWrap enabled,
-    // then map across your structured 'photos' payload elements inside it.
-    <View style={styles.grid}>
-      {/* TODO 3.4 [Card Content Loop Mapping]: Loop across the photo elements with a unique key,
-          wrapping each one in a grid cell View (styles.gridItem) containing the Card template below. */}
-      {/* [Your map loop here] */}
-      {/* TODO 4.3 [Detail Navigation Trigger]: Make each grid cell (or its Card) pressable so a tap
-          pushes the photo detail route (a DYNAMIC segment) with router.push:
-            router.push({ pathname: '/photo/[id]', params: { id: String(photo.id), imageUrl: photo.imageUrl, photographer: photo.photographer, photographerUrl: photo.photographerUrl, altText: photo.altText } })
-          Pass every field the detail screen needs — route params travel as strings, and the id
-          becomes part of the URL path (/photo/12345?...). */}
-      <View style={styles.gridItem}>
-        <Card style={styles.card} elevation={2}>
-          {/* TODO 3.5 [Multimedia Presentation Layer]: Render a Paper <Card.Cover /> image block.
-              Set its source to {{ uri: photo.imageUrl }} and bind 'photo.altText' as the
-              accessibilityLabel for the image asset. */}
-          {/* [Your code here] */}
+  const openDetail = (photo: Photo) =>
+    router.push({
+      pathname: '/photo/[id]',
+      params: {
+        id: String(photo.id),
+        imageUrl: photo.imageUrl,
+        photographer: photo.photographer,
+        photographerUrl: photo.photographerUrl,
+        altText: photo.altText,
+        location: locationName ?? '',
+      },
+    });
 
-          <Card.Content style={styles.cardContent}>
-            <Text variant="labelSmall" style={styles.creditLabel}>
-              📸 Captured by:
-            </Text>
-            {/* TODO 3.6 [Attribution Links]: Render the photographer credit as a Pressable Text.
-                Display 'photo.photographer' and, on press, open 'photo.photographerUrl' in the
-                device browser using WebBrowser.openBrowserAsync (RN has no <a> hyperlinks). */}
-            {/* [Your code here] */}
-          </Card.Content>
-        </Card>
+  const handleShare = async (photo: Photo) => {
+    const msg = await sharePhoto(photo, locationName);
+    if (msg) setToast(msg);
+  };
+
+  const handleDownload = async (photo: Photo) => setToast(await downloadPhoto(photo));
+
+  return (
+    <View style={styles.wrapper}>
+      <View style={styles.headerRow}>
+        <Text variant="titleLarge" style={{ fontWeight: '800', color: theme.colors.onBackground }}>
+          📍 {locationName || 'Results'}
+        </Text>
+        <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+          {photos.length} spots
+        </Text>
       </View>
-      {/* End Loop */}
+
+      <View style={styles.grid}>
+        {photos.map((photo) => {
+          const id = String(photo.id);
+          const liked = likes.has(id);
+          const favorite = favorites.has(id);
+          return (
+            <View key={id} style={styles.gridItem}>
+              <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+                {/* Photo */}
+                <Pressable
+                  onPress={() => openDetail(photo)}
+                  style={({ pressed }) => [pressed && styles.pressed]}
+                  accessibilityRole="button"
+                >
+                  <Image
+                    source={{ uri: photo.imageUrl }}
+                    style={styles.image}
+                    contentFit="cover"
+                    transition={250}
+                    accessibilityLabel={photo.altText}
+                  />
+                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} style={styles.shade} />
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>📍 {locationName || 'Philippines'}</Text>
+                  </View>
+                </Pressable>
+
+                {/* Heart + star on top of the photo */}
+                <View style={styles.badges}>
+                  <IconButton
+                    mode="contained"
+                    containerColor="rgba(255,255,255,0.92)"
+                    icon={liked ? 'heart' : 'heart-outline'}
+                    iconColor={liked ? '#E11D48' : '#475569'}
+                    size={20}
+                    onPress={() => toggleLike(id)}
+                    accessibilityLabel={liked ? 'Unlike' : 'Like'}
+                  />
+                  <IconButton
+                    mode="contained"
+                    containerColor="rgba(255,255,255,0.92)"
+                    icon={favorite ? 'star' : 'star-outline'}
+                    iconColor={favorite ? '#F59E0B' : '#475569'}
+                    size={20}
+                    onPress={() => toggleFavorite(id)}
+                    accessibilityLabel={favorite ? 'Remove favorite' : 'Add to favorites'}
+                  />
+                </View>
+
+                {/* Caption + credit */}
+                <View style={styles.content}>
+                  <Text variant="bodyMedium" numberOfLines={2} style={styles.caption}>
+                    {photo.altText || 'Beautiful tourist spot'}
+                  </Text>
+                  <Pressable
+                    onPress={() => photo.photographerUrl && WebBrowser.openBrowserAsync(photo.photographerUrl)}
+                    accessibilityRole="link"
+                  >
+                    <Text variant="labelMedium" style={{ color: theme.colors.primary }}>
+                      📸 {photo.photographer}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {/* Actions */}
+                <View style={[styles.actions, { borderTopColor: theme.colors.outlineVariant }]}>
+                  <IconButton
+                    icon="map-marker"
+                    iconColor={theme.colors.primary}
+                    size={22}
+                    onPress={() => openLocation(locationName)}
+                    accessibilityLabel="Open location in maps"
+                  />
+                  <IconButton
+                    icon="share-variant"
+                    iconColor={theme.colors.primary}
+                    size={22}
+                    onPress={() => handleShare(photo)}
+                    accessibilityLabel="Share"
+                  />
+                  <IconButton
+                    icon="download"
+                    iconColor={theme.colors.primary}
+                    size={22}
+                    onPress={() => handleDownload(photo)}
+                    accessibilityLabel="Download"
+                  />
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      <Snackbar visible={!!toast} onDismiss={() => setToast('')} duration={2500}>
+        {toast}
+      </Snackbar>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  grid: {
+  wrapper: { width: '100%' },
+  center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
+  headerRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 14,
   },
-  gridItem: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    minWidth: 240,
-  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, width: '100%' },
+  gridItem: { flexGrow: 1, flexBasis: '30%', minWidth: 240 },
   card: {
     width: '100%',
+    borderRadius: 22,
     overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
-  cardContent: {
-    paddingBottom: 12,
+  pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
+  image: { width: '100%', aspectRatio: 4 / 3 },
+  shade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 80, pointerEvents: 'none' },
+  pill: {
+    position: 'absolute',
+    left: 12,
+    bottom: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
-  creditLabel: {
-    opacity: 0.7,
+  pillText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  badges: { position: 'absolute', top: 6, right: 6, flexDirection: 'row' },
+  content: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6, gap: 4 },
+  caption: { fontWeight: '600' },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 6,
   },
 });
