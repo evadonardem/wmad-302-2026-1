@@ -1,7 +1,8 @@
 
 /**
- * Recipe Details Screen
- * Displays recipe information and manages Favorites and Meal Planning.
+ * Recipe Details Screen - Cookbook
+ * Green and white food-inspired design.
+ * Manages Favorites and Meal Planning.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -14,6 +15,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  StyleSheet,
 } from 'react-native';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -183,10 +185,10 @@ export default function RecipeDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
+        <ActivityIndicator size="large" color="#43A52F" />
 
         <Text style={styles.loadingText}>
-          Loading recipe...
+          Preparing your recipe...
         </Text>
       </View>
     );
@@ -201,18 +203,23 @@ export default function RecipeDetailsScreen() {
       <View style={styles.centerContainer}>
         <MaterialCommunityIcons
           name="food-off"
-          size={60}
-          color="#999"
+          size={65}
+          color="#8A9687"
         />
 
         <Text style={styles.errorTitle}>
           Recipe Not Found
         </Text>
 
+        <Text style={styles.errorText}>
+          We could not find this recipe. Please try another one.
+        </Text>
+
         <Button
           mode="contained"
-          buttonColor="#E85D04"
+          buttonColor="#43A52F"
           onPress={() => router.back()}
+          style={styles.backActionButton}
         >
           Go Back
         </Button>
@@ -226,7 +233,10 @@ export default function RecipeDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* RECIPE IMAGE */}
 
         <View style={styles.imageContainer}>
@@ -236,13 +246,17 @@ export default function RecipeDetailsScreen() {
             resizeMode="cover"
           />
 
+          <View style={styles.imageOverlay} />
+
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            activeOpacity={0.8}
+            accessibilityLabel="Go back"
           >
             <MaterialCommunityIcons
               name="arrow-left"
-              size={26}
+              size={25}
               color="#FFFFFF"
             />
           </TouchableOpacity>
@@ -251,14 +265,32 @@ export default function RecipeDetailsScreen() {
             style={styles.favoriteButton}
             onPress={handleToggleFavorite}
             disabled={savingFavorite}
+            activeOpacity={0.8}
+            accessibilityLabel={
+              isFavorite ? 'Remove from favorites' : 'Add to favorites'
+            }
           >
             <MaterialCommunityIcons
               name={isFavorite ? 'heart' : 'heart-outline'}
-              size={28}
-              color={isFavorite ? '#E53935' : '#FFFFFF'}
+              size={27}
+              color={isFavorite ? '#FF5252' : '#FFFFFF'}
             />
           </TouchableOpacity>
+
+          <View style={styles.imageLabel}>
+            <MaterialCommunityIcons
+              name="food"
+              size={15}
+              color="#FFFFFF"
+            />
+
+            <Text style={styles.imageLabelText}>
+              RECIPE DETAILS
+            </Text>
+          </View>
         </View>
+
+        {/* MAIN CONTENT */}
 
         <View style={styles.content}>
           {/* RECIPE INFORMATION */}
@@ -267,43 +299,71 @@ export default function RecipeDetailsScreen() {
             {recipe.name}
           </Text>
 
-          <Text style={styles.cuisine}>
-            {recipe.cuisine}
-          </Text>
+          <View style={styles.cuisineRow}>
+            <MaterialCommunityIcons
+              name="silverware-fork-knife"
+              size={17}
+              color="#43A52F"
+            />
+
+            <Text style={styles.cuisine}>
+              {recipe.cuisine}
+            </Text>
+          </View>
 
           <View style={styles.ratingContainer}>
             <MaterialCommunityIcons
               name="star"
-              size={20}
-              color="#FFB300"
+              size={21}
+              color="#F9A825"
             />
 
+            <Text style={styles.ratingValue}>
+              {recipe.rating.toFixed(1)}
+            </Text>
+
             <Text style={styles.ratingText}>
-              {recipe.rating} ({recipe.reviewCount} reviews)
+              ({recipe.reviewCount} reviews)
             </Text>
           </View>
 
+          {/* RECIPE CHIPS */}
+
           <View style={styles.chipContainer}>
-            <Chip style={styles.chip}>
+            <Chip
+              icon="chef-hat"
+              style={styles.difficultyChip}
+              textStyle={styles.chipText}
+            >
               {recipe.difficulty}
             </Chip>
 
-            <Chip style={styles.chip}>
+            <Chip
+              icon="food"
+              style={styles.mealChip}
+              textStyle={styles.chipText}
+            >
               {recipe.mealType?.[0] || 'Recipe'}
             </Chip>
           </View>
 
-          {/* RECIPE TIME AND SERVINGS */}
+          {/* TIME AND SERVINGS */}
 
-          <Card style={styles.infoCard}>
+          <Text style={styles.sectionTitle}>
+            Cooking Information
+          </Text>
+
+          <Card style={styles.infoCard} elevation={1}>
             <Card.Content>
               <View style={styles.infoRow}>
                 <View style={styles.infoItem}>
-                  <MaterialCommunityIcons
-                    name="clock-outline"
-                    size={25}
-                    color="#E85D04"
-                  />
+                  <View style={styles.infoIconContainer}>
+                    <MaterialCommunityIcons
+                      name="clock-outline"
+                      size={24}
+                      color="#43A52F"
+                    />
+                  </View>
 
                   <Text style={styles.infoValue}>
                     {recipe.prepTimeMinutes} min
@@ -314,12 +374,16 @@ export default function RecipeDetailsScreen() {
                   </Text>
                 </View>
 
+                <View style={styles.infoDivider} />
+
                 <View style={styles.infoItem}>
-                  <MaterialCommunityIcons
-                    name="stove"
-                    size={25}
-                    color="#E85D04"
-                  />
+                  <View style={styles.infoIconContainer}>
+                    <MaterialCommunityIcons
+                      name="stove"
+                      size={24}
+                      color="#43A52F"
+                    />
+                  </View>
 
                   <Text style={styles.infoValue}>
                     {recipe.cookTimeMinutes} min
@@ -330,12 +394,16 @@ export default function RecipeDetailsScreen() {
                   </Text>
                 </View>
 
+                <View style={styles.infoDivider} />
+
                 <View style={styles.infoItem}>
-                  <MaterialCommunityIcons
-                    name="account-group-outline"
-                    size={25}
-                    color="#E85D04"
-                  />
+                  <View style={styles.infoIconContainer}>
+                    <MaterialCommunityIcons
+                      name="account-group-outline"
+                      size={24}
+                      color="#43A52F"
+                    />
+                  </View>
 
                   <Text style={styles.infoValue}>
                     {recipe.servings}
@@ -351,132 +419,241 @@ export default function RecipeDetailsScreen() {
 
           {/* INGREDIENTS */}
 
-          <Text style={styles.sectionTitle}>
-            Ingredients
-          </Text>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>
+                Ingredients
+              </Text>
 
-          {recipe.ingredients.map((ingredient, index) => (
-            <View key={index} style={styles.ingredientRow}>
-              <MaterialCommunityIcons
-                name="checkbox-marked-circle-outline"
-                size={21}
-                color="#E85D04"
-              />
-
-              <Text style={styles.ingredientText}>
-                {ingredient}
+              <Text style={styles.sectionSubtitle}>
+                Everything you need for this recipe
               </Text>
             </View>
-          ))}
+
+            <View style={styles.sectionIcon}>
+              <MaterialCommunityIcons
+                name="basket-outline"
+                size={23}
+                color="#43A52F"
+              />
+            </View>
+          </View>
+
+          <Card style={styles.ingredientsCard} elevation={1}>
+            <Card.Content>
+              {recipe.ingredients.map((ingredient, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.ingredientRow,
+                    index !== recipe.ingredients.length - 1 &&
+                      styles.ingredientBorder,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="check-circle-outline"
+                    size={21}
+                    color="#43A52F"
+                  />
+
+                  <Text style={styles.ingredientText}>
+                    {ingredient}
+                  </Text>
+                </View>
+              ))}
+            </Card.Content>
+          </Card>
 
           {/* COOKING INSTRUCTIONS */}
 
-          <Text style={styles.sectionTitle}>
-            Cooking Instructions
-          </Text>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>
+                Cooking Instructions
+              </Text>
+
+              <Text style={styles.sectionSubtitle}>
+                Follow these steps to prepare your dish
+              </Text>
+            </View>
+
+            <View style={styles.sectionIcon}>
+              <MaterialCommunityIcons
+                name="chef-hat"
+                size={23}
+                color="#43A52F"
+              />
+            </View>
+          </View>
 
           {recipe.instructions.map((instruction, index) => (
-            <View key={index} style={styles.instructionRow}>
+            <View
+              key={index}
+              style={styles.instructionRow}
+            >
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>
                   {index + 1}
                 </Text>
               </View>
 
-              <Text style={styles.instructionText}>
-                {instruction}
-              </Text>
+              <View style={styles.instructionContent}>
+                <Text style={styles.stepLabel}>
+                  STEP {index + 1}
+                </Text>
+
+                <Text style={styles.instructionText}>
+                  {instruction}
+                </Text>
+              </View>
             </View>
           ))}
 
           {/* NUTRITION */}
 
-          <Text style={styles.sectionTitle}>
-            Nutrition
-          </Text>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>
+                Nutrition Information
+              </Text>
 
-          <Card style={styles.nutritionCard}>
+              <Text style={styles.sectionSubtitle}>
+                Nutritional value per serving
+              </Text>
+            </View>
+
+            <View style={styles.sectionIcon}>
+              <MaterialCommunityIcons
+                name="leaf"
+                size={23}
+                color="#43A52F"
+              />
+            </View>
+          </View>
+
+          <Card style={styles.nutritionCard} elevation={1}>
             <Card.Content>
-              <View style={styles.nutritionRow}>
-                <Text style={styles.nutritionLabel}>
-                  Calories per serving
-                </Text>
+              <View style={styles.nutritionContent}>
+                <View style={styles.calorieIcon}>
+                  <MaterialCommunityIcons
+                    name="fire"
+                    size={28}
+                    color="#43A52F"
+                  />
+                </View>
 
-                <Text style={styles.nutritionValue}>
-                  {recipe.caloriesPerServing} kcal
-                </Text>
+                <View style={styles.calorieInfo}>
+                  <Text style={styles.nutritionLabel}>
+                    Calories per serving
+                  </Text>
+
+                  <Text style={styles.nutritionDescription}>
+                    Estimated energy content
+                  </Text>
+                </View>
+
+                <View style={styles.calorieValueContainer}>
+                  <Text style={styles.nutritionValue}>
+                    {recipe.caloriesPerServing}
+                  </Text>
+
+                  <Text style={styles.kcalText}>
+                    kcal
+                  </Text>
+                </View>
               </View>
             </Card.Content>
           </Card>
 
           {/* ADD TO MEAL PLAN */}
 
-          <Button
-            mode="contained"
-            buttonColor="#5E60CE"
-            textColor="#FFFFFF"
-            icon="calendar-plus"
-            loading={savingMeal}
-            disabled={savingMeal}
-            onPress={() =>
-              setShowMealOptions(!showMealOptions)
-            }
-            style={styles.favoriteActionButton}
-          >
-            Add to Meal Plan
-          </Button>
+          <View style={styles.actionsContainer}>
+            <Text style={styles.actionsTitle}>
+              Ready to cook?
+            </Text>
 
-          {showMealOptions && (
-            <View style={styles.mealOptionsContainer}>
-              <Text style={styles.mealOptionsTitle}>
-                Select a Meal
-              </Text>
+            <Text style={styles.actionsSubtitle}>
+              Add this recipe to your daily meal plan or save it for later.
+            </Text>
 
-              {(
-                ['Breakfast', 'Lunch', 'Dinner'] as MealType[]
-              ).map((mealType) => (
-                <TouchableOpacity
-                  key={mealType}
-                  disabled={savingMeal}
-                  onPress={() => handleAddToMealPlan(mealType)}
-                  style={styles.mealOption}
-                >
-                  <MaterialCommunityIcons
-                    name={
-                      mealType === 'Breakfast'
-                        ? 'weather-sunny'
-                        : mealType === 'Lunch'
-                          ? 'white-balance-sunny'
-                          : 'weather-night'
-                    }
-                    size={23}
-                    color="#E85D04"
-                  />
+            <Button
+              mode="contained"
+              buttonColor="#43A52F"
+              textColor="#FFFFFF"
+              icon="calendar-plus"
+              loading={savingMeal}
+              disabled={savingMeal}
+              onPress={() =>
+                setShowMealOptions(!showMealOptions)
+              }
+              style={styles.actionButton}
+              contentStyle={styles.actionButtonContent}
+              labelStyle={styles.actionButtonLabel}
+            >
+              Add to Meal Plan
+            </Button>
 
-                  <Text style={styles.mealOptionText}>
-                    {mealType}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+            {showMealOptions && (
+              <View style={styles.mealOptionsContainer}>
+                <Text style={styles.mealOptionsTitle}>
+                  Select a Meal
+                </Text>
 
-          {/* FAVORITES BUTTON */}
+                {(
+                  ['Breakfast', 'Lunch', 'Dinner'] as MealType[]
+                ).map((mealType) => (
+                  <TouchableOpacity
+                    key={mealType}
+                    disabled={savingMeal}
+                    onPress={() => handleAddToMealPlan(mealType)}
+                    style={styles.mealOption}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons
+                      name={
+                        mealType === 'Breakfast'
+                          ? 'weather-sunny'
+                          : mealType === 'Lunch'
+                            ? 'white-balance-sunny'
+                            : 'weather-night'
+                      }
+                      size={23}
+                      color="#43A52F"
+                    />
 
-          <Button
-            mode="contained"
-            buttonColor="#E85D04"
-            textColor="#FFFFFF"
-            icon={isFavorite ? 'heart' : 'heart-outline'}
-            loading={savingFavorite}
-            disabled={savingFavorite}
-            onPress={handleToggleFavorite}
-            style={styles.favoriteActionButton}
-          >
-            {isFavorite
-              ? 'Remove from Favorites'
-              : 'Add to Favorites'}
-          </Button>
+                    <Text style={styles.mealOptionText}>
+                      {mealType}
+                    </Text>
+
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={21}
+                      color="#8A9687"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* FAVORITES BUTTON */}
+
+            <Button
+              mode="outlined"
+              buttonColor="#FFFFFF"
+              textColor="#43A52F"
+              icon={isFavorite ? 'heart' : 'heart-outline'}
+              loading={savingFavorite}
+              disabled={savingFavorite}
+              onPress={handleToggleFavorite}
+              style={styles.favoriteActionButton}
+              contentStyle={styles.actionButtonContent}
+              labelStyle={styles.favoriteButtonLabel}
+            >
+              {isFavorite
+                ? 'Remove from Favorites'
+                : 'Add to Favorites'}
+            </Button>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -487,192 +664,471 @@ export default function RecipeDetailsScreen() {
 // STYLES
 // ======================================
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFDF9',
+    backgroundColor: '#F5FAF3',
   },
+
+  scrollContent: {
+    paddingBottom: 35,
+  },
+
   centerContainer: {
     flex: 1,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#FFFDF9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5FAF3',
     padding: 24,
     gap: 15,
   },
+
   loadingText: {
-    color: '#666666',
+    color: '#52634F',
     fontSize: 16,
+    fontWeight: '500',
   },
+
   errorTitle: {
-    fontSize: 22,
-    fontWeight: 'bold' as const,
-    color: '#333333',
+    fontSize: 23,
+    fontWeight: '700',
+    color: '#1B5E20',
   },
+
+  errorText: {
+    fontSize: 14,
+    color: '#687868',
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+
+  backActionButton: {
+    marginTop: 10,
+    borderRadius: 12,
+  },
+
+  // Hero image
+
   imageContainer: {
-    width: '100%' as const,
-    height: 280,
-    position: 'relative' as const,
+    width: '100%',
+    height: 300,
+    position: 'relative',
+    backgroundColor: '#DDEBDD',
   },
+
   recipeImage: {
-    width: '100%' as const,
-    height: '100%' as const,
+    width: '100%',
+    height: '100%',
   },
+
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
+  },
+
   backButton: {
-    position: 'absolute' as const,
-    top: 45,
+    position: 'absolute',
+    top: 48,
     left: 18,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    width: 46,
+    height: 46,
+    backgroundColor: 'rgba(27, 94, 32, 0.85)',
     borderRadius: 25,
-    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   favoriteButton: {
-    position: 'absolute' as const,
-    top: 45,
+    position: 'absolute',
+    top: 48,
     right: 18,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    width: 46,
+    height: 46,
+    backgroundColor: 'rgba(27, 94, 32, 0.85)',
     borderRadius: 25,
-    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
+  imageLabel: {
+    position: 'absolute',
+    bottom: 18,
+    left: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(27, 94, 32, 0.85)',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+
+  imageLabelText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+
+  // Main content
+
   content: {
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingTop: 23,
   },
+
   recipeName: {
     fontSize: 27,
-    fontWeight: 'bold' as const,
-    color: '#333333',
+    lineHeight: 35,
+    fontWeight: '700',
+    color: '#1B5E20',
   },
+
+  cuisineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 9,
+  },
+
   cuisine: {
     fontSize: 15,
-    color: '#888888',
-    marginTop: 5,
+    color: '#687868',
+    fontWeight: '500',
   },
+
   ratingContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    marginTop: 12,
-  },
-  ratingText: {
-    marginLeft: 5,
-    fontSize: 14,
-    color: '#666666',
-  },
-  chipContainer: {
-    flexDirection: 'row' as const,
-    gap: 8,
-    marginTop: 15,
-    marginBottom: 15,
-  },
-  chip: {
-    backgroundColor: '#FFF0E5',
-  },
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 25,
-  },
-  infoRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-around' as const,
-  },
-  infoItem: {
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 13,
     gap: 5,
   },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: 'bold' as const,
-    color: '#333333',
+
+  ratingValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#344534',
   },
+
+  ratingText: {
+    fontSize: 13,
+    color: '#849083',
+  },
+
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+
+  difficultyChip: {
+    backgroundColor: '#E8F5E9',
+  },
+
+  mealChip: {
+    backgroundColor: '#F1F8E9',
+  },
+
+  chipText: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // Section headings
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 25,
+    marginBottom: 13,
+  },
+
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1B5E20',
+  },
+
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#81907E',
+    marginTop: 4,
+  },
+
+  sectionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Cooking information
+
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginTop: 3,
+    borderWidth: 1,
+    borderColor: '#E3EDE0',
+  },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+
+  infoItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 5,
+  },
+
+  infoIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+
+  infoValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1B5E20',
+  },
+
   infoLabel: {
     fontSize: 11,
-    color: '#888888',
+    color: '#81907E',
+    textAlign: 'center',
   },
-  sectionTitle: {
-    fontSize: 21,
-    fontWeight: 'bold' as const,
-    color: '#333333',
-    marginTop: 18,
-    marginBottom: 15,
+
+  infoDivider: {
+    width: 1,
+    height: 65,
+    backgroundColor: '#E3EDE0',
   },
+
+  // Ingredients
+
+  ingredientsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E3EDE0',
+  },
+
   ingredientRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    marginBottom: 12,
-    gap: 10,
-  },
-  ingredientText: {
-    flex: 1,
-    fontSize: 15,
-    color: '#555555',
-  },
-  instructionRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    marginBottom: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
     gap: 12,
   },
-  stepNumber: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#E85D04',
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+
+  ingredientBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDF3EA',
   },
+
+  ingredientText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#405040',
+  },
+
+  // Cooking instructions
+
+  instructionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    gap: 13,
+  },
+
+  stepNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 13,
+    backgroundColor: '#43A52F',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   stepNumberText: {
     color: '#FFFFFF',
-    fontWeight: 'bold' as const,
-  },
-  instructionText: {
-    flex: 1,
     fontSize: 15,
-    lineHeight: 23,
-    color: '#555555',
+    fontWeight: '700',
   },
+
+  instructionContent: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 13,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E3EDE0',
+  },
+
+  stepLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#43A52F',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+
+  instructionText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#405040',
+  },
+
+  // Nutrition
+
   nutritionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E3EDE0',
   },
-  nutritionRow: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
+
+  nutritionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
+
+  calorieIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  calorieInfo: {
+    flex: 1,
+  },
+
   nutritionLabel: {
     fontSize: 14,
-    color: '#666666',
+    fontWeight: '700',
+    color: '#344534',
   },
+
+  nutritionDescription: {
+    fontSize: 11,
+    color: '#849083',
+    marginTop: 4,
+  },
+
+  calorieValueContainer: {
+    alignItems: 'flex-end',
+  },
+
   nutritionValue: {
-    fontSize: 15,
-    fontWeight: 'bold' as const,
-    color: '#E85D04',
+    fontSize: 23,
+    fontWeight: '700',
+    color: '#2E7D32',
   },
-  favoriteActionButton: {
-    marginTop: 25,
-    marginBottom: 15,
-    borderRadius: 8,
+
+  kcalText: {
+    fontSize: 11,
+    color: '#81907E',
   },
-  mealOptionsContainer: {
+
+  // Actions
+
+  actionsContainer: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 18,
+    padding: 17,
+    marginTop: 28,
+  },
+
+  actionsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1B5E20',
+  },
+
+  actionsSubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#52634F',
+    marginTop: 5,
+    marginBottom: 16,
+  },
+
+  actionButton: {
+    borderRadius: 12,
     marginBottom: 10,
   },
-  mealOptionsTitle: {
-    fontSize: 17,
-    fontWeight: 'bold' as const,
-    color: '#333333',
+
+  actionButtonContent: {
+    height: 49,
+  },
+
+  actionButtonLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  favoriteActionButton: {
+    borderColor: '#43A52F',
+    borderWidth: 1.5,
+    borderRadius: 12,
+  },
+
+  favoriteButtonLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // Meal selection
+
+  mealOptionsContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 13,
+    borderRadius: 14,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#D5E8D0',
   },
-  mealOption: {
-    backgroundColor: '#FFF0E5',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 9,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-  },
-  mealOptionText: {
-    marginLeft: 12,
+
+  mealOptionsTitle: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#333333',
+    fontWeight: '700',
+    color: '#1B5E20',
+    marginBottom: 9,
   },
-};
+
+  mealOption: {
+    backgroundColor: '#F5FAF3',
+    paddingHorizontal: 13,
+    paddingVertical: 13,
+    borderRadius: 10,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  mealOptionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#344534',
+  },
+});
