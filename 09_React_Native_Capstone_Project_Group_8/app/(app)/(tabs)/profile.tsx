@@ -403,7 +403,7 @@ export default function ProfileScreen() {
                     style={props.style}
                   />
                 )}
-                onPress={() => showComingSoon('My Recipes')}
+                onPress={() => router.push('/(app)/my-recipes')}
               />
 
               <Divider style={styles.divider} />
@@ -427,7 +427,7 @@ export default function ProfileScreen() {
                     style={props.style}
                   />
                 )}
-                onPress={() => showComingSoon('My Cookbook')}
+                onPress={() => router.push('/(app)/my-cookbook')}
               />
 
               <Divider style={styles.divider} />
