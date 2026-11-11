@@ -5,13 +5,16 @@
  */
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
+import type { LoginCredentials, RegisterData, AuthResponse, AuthProfile, AuthUser, RefreshTokenResponse } from '@/types/auth';
+import { authStorage } from '@/utils/storage';
 
-const API_BASE_URL = 'https://dummyjson.com/auth';
+const API_BASE_URL = process.env.EXPO_PUBLIC_AUTH_API_URL?.trim() || 'https://dummyjson.com/auth';
+const hasCustomAuthApi = Boolean(process.env.EXPO_PUBLIC_AUTH_API_URL?.trim());
 
 class AuthApiService {
   private client: AxiosInstance;
   private refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
+  private sessionExpiredHandler: (() => void) | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -24,8 +27,8 @@ class AuthApiService {
 
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        const token = this.getAccessToken();
+      async (config: InternalAxiosRequestConfig) => {
+        const token = await this.getAccessToken();
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -41,7 +44,12 @@ class AuthApiService {
         const originalRequest = error.config;
 
         // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+          error.response?.status === 401
+          && originalRequest
+          && !originalRequest._retry
+          && !['/login', '/refresh'].includes(originalRequest.url || '')
+        ) {
           originalRequest._retry = true;
 
           try {
@@ -50,8 +58,8 @@ class AuthApiService {
             return this.client(originalRequest);
           } catch (refreshError) {
             // Refresh failed, redirect to login
-            this.clearTokens();
-            // TODO: Student to implement navigation redirect to login
+            await this.clearTokens();
+            this.sessionExpiredHandler?.();
             console.warn('Token refresh failed, user logged out');
             return Promise.reject(refreshError);
           }
@@ -62,38 +70,27 @@ class AuthApiService {
     );
   }
 
-  private getAccessToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || user.accessToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+  private async getAccessToken(): Promise<string | null> {
+    return (await authStorage.getUser())?.token ?? null;
   }
 
-  private getRefreshToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.refreshToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+  private async getRefreshToken(): Promise<string | null> {
+    return (await authStorage.getUser())?.refreshToken ?? null;
   }
 
-  private setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
+  async setTokens(user: AuthUser): Promise<void> {
+    await authStorage.setUser(user);
   }
 
-  private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+  setSessionExpiredHandler(handler: () => void): () => void {
+    this.sessionExpiredHandler = handler;
+    return () => {
+      if (this.sessionExpiredHandler === handler) this.sessionExpiredHandler = null;
+    };
+  }
+
+  private async clearTokens(): Promise<void> {
+    await authStorage.clearUser();
   }
 
   /**
@@ -101,35 +98,67 @@ class AuthApiService {
    * POST /auth/login
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await this.client.post<AuthUser>('/login', {
+    const response = await this.client.post<AuthResponse>('/login', {
       username: credentials.username,
       password: credentials.password,
       expiresInMins: credentials.expiresInMins || 60,
     });
-    this.setTokens(response.data);
-    return response.data;
+    const user = this.normalizeUser(response.data);
+    await this.setTokens(user);
+    return user;
   }
 
-  /**
-   * Register new user
-   * POST /auth/register
-   * TODO: Students to complete this implementation
-   */
+  /** Registration is enabled only for a configured API that supports POST /register. */
   async register(data: RegisterData): Promise<AuthUser> {
-    // TODO: Student implementation
-    // 1. Call POST /auth/register with data
-    // 2. On success, call login() to get tokens
-    // 3. Return user with tokens
-    throw new Error('TODO: Implement register - call /auth/register then login');
+    if (!hasCustomAuthApi) {
+      throw new Error('DummyJSON does not support account registration. Configure EXPO_PUBLIC_AUTH_API_URL with an auth API that implements POST /register.');
+    }
+    const response = await this.client.post<AuthResponse>('/register', data);
+    const user = this.normalizeUser(response.data);
+    await this.setTokens(user);
+    return user;
   }
 
   /**
    * Get current user profile (requires valid token)
    * GET /auth/me
    */
-  async getMe(): Promise<AuthUser> {
-    const response = await this.client.get<AuthUser>('/me');
+  async getMe(): Promise<AuthProfile> {
+    const response = await this.client.get<AuthProfile>('/me');
     return response.data;
+  }
+
+  private normalizeUser(response: AuthResponse): AuthUser {
+    const token = response.token ?? response.accessToken;
+    if (!token || !response.refreshToken) {
+      throw new Error('The authentication server returned an incomplete session.');
+    }
+    return {
+      id: response.id,
+      username: response.username,
+      email: response.email,
+      firstName: response.firstName,
+      lastName: response.lastName,
+      gender: response.gender,
+      image: response.image,
+      token,
+      refreshToken: response.refreshToken,
+    };
+  }
+
+  async updateProfile(
+    id: number,
+    profile: Pick<AuthUser, 'firstName' | 'lastName' | 'email'>
+  ): Promise<AuthUser> {
+    const response = await axios.put<Partial<AuthUser>>(`https://dummyjson.com/users/${id}`, profile, {
+      timeout: 10000,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const currentUser = await this.getStoredUser();
+    if (!currentUser) throw new Error('Your session has expired. Please sign in again.');
+    const updatedUser = { ...currentUser, ...response.data, ...profile };
+    await this.setTokens(updatedUser);
+    return updatedUser;
   }
 
   /**
@@ -137,38 +166,33 @@ class AuthApiService {
    * POST /auth/refresh
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
-    // Prevent multiple simultaneous refresh calls
     if (this.refreshTokenPromise) {
       return this.refreshTokenPromise;
     }
 
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
+    this.refreshTokenPromise = (async () => {
+      const refreshToken = await this.getRefreshToken();
+      if (!refreshToken) throw new Error('No refresh token available');
 
-    this.refreshTokenPromise = this.client
-      .post<RefreshTokenResponse>('/refresh', {
-        refreshToken,
-        expiresInMins: 60,
-      })
-      .then((response) => {
-        // Update stored tokens with new ones
-        const currentUser = this.getStoredUser();
+      try {
+        const response = await this.client.post<RefreshTokenResponse>('/refresh', {
+          refreshToken,
+          expiresInMins: 60,
+        });
+        const currentUser = await this.getStoredUser();
         if (currentUser) {
-          const updatedUser = {
+          await this.setTokens({
             ...currentUser,
             token: response.data.accessToken,
             refreshToken: response.data.refreshToken,
-          };
-          this.setTokens(updatedUser);
+          });
         }
         return response.data;
-      })
-      .catch((error) => {
-        this.clearTokens();
+      } catch (error) {
+        await this.clearTokens();
         throw error;
-      })
+      }
+    })()
       .finally(() => {
         this.refreshTokenPromise = null;
       });
@@ -179,28 +203,23 @@ class AuthApiService {
   /**
    * Get stored user data
    */
-  getStoredUser(): AuthUser | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
+  getStoredUser(): Promise<AuthUser | null> {
+    return authStorage.getUser();
   }
 
   /**
    * Logout - clear local tokens
    * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only
    */
-  logout(): void {
-    this.clearTokens();
+  async logout(): Promise<void> {
+    await this.clearTokens();
   }
 
   /**
    * Check if user has valid tokens stored
    */
-  hasValidTokens(): boolean {
-    const user = this.getStoredUser();
+  async hasValidTokens(): Promise<boolean> {
+    const user = await this.getStoredUser();
     return !!(user?.token && user?.refreshToken);
   }
 }

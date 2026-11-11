@@ -4,7 +4,8 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Card, Title, Chip, Badge, Button } from 'react-native-paper';
+import type { DimensionValue, StyleProp, ViewStyle } from 'react-native';
+import { Card, Title, Chip, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface RecipeCardProps {
@@ -19,9 +20,10 @@ interface RecipeCardProps {
     servings: number;
     rating: number;
     reviewCount: number;
+    caloriesPerServing: number;
   };
   onPress: () => void;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function RecipeCard({ recipe, onPress, style }: RecipeCardProps) {
@@ -86,7 +88,7 @@ interface ProductCardProps {
     stock: number;
   };
   onPress: () => void;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function ProductCard({ product, onPress, style }: ProductCardProps) {
@@ -106,9 +108,11 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
             resizeMode="contain"
           />
           {product.discountPercentage > 0 && (
-            <Badge style={styles.discountBadge} variant="primary">
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>
               -{Math.round(product.discountPercentage)}%
-            </Badge>
+              </Text>
+            </View>
           )}
         </View>
         <Card.Content style={styles.cardContent}>
@@ -137,8 +141,8 @@ interface CategoryChipProps {
   label: string;
   selected?: boolean;
   onPress: () => void;
-  icon?: string;
-  style?: any;
+  icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  style?: StyleProp<ViewStyle>;
 }
 
 export function CategoryChip({ label, selected, onPress, icon, style }: CategoryChipProps) {
@@ -186,7 +190,7 @@ export function LoadingOverlay({ visible, message = 'Loading...' }: LoadingOverl
 }
 
 interface EmptyStateProps {
-  icon: string;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   title: string;
   message: string;
   actionLabel?: string;
@@ -210,7 +214,7 @@ export function EmptyState({ icon, title, message, actionLabel, onAction }: Empt
 
 interface SkeletonProps {
   height?: number;
-  width?: number | string;
+  width?: DimensionValue;
   borderRadius?: number;
 }
 
@@ -271,6 +275,11 @@ const styles = StyleSheet.create({
     top: 8,
     left: 8,
     zIndex: 1,
+  },
+  discountText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   cardContent: {
     padding: 16,

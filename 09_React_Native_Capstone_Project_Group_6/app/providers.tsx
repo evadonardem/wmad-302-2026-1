@@ -3,13 +3,26 @@
  */
 import { ReactNode } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
+import { FavoritesProvider } from '@/context/FavoritesContext';
 import { PaperProvider } from 'react-native-paper';
-import { theme } from '@/constants/theme';
+import { darkTheme, theme } from '@/constants/theme';
+import { SettingsProvider, useSettings } from '@/context/SettingsContext';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <PaperProvider theme={theme}>
-      <AuthProvider>{children}</AuthProvider>
+    <SettingsProvider>
+      <ThemedProviders>{children}</ThemedProviders>
+    </SettingsProvider>
+  );
+}
+
+function ThemedProviders({ children }: { children: ReactNode }) {
+  const { darkMode } = useSettings();
+  return (
+    <PaperProvider theme={darkMode ? darkTheme : theme}>
+      <AuthProvider>
+        <FavoritesProvider>{children}</FavoritesProvider>
+      </AuthProvider>
     </PaperProvider>
   );
 }

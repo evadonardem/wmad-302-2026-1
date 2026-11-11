@@ -3,7 +3,7 @@
  * Based on DummyJSON Auth API: https://dummyjson.com/docs/auth
  */
 
-export interface AuthUser {
+export interface AuthProfile {
   id: number;
   username: string;
   email: string;
@@ -11,6 +11,9 @@ export interface AuthUser {
   lastName: string;
   gender: 'male' | 'female';
   image: string;
+}
+
+export interface AuthUser extends AuthProfile {
   token: string;
   refreshToken: string;
 }
@@ -32,18 +35,13 @@ export interface RegisterData {
   image?: string;
 }
 
-export interface AuthResponse extends AuthUser {
-  // DummyJSON returns the user object with tokens on login/register
+export interface AuthResponse extends AuthProfile {
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 export interface RefreshTokenResponse {
-  id: number;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  gender: 'male' | 'female';
-  image: string;
   accessToken: string;
   refreshToken: string;
 }

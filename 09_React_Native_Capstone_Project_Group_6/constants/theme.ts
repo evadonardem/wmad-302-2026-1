@@ -2,7 +2,7 @@
  * React Native Paper Theme - Cookbook App
  * Warm, food-friendly color palette
  */
-import { MD3LightTheme } from 'react-native-paper';
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
 export const theme = {
   ...MD3LightTheme,
@@ -44,5 +44,26 @@ export const theme = {
     labelLarge: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 14, lineHeight: 20, letterSpacing: 0.1 },
     labelMedium: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 12, lineHeight: 16, letterSpacing: 0.5 },
     labelSmall: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 11, lineHeight: 16, letterSpacing: 0.5 },
+  },
+};
+
+export const darkTheme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: '#FFB26B',
+    primaryContainer: '#65320A',
+    secondary: '#D7B5A7',
+    secondaryContainer: '#49332D',
+    tertiary: '#9AD39C',
+    tertiaryContainer: '#254D2D',
+    background: '#171311',
+    surface: '#221C19',
+    surfaceVariant: '#352A25',
+    onBackground: '#F3E8E2',
+    onSurface: '#F3E8E2',
+    onSurfaceVariant: '#D1BDB2',
+    outline: '#A38B7F',
+    outlineVariant: '#58473E',
   },
 };

@@ -6,36 +6,38 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Button, TextInput as PaperTextInput, Divider } from 'react-native-paper';
+import { Card, Button, TextInput as PaperTextInput, Divider, useTheme } from 'react-native-paper';
 import { styles } from './styles';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { login, isLoading, error, clearError } = useAuth();
   const { redirect } = useLocalSearchParams<{ redirect?: string }>();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both username and password');
+    if (!username.trim() || password.length === 0) {
+      setFormError('Please enter both username and password.');
       return;
     }
 
+    setFormError(null);
+    clearError();
     try {
-      await login(username.trim(), password.trim());
+      await login(username.trim(), password);
       // Redirect to intended page or home
       router.replace(redirect || '/(app)/(tabs)/home');
     } catch {
@@ -47,6 +49,8 @@ export default function LoginScreen() {
     // DummyJSON test credentials: emilys / emilyspass
     setUsername('emilys');
     setPassword('emilyspass');
+    setFormError(null);
+    clearError();
     try {
       await login('emilys', 'emilyspass');
       router.replace(redirect || '/(app)/(tabs)/home');
@@ -55,15 +59,9 @@ export default function LoginScreen() {
     }
   };
 
-  React.useEffect(() => {
-    if (error) {
-      Alert.alert('Login Failed', error, [{ text: 'OK', onPress: clearError }]);
-    }
-  }, [error, clearError]);
-
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
@@ -76,20 +74,20 @@ export default function LoginScreen() {
         </View>
 
         {/* Login Card */}
-        <Card style={styles.card} elevation={3}>
+        <Card style={[styles.card, { backgroundColor: colors.surface }]} elevation={3}>
           <Card.Content style={styles.cardContent}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to access your recipes</Text>
+            <Text style={[styles.title, { color: colors.onSurface }]}>Welcome Back</Text>
+            <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>Sign in to access your recipes</Text>
 
             {/* Username Field */}
             <PaperTextInput
               label="Username or Email"
               mode="outlined"
               value={username}
-              onChangeText={setUsername}
+              onChangeText={(value) => { setUsername(value); setFormError(null); }}
               style={styles.input}
               autoCapitalize="none"
-              autoCompleteType="username"
+              autoComplete="username"
               textContentType="username"
               returnKeyType="next"
               disabled={isLoading}
@@ -100,10 +98,10 @@ export default function LoginScreen() {
               label="Password"
               mode="outlined"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => { setPassword(value); setFormError(null); }}
               style={styles.input}
               secureTextEntry={!showPassword}
-              autoCompleteType="password"
+              autoComplete="current-password"
               textContentType="password"
               returnKeyType="go"
               onSubmitEditing={handleLogin}
@@ -114,9 +112,9 @@ export default function LoginScreen() {
             />
 
             {/* Error Display */}
-            {error && (
+            {(formError || error) && (
               <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text style={styles.errorText}>{formError || error}</Text>
               </View>
             )}
 
@@ -146,7 +144,7 @@ export default function LoginScreen() {
 
             {/* Register Link */}
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
+              <Text style={styles.registerText}>Don&apos;t have an account? </Text>
               <TouchableOpacity
                 onPress={() => router.push('/(auth)/register')}
                 style={styles.link}

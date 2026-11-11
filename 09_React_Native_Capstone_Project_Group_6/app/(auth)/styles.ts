@@ -56,6 +56,61 @@ export const styles = StyleSheet.create({
   input: {
     marginBottom: 16,
   },
+  nameRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  optionalRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  genderSelector: {
+    marginBottom: 16,
+  },
+  genderLabel: {
+    color: '#8D6E63',
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  genderOptions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  genderOption: {
+    flex: 1,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BCAAA4',
+    borderRadius: 8,
+    paddingVertical: 11,
+  },
+  genderOptionSelected: {
+    backgroundColor: '#FFF3E0',
+    borderColor: '#E85D04',
+  },
+  genderOptionText: {
+    color: '#5D4037',
+    fontSize: 13,
+  },
+  genderOptionTextSelected: {
+    color: '#E85D04',
+    fontWeight: '700',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  termsText: {
+    flex: 1,
+    color: '#5D4037',
+    fontSize: 13,
+    lineHeight: 19,
+  },
   eyeIcon: {
     padding: 8,
   },
@@ -111,6 +166,15 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8D6E63',
   },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  loginText: {
+    fontSize: 14,
+    color: '#8D6E63',
+  },
   link: {
     paddingHorizontal: 4,
   },
@@ -118,6 +182,31 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: '#E85D04',
     fontWeight: '600',
+  },
+  registerButton: {
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 12,
+    height: 52,
+  },
+  guideContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFCC80',
+  },
+  guideTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#E85D04',
+    marginBottom: 8,
+  },
+  guideText: {
+    fontSize: 13,
+    color: '#5D4037',
+    lineHeight: 20,
   },
   footer: {
     marginTop: 32,

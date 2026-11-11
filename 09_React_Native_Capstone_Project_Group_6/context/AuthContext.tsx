@@ -11,78 +11,9 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-import { AuthState, AuthAction, AuthUser } from '@/types/auth';
+import type { AuthState, AuthUser } from '@/types/auth';
 import { authApi } from '@/services/authApi';
-
-// Initial state
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: true, // Start with true for hydration
-  error: null,
-};
-
-// Reducer
-function authReducer(state: AuthState, action: AuthAction): AuthState {
-  switch (action.type) {
-    case 'AUTH_START':
-      return {
-        ...state,
-        isLoading: true,
-        error: null,
-      };
-
-    case 'AUTH_SUCCESS':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      };
-
-    case 'AUTH_FAILURE':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: action.payload,
-      };
-
-    case 'AUTH_LOGOUT':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      };
-
-    case 'AUTH_HYDRATE':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: !!action.payload,
-        isLoading: false,
-      };
-
-    case 'AUTH_UPDATE_USER':
-      return {
-        ...state,
-        user: state.user ? { ...state.user, ...action.payload } : null,
-      };
-
-    case 'AUTH_CLEAR_ERROR':
-      return {
-        ...state,
-        error: null,
-      };
-
-    default:
-      return state;
-  }
-}
+import { authReducer, initialAuthState } from '@/context/authReducer';
 
 // Context
 interface AuthContextType extends AuthState {
@@ -96,60 +27,75 @@ interface AuthContextType extends AuthState {
     age?: number;
     gender?: 'male' | 'female';
   }) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  updateProfile: (profile: Pick<AuthUser, 'firstName' | 'lastName' | 'email'>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [state, dispatch] = useReducer(authReducer, initialAuthState);
+
+  useEffect(() => authApi.setSessionExpiredHandler(() => {
+    dispatch({ type: 'AUTH_LOGOUT' });
+  }), []);
 
   // Hydrate from storage on mount
   useEffect(() => {
+    let active = true;
+    const dispatchWhileMounted = (action: Parameters<typeof dispatch>[0]) => {
+      if (active) dispatch(action);
+    };
     const hydrateAuth = async () => {
       try {
-        const storedUser = authApi.getStoredUser();
+        const storedUser = await authApi.getStoredUser();
         if (storedUser?.token && storedUser?.refreshToken) {
-          // Verify token still works by fetching user profile
           try {
             const freshUser = await authApi.getMe();
-            // Merge stored tokens with fresh user data
             const mergedUser = {
               ...freshUser,
               token: storedUser.token,
               refreshToken: storedUser.refreshToken,
             };
-            authApi.setTokens(mergedUser); // Update with fresh data
-            dispatch({ type: 'AUTH_HYDRATE', payload: mergedUser });
+            await authApi.setTokens(mergedUser);
+            dispatchWhileMounted({ type: 'AUTH_HYDRATE', payload: mergedUser });
           } catch {
-            // Token expired, try refresh
             try {
               await authApi.refreshAccessToken();
-              const freshUser = await authApi.getMe();
-              const storedAgain = authApi.getStoredUser();
-              if (storedAgain) {
-                dispatch({ type: 'AUTH_HYDRATE', payload: storedAgain });
-              } else {
-                dispatch({ type: 'AUTH_HYDRATE', payload: null });
-              }
-            } catch {
-              // Refresh failed, clear storage
-              authApi.logout();
-              dispatch({ type: 'AUTH_HYDRATE', payload: null });
+              const refreshedUser = await authApi.getMe();
+              const storedAgain = await authApi.getStoredUser();
+              if (!storedAgain) throw new Error('The saved session could not be refreshed.');
+              const mergedUser = {
+                ...refreshedUser,
+                token: storedAgain.token,
+                refreshToken: storedAgain.refreshToken,
+              };
+              await authApi.setTokens(mergedUser);
+              dispatchWhileMounted({ type: 'AUTH_HYDRATE', payload: mergedUser });
+            } catch (refreshError) {
+              await authApi.logout();
+              dispatchWhileMounted({
+                type: 'AUTH_FAILURE',
+                payload: refreshError instanceof Error ? refreshError.message : 'Your session expired. Please sign in again.',
+              });
             }
           }
         } else {
-          dispatch({ type: 'AUTH_HYDRATE', payload: null });
+          dispatchWhileMounted({ type: 'AUTH_HYDRATE', payload: null });
         }
-      } catch {
-        dispatch({ type: 'AUTH_HYDRATE', payload: null });
+      } catch (hydrateError) {
+        dispatchWhileMounted({
+          type: 'AUTH_FAILURE',
+          payload: hydrateError instanceof Error ? hydrateError.message : 'Could not restore your saved session.',
+        });
       }
     };
 
-    hydrateAuth();
+    void hydrateAuth();
+    return () => { active = false; };
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -176,11 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }) => {
       dispatch({ type: 'AUTH_START' });
       try {
-        // TODO: Student implementation
-        // 1. Call authApi.register(data) - implement in services/authApi.ts
-        // 2. On success, dispatch AUTH_SUCCESS
-        // 3. On failure, dispatch AUTH_FAILURE
-        throw new Error('TODO: Implement register in AuthContext - call authApi.register');
+        const user = await authApi.register(data);
+        dispatch({ type: 'AUTH_SUCCESS', payload: user });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Registration failed';
         dispatch({ type: 'AUTH_FAILURE', payload: message });
@@ -190,8 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const logout = useCallback(() => {
-    authApi.logout();
+  const logout = useCallback(async () => {
+    await authApi.logout();
     dispatch({ type: 'AUTH_LOGOUT' });
   }, []);
 
@@ -203,20 +146,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!state.isAuthenticated) return;
     try {
       const user = await authApi.getMe();
-      const storedUser = authApi.getStoredUser();
+      const storedUser = await authApi.getStoredUser();
       if (storedUser) {
         const mergedUser = {
           ...user,
           token: storedUser.token,
           refreshToken: storedUser.refreshToken,
         };
-        authApi.setTokens(mergedUser);
+        await authApi.setTokens(mergedUser);
         dispatch({ type: 'AUTH_SUCCESS', payload: mergedUser });
       }
-    } catch {
-      // Silently fail - token refresh interceptor handles 401s
+    } catch (refreshError) {
+      throw refreshError;
     }
   }, [state.isAuthenticated]);
+
+  const updateProfile = useCallback(async (profile: Pick<AuthUser, 'firstName' | 'lastName' | 'email'>) => {
+    if (!state.user) throw new Error('Please sign in to update your profile.');
+    const updatedUser = await authApi.updateProfile(state.user.id, profile);
+    dispatch({ type: 'AUTH_UPDATE_USER', payload: updatedUser });
+  }, [state.user]);
 
   return (
     <AuthContext.Provider
@@ -227,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         clearError,
         refreshUser,
+        updateProfile,
       }}
     >
       {children}

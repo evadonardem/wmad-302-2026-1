@@ -4,16 +4,19 @@
 import { Stack } from 'expo-router';
 import { Providers } from './providers';
 import * as SplashScreen from 'expo-splash-screen';
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
     <Providers>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(app)" />
-      </Stack>
+      <AppErrorBoundary>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(app)" />
+        </Stack>
+      </AppErrorBoundary>
     </Providers>
   );
 }

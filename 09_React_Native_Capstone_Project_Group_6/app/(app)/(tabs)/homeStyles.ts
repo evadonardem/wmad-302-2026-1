@@ -68,9 +68,15 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 24,
   },
-  sectionHeader: {
+  categoryHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  featuredHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
@@ -78,6 +84,7 @@ export const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#3E2723',
+    textAlign: 'center',
   },
   seeAll: {
     paddingVertical: 4,
@@ -104,7 +111,10 @@ export const styles = StyleSheet.create({
     color: '#E85D04',
   },
   recipeCard: {
+    flex: 1,
+    marginHorizontal: 8,
     marginBottom: 12,
+    minWidth: 160,
   },
   card: {
     borderRadius: 16,
@@ -128,6 +138,12 @@ export const styles = StyleSheet.create({
     top: 12,
     right: 12,
     zIndex: 1,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    zIndex: 2,
   },
   difficultyChip: {
     borderRadius: 12,

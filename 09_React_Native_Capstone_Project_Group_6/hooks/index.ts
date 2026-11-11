@@ -3,8 +3,10 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Platform } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { authStorage } from '@/utils/storage';
+import { authStorage, getStorageItem, setStorageItem } from '@/utils/storage';
+import type { StorageKey } from '@/utils/storage';
 
 /**
  * Hook for managing authentication state with persistence
@@ -37,14 +39,14 @@ export function useAuthPersistence() {
 /**
  * Hook for async storage with state
  */
-export function useAsyncStorage<T>(key: string, initialValue: T) {
+export function useAsyncStorage<T>(key: StorageKey, initialValue: T) {
   const [value, setValue] = useState<T>(initialValue);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const stored = await import('@/utils/storage').then((m) => m.getStorageItem<T>(key as any));
+        const stored = await getStorageItem<T>(key);
         if (stored !== null) setValue(stored);
       } catch (error) {
         console.error(`Failed to load ${key}:`, error);
@@ -60,9 +62,11 @@ export function useAsyncStorage<T>(key: string, initialValue: T) {
       const resolvedValue = newValue instanceof Function ? newValue(value) : newValue;
       setValue(resolvedValue);
       try {
-        await import('@/utils/storage').then((m) => m.setStorageItem(key as any, resolvedValue));
+        await setStorageItem(key, resolvedValue);
       } catch (error) {
+        setValue(value);
         console.error(`Failed to save ${key}:`, error);
+        throw error;
       }
     },
     [key, value]
@@ -120,8 +124,19 @@ export function useInfiniteScroll<T>(
     setPage(0);
     setData([]);
     setHasMore(true);
-    await loadMore();
-  }, [loadMore]);
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await fetchFn(0, limit);
+      setData(result.data);
+      setHasMore(result.hasMore);
+      setPage(1);
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : 'Failed to refresh');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchFn, limit]);
 
   return {
     data,
@@ -140,9 +155,11 @@ export function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
+    setIsOnline(window.navigator.onLine);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 

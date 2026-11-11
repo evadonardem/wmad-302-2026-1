@@ -20,6 +20,7 @@ export interface Recipe {
   rating: number;
   reviewCount: number;
   mealType: string[];
+  isCached?: boolean;
 }
 
 export interface RecipesResponse {
@@ -27,6 +28,7 @@ export interface RecipesResponse {
   total: number;
   skip: number;
   limit: number;
+  isCached?: boolean;
 }
 
 export interface RecipeSearchParams {

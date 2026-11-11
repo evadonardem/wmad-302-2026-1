@@ -127,4 +127,31 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: '#BCAAA4',
   },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    padding: 20,
+  },
+  editCard: {
+    backgroundColor: '#FFFDF8',
+    borderRadius: 18,
+    padding: 20,
+    gap: 12,
+    width: '100%',
+    maxWidth: 480,
+  },
+  editTitle: {
+    color: '#3E2723',
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 8,
+  },
 });

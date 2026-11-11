@@ -4,20 +4,23 @@
  */
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useFavorites } from '@/context/FavoritesContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
 
 export default function TabsLayout() {
-  const { user } = useAuth();
+  const { favoriteIds } = useFavorites();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#E85D04',
-        tabBarInactiveTintColor: '#8D6E63',
+        tabBarLabelPosition: 'below-icon',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.onSurfaceVariant,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surface,
           borderTopWidth: 0,
           elevation: 8,
           shadowColor: '#000',
@@ -28,7 +31,9 @@ export default function TabsLayout() {
           paddingBottom: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
+          lineHeight: 14,
+          marginTop: 2,
           fontWeight: '500',
         },
       }}
@@ -39,7 +44,20 @@ export default function TabsLayout() {
           title: 'Discover',
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
-              name={focused ? 'stove' : 'stove-outline'}
+              name="chef-hat"
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
+        options={{
+          title: 'Categories',
+          tabBarIcon: ({ focused, color }) => (
+            <MaterialCommunityIcons
+              name={focused ? 'shape' : 'shape-outline'}
               size={24}
               color={color}
             />
@@ -52,7 +70,7 @@ export default function TabsLayout() {
           title: 'Search',
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
-              name={focused ? 'magnify' : 'magnify-outline'}
+              name="magnify"
               size={24}
               color={color}
             />
@@ -63,6 +81,8 @@ export default function TabsLayout() {
         name="favorites"
         options={{
           title: 'Favorites',
+          tabBarBadge: favoriteIds.length || undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.primary, color: colors.onPrimary },
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
               name={focused ? 'heart' : 'heart-outline'}

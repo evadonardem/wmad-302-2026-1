@@ -86,6 +86,12 @@ export const styles = StyleSheet.create({
     color: '#C62828',
     textAlign: 'center',
   },
+  retryText: {
+    color: '#E85D04',
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 16,
+  },
   guideContainer: {
     marginTop: 24,
     padding: 16,
