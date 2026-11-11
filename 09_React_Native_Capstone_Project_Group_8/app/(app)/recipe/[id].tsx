@@ -1,10 +1,11 @@
 
 /**
  * Recipe Details Screen
- * Displays recipe information and manages Favorites.
+ * Displays recipe information and manages Favorites and Meal Planning.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
+
 import {
   View,
   Text,
@@ -14,10 +15,17 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Card, Chip, Button } from 'react-native-paper';
-import { favoritesStorage } from '@/utils/storage';
+
+import {
+  favoritesStorage,
+  mealPlanStorage,
+} from '@/utils/storage';
+
+import type { MealType } from '@/utils/storage';
 
 interface Recipe {
   id: number;
@@ -43,8 +51,16 @@ export default function RecipeDetailsScreen() {
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
+
   const [isFavorite, setIsFavorite] = useState(false);
   const [savingFavorite, setSavingFavorite] = useState(false);
+
+  const [showMealOptions, setShowMealOptions] = useState(false);
+  const [savingMeal, setSavingMeal] = useState(false);
+
+  // ======================================
+  // LOAD RECIPE
+  // ======================================
 
   const loadRecipe = useCallback(async () => {
     if (!id) {
@@ -64,12 +80,15 @@ export default function RecipeDetailsScreen() {
       }
 
       const data: Recipe = await response.json();
+
       setRecipe(data);
 
       const favoriteIds = await favoritesStorage.getIds();
+
       setIsFavorite(favoriteIds.includes(data.id));
     } catch (error) {
       console.error('Failed to load recipe:', error);
+
       Alert.alert(
         'Error',
         'Unable to load this recipe. Please try again.'
@@ -80,8 +99,12 @@ export default function RecipeDetailsScreen() {
   }, [id]);
 
   useEffect(() => {
-    loadRecipe();
+    void loadRecipe();
   }, [loadRecipe]);
+
+  // ======================================
+  // TOGGLE FAVORITES
+  // ======================================
 
   const handleToggleFavorite = async () => {
     if (!recipe || savingFavorite) {
@@ -107,14 +130,71 @@ export default function RecipeDetailsScreen() {
     }
   };
 
+  // ======================================
+  // ADD RECIPE TO MEAL PLAN
+  // ======================================
+
+  const handleAddToMealPlan = async (mealType: MealType) => {
+    if (!recipe || savingMeal) {
+      return;
+    }
+
+    try {
+      setSavingMeal(true);
+
+      const now = new Date();
+
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+
+      const today = `${year}-${month}-${day}`;
+
+      const wasAdded = await mealPlanStorage.addEntry(
+        today,
+        mealType,
+        recipe.id
+      );
+
+      setShowMealOptions(false);
+
+      Alert.alert(
+        wasAdded ? 'Meal Planned!' : 'Already Planned',
+        wasAdded
+          ? `${recipe.name} has been added to your ${mealType} plan for today.`
+          : `${recipe.name} is already in your ${mealType} plan for today.`
+      );
+    } catch (error) {
+      console.error('Failed to add recipe to meal plan:', error);
+
+      Alert.alert(
+        'Error',
+        'Unable to add this recipe to your meal plan. Please try again.'
+      );
+    } finally {
+      setSavingMeal(false);
+    }
+  };
+
+  // ======================================
+  // LOADING SCREEN
+  // ======================================
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#E85D04" />
-        <Text style={styles.loadingText}>Loading recipe...</Text>
+
+        <Text style={styles.loadingText}>
+          Loading recipe...
+        </Text>
       </View>
     );
   }
+
+  // ======================================
+  // RECIPE NOT FOUND
+  // ======================================
 
   if (!recipe) {
     return (
@@ -140,9 +220,15 @@ export default function RecipeDetailsScreen() {
     );
   }
 
+  // ======================================
+  // MAIN RECIPE DETAILS SCREEN
+  // ======================================
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* RECIPE IMAGE */}
+
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: recipe.image }}
@@ -175,6 +261,8 @@ export default function RecipeDetailsScreen() {
         </View>
 
         <View style={styles.content}>
+          {/* RECIPE INFORMATION */}
+
           <Text style={styles.recipeName}>
             {recipe.name}
           </Text>
@@ -205,6 +293,8 @@ export default function RecipeDetailsScreen() {
             </Chip>
           </View>
 
+          {/* RECIPE TIME AND SERVINGS */}
+
           <Card style={styles.infoCard}>
             <Card.Content>
               <View style={styles.infoRow}>
@@ -214,9 +304,11 @@ export default function RecipeDetailsScreen() {
                     size={25}
                     color="#E85D04"
                   />
+
                   <Text style={styles.infoValue}>
                     {recipe.prepTimeMinutes} min
                   </Text>
+
                   <Text style={styles.infoLabel}>
                     Preparation
                   </Text>
@@ -228,9 +320,11 @@ export default function RecipeDetailsScreen() {
                     size={25}
                     color="#E85D04"
                   />
+
                   <Text style={styles.infoValue}>
                     {recipe.cookTimeMinutes} min
                   </Text>
+
                   <Text style={styles.infoLabel}>
                     Cooking
                   </Text>
@@ -242,9 +336,11 @@ export default function RecipeDetailsScreen() {
                     size={25}
                     color="#E85D04"
                   />
+
                   <Text style={styles.infoValue}>
                     {recipe.servings}
                   </Text>
+
                   <Text style={styles.infoLabel}>
                     Servings
                   </Text>
@@ -252,6 +348,8 @@ export default function RecipeDetailsScreen() {
               </View>
             </Card.Content>
           </Card>
+
+          {/* INGREDIENTS */}
 
           <Text style={styles.sectionTitle}>
             Ingredients
@@ -271,6 +369,8 @@ export default function RecipeDetailsScreen() {
             </View>
           ))}
 
+          {/* COOKING INSTRUCTIONS */}
+
           <Text style={styles.sectionTitle}>
             Cooking Instructions
           </Text>
@@ -289,6 +389,8 @@ export default function RecipeDetailsScreen() {
             </View>
           ))}
 
+          {/* NUTRITION */}
+
           <Text style={styles.sectionTitle}>
             Nutrition
           </Text>
@@ -306,6 +408,60 @@ export default function RecipeDetailsScreen() {
               </View>
             </Card.Content>
           </Card>
+
+          {/* ADD TO MEAL PLAN */}
+
+          <Button
+            mode="contained"
+            buttonColor="#5E60CE"
+            textColor="#FFFFFF"
+            icon="calendar-plus"
+            loading={savingMeal}
+            disabled={savingMeal}
+            onPress={() =>
+              setShowMealOptions(!showMealOptions)
+            }
+            style={styles.favoriteActionButton}
+          >
+            Add to Meal Plan
+          </Button>
+
+          {showMealOptions && (
+            <View style={styles.mealOptionsContainer}>
+              <Text style={styles.mealOptionsTitle}>
+                Select a Meal
+              </Text>
+
+              {(
+                ['Breakfast', 'Lunch', 'Dinner'] as MealType[]
+              ).map((mealType) => (
+                <TouchableOpacity
+                  key={mealType}
+                  disabled={savingMeal}
+                  onPress={() => handleAddToMealPlan(mealType)}
+                  style={styles.mealOption}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      mealType === 'Breakfast'
+                        ? 'weather-sunny'
+                        : mealType === 'Lunch'
+                          ? 'white-balance-sunny'
+                          : 'weather-night'
+                    }
+                    size={23}
+                    color="#E85D04"
+                  />
+
+                  <Text style={styles.mealOptionText}>
+                    {mealType}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* FAVORITES BUTTON */}
 
           <Button
             mode="contained"
@@ -326,6 +482,10 @@ export default function RecipeDetailsScreen() {
     </View>
   );
 }
+
+// ======================================
+// STYLES
+// ======================================
 
 const styles = {
   container: {
@@ -489,7 +649,30 @@ const styles = {
   },
   favoriteActionButton: {
     marginTop: 25,
-    marginBottom: 30,
+    marginBottom: 15,
     borderRadius: 8,
+  },
+  mealOptionsContainer: {
+    marginBottom: 10,
+  },
+  mealOptionsTitle: {
+    fontSize: 17,
+    fontWeight: 'bold' as const,
+    color: '#333333',
+    marginBottom: 12,
+  },
+  mealOption: {
+    backgroundColor: '#FFF0E5',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 9,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  mealOptionText: {
+    marginLeft: 12,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#333333',
   },
 };

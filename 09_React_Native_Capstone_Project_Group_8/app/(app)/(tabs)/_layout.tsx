@@ -1,8 +1,9 @@
 
 /**
  * Tabs Layout - Cookbook App Navigation
- * Tabs: Home (Discover), Search, Favorites, Profile
+ * Tabs: Discover, Search, Favorites, Meal Plan, Profile
  */
+
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -66,6 +67,20 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
               name={focused ? 'heart' : 'heart-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="meal-planner"
+        options={{
+          title: 'Meal Plan',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons
+              name="calendar-month"
               size={24}
               color={color}
             />

@@ -1,15 +1,22 @@
 
 /**
  * AsyncStorage Utilities
- * Wrapper for @react-native-async-storage/async-storage with TypeScript
+ * Wrapper for AsyncStorage with TypeScript support.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Cart item type
 interface CartItem {
   productId: number;
   quantity: number;
+}
+
+export type MealType = 'Breakfast' | 'Lunch' | 'Dinner';
+
+export interface MealPlanEntry {
+  date: string;
+  mealType: MealType;
+  recipeId: number;
 }
 
 const STORAGE_KEYS = {
@@ -17,14 +24,14 @@ const STORAGE_KEYS = {
   FAVORITES: 'favorite_recipe_ids',
   CART: 'cart_items',
   SETTINGS: 'user_settings',
+  MEAL_PLAN: 'meal_plan_entries',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
 
-/**
- * Get item from storage with type safety
- */
-export async function getStorageItem<T>(key: StorageKey): Promise<T | null> {
+export async function getStorageItem<T>(
+  key: StorageKey
+): Promise<T | null> {
   try {
     const value = await AsyncStorage.getItem(key);
     return value ? JSON.parse(value) as T : null;
@@ -34,9 +41,6 @@ export async function getStorageItem<T>(key: StorageKey): Promise<T | null> {
   }
 }
 
-/**
- * Set item in storage
- */
 export async function setStorageItem<T>(
   key: StorageKey,
   value: T
@@ -49,10 +53,9 @@ export async function setStorageItem<T>(
   }
 }
 
-/**
- * Remove item from storage
- */
-export async function removeStorageItem(key: StorageKey): Promise<void> {
+export async function removeStorageItem(
+  key: StorageKey
+): Promise<void> {
   try {
     await AsyncStorage.removeItem(key);
   } catch (error) {
@@ -60,9 +63,6 @@ export async function removeStorageItem(key: StorageKey): Promise<void> {
   }
 }
 
-/**
- * Clear all app storage
- */
 export async function clearAllStorage(): Promise<void> {
   try {
     await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
@@ -71,9 +71,6 @@ export async function clearAllStorage(): Promise<void> {
   }
 }
 
-/**
- * Get multiple items at once
- */
 export async function getMultipleStorageItems<
   T extends Record<string, unknown>
 >(keys: StorageKey[]): Promise<T> {
@@ -94,9 +91,6 @@ export async function getMultipleStorageItems<
   }
 }
 
-/**
- * Set multiple items at once
- */
 export async function setMultipleStorageItems(
   items: { key: StorageKey; value: unknown }[]
 ): Promise<void> {
@@ -172,6 +166,74 @@ export const favoritesStorage = {
       await favoritesStorage.addId(id);
       return true;
     }
+  },
+};
+
+// ======================================
+// MEAL PLAN STORAGE
+// ======================================
+
+export const mealPlanStorage = {
+  getEntries: async (date?: string): Promise<MealPlanEntry[]> => {
+    const entries =
+      (await getStorageItem<MealPlanEntry[]>(STORAGE_KEYS.MEAL_PLAN)) ?? [];
+
+    if (!date) {
+      return entries;
+    }
+
+    return entries.filter((entry) => entry.date === date);
+  },
+
+  addEntry: async (
+    date: string,
+    mealType: MealType,
+    recipeId: number
+  ): Promise<boolean> => {
+    const entries = await mealPlanStorage.getEntries();
+
+    const alreadyExists = entries.some(
+      (entry) =>
+        entry.date === date &&
+        entry.mealType === mealType &&
+        entry.recipeId === recipeId
+    );
+
+    if (alreadyExists) {
+      return false;
+    }
+
+    const newEntry: MealPlanEntry = {
+      date,
+      mealType,
+      recipeId,
+    };
+
+    await setStorageItem(STORAGE_KEYS.MEAL_PLAN, [
+      ...entries,
+      newEntry,
+    ]);
+
+    return true;
+  },
+
+  removeEntry: async (
+    date: string,
+    mealType: MealType,
+    recipeId: number
+  ): Promise<void> => {
+    const entries = await mealPlanStorage.getEntries();
+
+    const updatedEntries = entries.filter(
+      (entry) =>
+        !(
+          entry.date === date &&
+          entry.mealType === mealType &&
+          entry.recipeId === recipeId
+        )
+    );
+
+    await setStorageItem(STORAGE_KEYS.MEAL_PLAN, updatedEntries);
   },
 };
 
