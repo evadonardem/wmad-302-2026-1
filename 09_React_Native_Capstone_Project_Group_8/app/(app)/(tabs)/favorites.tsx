@@ -1,7 +1,7 @@
 
 /**
  * Favorites Screen - Cookbook
- * Green and white design.
+ * Supports Light Mode, Dark Mode, and System Default.
  * Loads and manages favorite recipes using AsyncStorage.
  */
 
@@ -23,11 +23,12 @@ import {
   Chip,
   Button,
   IconButton,
+  useTheme,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { favoritesStorage } from '@/utils/storage';
-import { styles } from './favoritesStyles';
+import { createFavoritesStyles } from './favoritesStyles';
 
 interface Recipe {
   id: number;
@@ -43,6 +44,8 @@ interface Recipe {
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const theme = useTheme();
+  const styles = createFavoritesStyles(theme);
 
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +184,7 @@ export default function FavoritesScreen() {
               <MaterialCommunityIcons
                 name="clock-outline"
                 size={15}
-                color="#43A52F"
+                color={theme.colors.primary}
               />
 
               <Text style={styles.details}>
@@ -191,7 +194,7 @@ export default function FavoritesScreen() {
               <MaterialCommunityIcons
                 name="account-group-outline"
                 size={15}
-                color="#43A52F"
+                color={theme.colors.primary}
               />
 
               <Text style={styles.details}>
@@ -217,7 +220,7 @@ export default function FavoritesScreen() {
           <IconButton
             icon="heart"
             size={25}
-            iconColor="#E53935"
+            iconColor={theme.colors.error}
             onPress={() => removeFavorite(item.id)}
             accessibilityLabel="Remove from favorites"
           />
@@ -230,7 +233,10 @@ export default function FavoritesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.primary}
+        />
 
         <Text style={styles.loadingText}>
           Loading your favorites...
@@ -248,7 +254,7 @@ export default function FavoritesScreen() {
             <MaterialCommunityIcons
               name="heart-outline"
               size={64}
-              color="#43A52F"
+              color={theme.colors.primary}
             />
           </View>
 
@@ -265,8 +271,8 @@ export default function FavoritesScreen() {
             onPress={() => router.push('/(app)/(tabs)/search')}
             style={styles.browseButton}
             contentStyle={styles.buttonContent}
-            buttonColor="#43A52F"
-            textColor="#FFFFFF"
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.onPrimary}
           >
             Browse Recipes
           </Button>
@@ -305,7 +311,11 @@ export default function FavoritesScreen() {
               <MaterialCommunityIcons
                 name="heart"
                 size={18}
-                color="#FFFFFF"
+                color={
+                  theme.dark
+                    ? theme.colors.onPrimaryContainer
+                    : '#FFFFFF'
+                }
               />
 
               <Text style={styles.countText}>
