@@ -1,138 +1,163 @@
 
-/**
- * React Native Paper Theme - Cookbook App
- * Fresh green and white food-inspired design
- */
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
-import { MD3LightTheme } from 'react-native-paper';
+const appFonts = {
+  displayLarge: {
+    fontFamily: 'System',
+    fontWeight: '700' as const,
+    fontSize: 57,
+    lineHeight: 64,
+    letterSpacing: -0.25,
+  },
+  headlineLarge: {
+    fontFamily: 'System',
+    fontWeight: '700' as const,
+    fontSize: 32,
+    lineHeight: 40,
+  },
+  headlineMedium: {
+    fontFamily: 'System',
+    fontWeight: '700' as const,
+    fontSize: 28,
+    lineHeight: 36,
+  },
+  headlineSmall: {
+    fontFamily: 'System',
+    fontWeight: '700' as const,
+    fontSize: 24,
+    lineHeight: 32,
+  },
+  titleLarge: {
+    fontFamily: 'System',
+    fontWeight: '700' as const,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  titleMedium: {
+    fontFamily: 'System',
+    fontWeight: '600' as const,
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0.15,
+  },
+  titleSmall: {
+    fontFamily: 'System',
+    fontWeight: '600' as const,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0.1,
+  },
+  bodyLarge: {
+    fontFamily: 'System',
+    fontWeight: '400' as const,
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0.5,
+  },
+  bodyMedium: {
+    fontFamily: 'System',
+    fontWeight: '400' as const,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0.25,
+  },
+  bodySmall: {
+    fontFamily: 'System',
+    fontWeight: '400' as const,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.4,
+  },
+  labelLarge: {
+    fontFamily: 'System',
+    fontWeight: '600' as const,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0.1,
+  },
+  labelMedium: {
+    fontFamily: 'System',
+    fontWeight: '500' as const,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.5,
+  },
+  labelSmall: {
+    fontFamily: 'System',
+    fontWeight: '500' as const,
+    fontSize: 11,
+    lineHeight: 16,
+    letterSpacing: 0.5,
+  },
+};
 
-export const theme = {
+export const lightTheme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-
     primary: '#43A52F',
     primaryContainer: '#E8F5E9',
-
     secondary: '#2E7D32',
     secondaryContainer: '#C8E6C9',
-
     tertiary: '#8BC34A',
     tertiaryContainer: '#DCEDC8',
-
     surface: '#FFFFFF',
     surfaceVariant: '#F1F8EF',
     background: '#F5FAF3',
-
     error: '#D32F2F',
     errorContainer: '#FFEBEE',
-
     onPrimary: '#FFFFFF',
     onSecondary: '#FFFFFF',
     onTertiary: '#1B5E20',
-
     onSurface: '#202B20',
     onSurfaceVariant: '#52634F',
     onBackground: '#202B20',
-
     outline: '#A5B99F',
     outlineVariant: '#D5E3D0',
-
     inverseSurface: '#263326',
     inverseOnSurface: '#F1F8EF',
     inversePrimary: '#A5D6A7',
   },
-
   roundness: 14,
-
   fonts: {
     ...MD3LightTheme.fonts,
-    displayLarge: {
-      fontFamily: 'System',
-      fontWeight: '700' as const,
-      fontSize: 57,
-      lineHeight: 64,
-      letterSpacing: -0.25,
-    },
-    headlineLarge: {
-      fontFamily: 'System',
-      fontWeight: '700' as const,
-      fontSize: 32,
-      lineHeight: 40,
-    },
-    headlineMedium: {
-      fontFamily: 'System',
-      fontWeight: '700' as const,
-      fontSize: 28,
-      lineHeight: 36,
-    },
-    headlineSmall: {
-      fontFamily: 'System',
-      fontWeight: '700' as const,
-      fontSize: 24,
-      lineHeight: 32,
-    },
-    titleLarge: {
-      fontFamily: 'System',
-      fontWeight: '700' as const,
-      fontSize: 22,
-      lineHeight: 28,
-    },
-    titleMedium: {
-      fontFamily: 'System',
-      fontWeight: '600' as const,
-      fontSize: 16,
-      lineHeight: 24,
-      letterSpacing: 0.15,
-    },
-    titleSmall: {
-      fontFamily: 'System',
-      fontWeight: '600' as const,
-      fontSize: 14,
-      lineHeight: 20,
-      letterSpacing: 0.1,
-    },
-    bodyLarge: {
-      fontFamily: 'System',
-      fontWeight: '400' as const,
-      fontSize: 16,
-      lineHeight: 24,
-      letterSpacing: 0.5,
-    },
-    bodyMedium: {
-      fontFamily: 'System',
-      fontWeight: '400' as const,
-      fontSize: 14,
-      lineHeight: 20,
-      letterSpacing: 0.25,
-    },
-    bodySmall: {
-      fontFamily: 'System',
-      fontWeight: '400' as const,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 0.4,
-    },
-    labelLarge: {
-      fontFamily: 'System',
-      fontWeight: '600' as const,
-      fontSize: 14,
-      lineHeight: 20,
-      letterSpacing: 0.1,
-    },
-    labelMedium: {
-      fontFamily: 'System',
-      fontWeight: '500' as const,
-      fontSize: 12,
-      lineHeight: 16,
-      letterSpacing: 0.5,
-    },
-    labelSmall: {
-      fontFamily: 'System',
-      fontWeight: '500' as const,
-      fontSize: 11,
-      lineHeight: 16,
-      letterSpacing: 0.5,
-    },
+    ...appFonts,
   },
 };
+
+export const darkTheme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: '#8BD477',
+    primaryContainer: '#244B20',
+    secondary: '#A5D6A7',
+    secondaryContainer: '#315B34',
+    tertiary: '#C5E1A5',
+    tertiaryContainer: '#3D512C',
+    surface: '#1C251B',
+    surfaceVariant: '#303B2E',
+    background: '#111A10',
+    error: '#FFB4AB',
+    errorContainer: '#690005',
+    onPrimary: '#173D11',
+    onSecondary: '#173D11',
+    onTertiary: '#243516',
+    onSurface: '#E2E9DE',
+    onSurfaceVariant: '#BECBBB',
+    onBackground: '#E2E9DE',
+    outline: '#879783',
+    outlineVariant: '#414D3E',
+    inverseSurface: '#E2E9DE',
+    inverseOnSurface: '#263326',
+    inversePrimary: '#2E7D32',
+  },
+  roundness: 14,
+  fonts: {
+    ...MD3DarkTheme.fonts,
+    ...appFonts,
+  },
+};
+
+// Keep the original export available for existing imports.
+export const theme = lightTheme;

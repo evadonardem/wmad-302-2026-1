@@ -291,13 +291,6 @@ export default function ProfileScreen() {
     );
   };
 
-  // Other features will be connected in the next stages.
-  const showComingSoon = (feature: string) => {
-    showMessage(
-      feature,
-      'This feature will be implemented in the next development stage.'
-    );
-  };
 
   if (!isAuthenticated || !user) {
     return (
@@ -530,7 +523,7 @@ export default function ProfileScreen() {
                     style={props.style}
                   />
                 )}
-                onPress={() => showComingSoon('Settings')}
+                onPress={() => router.push('/(app)/settings')}
               />
             </List.Section>
           </Card>

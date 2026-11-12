@@ -1,15 +1,29 @@
-/**
- * Providers - All context providers wrapped here
- */
+
 import { ReactNode } from 'react';
-import { AuthProvider } from '@/context/AuthContext';
 import { PaperProvider } from 'react-native-paper';
-import { theme } from '@/constants/theme';
+import { AuthProvider } from '@/context/AuthContext';
+import { SettingsProvider, useSettings } from '@/context/SettingsContext';
+import { lightTheme, darkTheme } from '@/constants/theme';
+
+function ThemedProviders({ children }: { children: ReactNode }) {
+  const { isDarkMode, isSettingsLoaded } = useSettings();
+
+  // Avoid briefly displaying the wrong theme while settings load.
+  if (!isSettingsLoaded) {
+    return null;
+  }
+
+  return (
+    <PaperProvider theme={isDarkMode ? darkTheme : lightTheme}>
+      <AuthProvider>{children}</AuthProvider>
+    </PaperProvider>
+  );
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <PaperProvider theme={theme}>
-      <AuthProvider>{children}</AuthProvider>
-    </PaperProvider>
+    <SettingsProvider>
+      <ThemedProviders>{children}</ThemedProviders>
+    </SettingsProvider>
   );
 }
