@@ -43,11 +43,34 @@ const CATEGORIES = [
 ];
 
 const MEAT_KEYWORDS = [
-  'beef', 'chicken', 'pork', 'bacon', 'ham', 'lamb',
-  'mutton', 'turkey', 'duck', 'goat', 'veal', 'sausage',
-  'fish', 'shrimp', 'prawn', 'salmon', 'tuna', 'crab',
-  'lobster', 'squid', 'octopus', 'mussel', 'clam',
-  'oyster', 'scallop', 'anchovy', 'sardine', 'cod',
+  'beef',
+  'chicken',
+  'pork',
+  'bacon',
+  'ham',
+  'lamb',
+  'mutton',
+  'turkey',
+  'duck',
+  'goat',
+  'veal',
+  'sausage',
+  'fish',
+  'shrimp',
+  'prawn',
+  'salmon',
+  'tuna',
+  'crab',
+  'lobster',
+  'squid',
+  'octopus',
+  'mussel',
+  'clam',
+  'oyster',
+  'scallop',
+  'anchovy',
+  'sardine',
+  'cod',
   'tilapia',
 ];
 
@@ -57,20 +80,39 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   Lamb: ['lamb', 'mutton'],
   Pork: ['pork', 'bacon', 'ham', 'prosciutto', 'pancetta'],
   Seafood: [
-    'seafood', 'fish', 'shrimp', 'prawn', 'salmon',
-    'tuna', 'crab', 'lobster', 'squid', 'octopus',
-    'mussel', 'clam', 'oyster', 'scallop', 'anchovy',
-    'sardine', 'cod', 'tilapia',
+    'seafood',
+    'fish',
+    'shrimp',
+    'prawn',
+    'salmon',
+    'tuna',
+    'crab',
+    'lobster',
+    'squid',
+    'octopus',
+    'mussel',
+    'clam',
+    'oyster',
+    'scallop',
+    'anchovy',
+    'sardine',
+    'cod',
+    'tilapia',
   ],
 };
 
-function matchesCategory(recipe: Recipe, category: string): boolean {
+function matchesCategory(
+  recipe: Recipe,
+  category: string
+): boolean {
   const searchableText = [
     recipe.name,
     recipe.cuisine,
     ...recipe.ingredients,
     ...recipe.tags,
-  ].join(' ').toLowerCase();
+  ]
+    .join(' ')
+    .toLowerCase();
 
   const tags = recipe.tags.map((tag) => tag.toLowerCase());
 
@@ -170,8 +212,8 @@ export default function CategoriesScreen() {
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name={getCategoryIcon(item.name)}
-              size={32}
-              color="#E85D04"
+              size={34}
+              color="#43A52F"
             />
           </View>
 
@@ -182,6 +224,18 @@ export default function CategoriesScreen() {
           <Text style={styles.categoryCount}>
             {item.count} recipes
           </Text>
+
+          <View style={styles.exploreContainer}>
+            <Text style={styles.exploreText}>
+              Explore recipes
+            </Text>
+
+            <MaterialCommunityIcons
+              name="arrow-right"
+              size={16}
+              color="#43A52F"
+            />
+          </View>
         </Card.Content>
       </Card>
     </TouchableOpacity>
@@ -190,7 +244,7 @@ export default function CategoriesScreen() {
   if (loading && categories.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
+        <ActivityIndicator size="large" color="#43A52F" />
 
         <Text style={styles.loadingText}>
           Loading categories...
@@ -202,21 +256,26 @@ export default function CategoriesScreen() {
   if (error && categories.length === 0) {
     return (
       <View style={styles.errorContainer}>
+        <MaterialCommunityIcons
+          name="alert-circle-outline"
+          size={54}
+          color="#43A52F"
+        />
+
         <Text style={styles.errorText}>
+          Unable to load categories.
+        </Text>
+
+        <Text style={styles.errorSubtext}>
           {error}
         </Text>
 
         <TouchableOpacity
           onPress={loadCategories}
-          style={{
-            backgroundColor: '#E85D04',
-            paddingHorizontal: 20,
-            paddingVertical: 12,
-            borderRadius: 10,
-            marginTop: 15,
-          }}
+          style={styles.retryButton}
+          activeOpacity={0.8}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: 'bold' }}>
+          <Text style={styles.retryButtonText}>
             Try Again
           </Text>
         </TouchableOpacity>
@@ -226,13 +285,27 @@ export default function CategoriesScreen() {
 
   return (
     <View style={styles.container}>
-      <Title style={styles.pageTitle}>
-        Categories
-      </Title>
+      <View style={styles.header}>
+        <Title style={styles.pageTitle}>
+          Categories
+        </Title>
 
-      <Text style={styles.pageSubtitle}>
-        Browse recipes by category
-      </Text>
+        <Text style={styles.pageSubtitle}>
+          Find something delicious to cook.
+        </Text>
+
+        <View style={styles.headerBadge}>
+          <MaterialCommunityIcons
+            name="food-apple"
+            size={17}
+            color="#2E7D32"
+          />
+
+          <Text style={styles.headerBadgeText}>
+            Explore {categories.length} food categories
+          </Text>
+        </View>
+      </View>
 
       <FlatList
         data={categories}
@@ -241,6 +314,7 @@ export default function CategoriesScreen() {
         numColumns={2}
         columnWrapperStyle={styles.gridWrapper}
         contentContainerStyle={styles.gridContent}
+        showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => (
           <View style={styles.separator} />
         )}
@@ -248,7 +322,8 @@ export default function CategoriesScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={loadCategories}
-            colors={['#E85D04']}
+            colors={['#43A52F']}
+            tintColor="#43A52F"
           />
         }
         ListEmptyComponent={
