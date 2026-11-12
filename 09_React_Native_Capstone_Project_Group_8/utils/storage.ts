@@ -21,20 +21,22 @@ export interface MealPlanEntry {
 
 const STORAGE_KEYS = {
   AUTH_USER: 'auth_user',
+  PROFILE_OVERRIDES: 'profile_overrides',
   FAVORITES: 'favorite_recipe_ids',
   CART: 'cart_items',
   SETTINGS: 'user_settings',
   MEAL_PLAN: 'meal_plan_entries',
 } as const;
 
-export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
+export type StorageKey =
+  typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
 
 export async function getStorageItem<T>(
   key: StorageKey
 ): Promise<T | null> {
   try {
     const value = await AsyncStorage.getItem(key);
-    return value ? JSON.parse(value) as T : null;
+    return value ? (JSON.parse(value) as T) : null;
   } catch (error) {
     console.error(`Failed to get storage item ${key}:`, error);
     return null;
@@ -111,20 +113,61 @@ export async function setMultipleStorageItems(
 // AUTH STORAGE
 // ======================================
 
+export interface ProfileOverrides {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+}
+
 export const authStorage = {
-  getUser: () => getStorageItem<{
-    id: number;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    token: string;
-    refreshToken: string;
-  }>(STORAGE_KEYS.AUTH_USER),
+  getUser: () =>
+    getStorageItem<{
+      id: number;
+      username: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      token: string;
+      refreshToken: string;
+    }>(STORAGE_KEYS.AUTH_USER),
 
   setUser: (user: unknown) =>
     setStorageItem(STORAGE_KEYS.AUTH_USER, user),
 
+  getProfileOverrides: async (
+    userId: number
+  ): Promise<ProfileOverrides | null> => {
+    const saved = await getStorageItem<
+      ProfileOverrides & { userId: number }
+    >(STORAGE_KEYS.PROFILE_OVERRIDES);
+
+    if (!saved || saved.userId !== userId) {
+      return null;
+    }
+
+    return {
+      firstName: saved.firstName,
+      lastName: saved.lastName,
+      username: saved.username,
+      email: saved.email,
+    };
+  },
+
+  setProfileOverrides: (
+    userId: number,
+    updates: ProfileOverrides
+  ) =>
+    setStorageItem(STORAGE_KEYS.PROFILE_OVERRIDES, {
+      userId,
+      ...updates,
+    }),
+
+  clearProfileOverrides: () =>
+    removeStorageItem(STORAGE_KEYS.PROFILE_OVERRIDES),
+
+  // Keep profile overrides when logging out.
+  // They are associated with a user ID and restored on the next login.
   clearUser: () => removeStorageItem(STORAGE_KEYS.AUTH_USER),
 };
 
@@ -134,7 +177,9 @@ export const authStorage = {
 
 export const favoritesStorage = {
   getIds: async (): Promise<number[]> => {
-    return (await getStorageItem<number[]>(STORAGE_KEYS.FAVORITES)) ?? [];
+    return (
+      (await getStorageItem<number[]>(STORAGE_KEYS.FAVORITES)) ?? []
+    );
   },
 
   setIds: (ids: number[]) =>
@@ -162,10 +207,10 @@ export const favoritesStorage = {
     if (ids.includes(id)) {
       await favoritesStorage.removeId(id);
       return false;
-    } else {
-      await favoritesStorage.addId(id);
-      return true;
     }
+
+    await favoritesStorage.addId(id);
+    return true;
   },
 };
 
@@ -176,7 +221,9 @@ export const favoritesStorage = {
 export const mealPlanStorage = {
   getEntries: async (date?: string): Promise<MealPlanEntry[]> => {
     const entries =
-      (await getStorageItem<MealPlanEntry[]>(STORAGE_KEYS.MEAL_PLAN)) ?? [];
+      (await getStorageItem<MealPlanEntry[]>(
+        STORAGE_KEYS.MEAL_PLAN
+      )) ?? [];
 
     if (!date) {
       return entries;
@@ -233,7 +280,10 @@ export const mealPlanStorage = {
         )
     );
 
-    await setStorageItem(STORAGE_KEYS.MEAL_PLAN, updatedEntries);
+    await setStorageItem(
+      STORAGE_KEYS.MEAL_PLAN,
+      updatedEntries
+    );
   },
 };
 
@@ -243,7 +293,9 @@ export const mealPlanStorage = {
 
 export const cartStorage = {
   getCart: async (): Promise<CartItem[]> => {
-    return (await getStorageItem<CartItem[]>(STORAGE_KEYS.CART)) ?? [];
+    return (
+      (await getStorageItem<CartItem[]>(STORAGE_KEYS.CART)) ?? []
+    );
   },
 
   setCart: (items: CartItem[]) =>
@@ -265,7 +317,10 @@ export const cartStorage = {
     await cartStorage.setCart(items);
   },
 
-  updateQuantity: async (productId: number, quantity: number) => {
+  updateQuantity: async (
+    productId: number,
+    quantity: number
+  ) => {
     const items = await cartStorage.getCart();
 
     const index = items.findIndex(

@@ -2,7 +2,7 @@
 /**
  * Auth Context with useReducer
  * Handles authentication, persistence hydration, token refresh,
- * and local profile updates.
+ * and locally saved profile updates.
  */
 
 import React, {
@@ -16,11 +16,9 @@ import React, {
 
 import { AuthState, AuthAction, AuthUser } from '@/types/auth';
 import { authApi } from '@/services/authApi';
-import { authStorage } from '@/utils/storage';
+import { authStorage, ProfileOverrides } from '@/utils/storage';
 
-type ProfileUpdates = Partial<
-  Pick<AuthUser, 'firstName' | 'lastName' | 'username' | 'email'>
->;
+type ProfileUpdates = Partial<ProfileOverrides>;
 
 const initialState: AuthState = {
   user: null,
@@ -29,7 +27,10 @@ const initialState: AuthState = {
   error: null,
 };
 
-function authReducer(state: AuthState, action: AuthAction): AuthState {
+function authReducer(
+  state: AuthState,
+  action: AuthAction
+): AuthState {
   switch (action.type) {
     case 'AUTH_START':
       return {
@@ -114,12 +115,21 @@ interface AuthContextType extends AuthState {
   refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(
+  undefined
+);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [state, dispatch] = useReducer(
+    authReducer,
+    initialState
+  );
 
-  // Restore authentication from AsyncStorage.
+  // Restore authentication and locally saved profile information.
   useEffect(() => {
     const hydrateAuth = async () => {
       try {
@@ -129,16 +139,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const freshUser = await authApi.getMe();
 
-            // Preserve locally edited profile information.
-            const mergedUser = {
+            const profileOverrides =
+              await authStorage.getProfileOverrides(storedUser.id);
+
+            const mergedUser: AuthUser = {
               ...freshUser,
-              firstName: storedUser.firstName || freshUser.firstName,
-              lastName: storedUser.lastName || freshUser.lastName,
-              username: storedUser.username || freshUser.username,
-              email: storedUser.email || freshUser.email,
+              ...(profileOverrides ?? {}),
               token: storedUser.token,
               refreshToken: storedUser.refreshToken,
             };
+
+            await authStorage.setUser(mergedUser);
 
             dispatch({
               type: 'AUTH_HYDRATE',
@@ -148,11 +159,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               await authApi.refreshAccessToken();
 
-              const storedAgain = await authApi.getStoredUser();
+              const storedAgain =
+                await authApi.getStoredUser();
+
+              if (!storedAgain) {
+                throw new Error('Stored user not found.');
+              }
+
+              const profileOverrides =
+                await authStorage.getProfileOverrides(
+                  storedAgain.id
+                );
+
+              const mergedUser: AuthUser = {
+                ...storedAgain,
+                ...(profileOverrides ?? {}),
+              };
+
+              await authStorage.setUser(mergedUser);
 
               dispatch({
                 type: 'AUTH_HYDRATE',
-                payload: storedAgain,
+                payload: mergedUser,
               });
             } catch {
               await authApi.logout();
@@ -180,16 +208,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void hydrateAuth();
   }, []);
 
-  // Login
+  // Login and restore profile edits belonging to this account.
   const login = useCallback(
     async (username: string, password: string) => {
       dispatch({ type: 'AUTH_START' });
 
       try {
-        const user = await authApi.login({
+        const apiUser = await authApi.login({
           username,
           password,
         });
+
+        const profileOverrides =
+          await authStorage.getProfileOverrides(apiUser.id);
+
+        const user: AuthUser = {
+          ...apiUser,
+          ...(profileOverrides ?? {}),
+        };
+
+        await authStorage.setUser(user);
 
         dispatch({
           type: 'AUTH_SUCCESS',
@@ -247,7 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Logout
+  // Logout. Profile overrides are intentionally retained locally.
   const logout = useCallback(async () => {
     await authApi.logout();
 
@@ -256,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Update profile and save it locally.
+  // Update profile and save changes separately from API data.
   const updateUser = useCallback(
     async (updates: ProfileUpdates) => {
       if (!state.user) {
@@ -268,7 +306,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...updates,
       };
 
-      // Preserve the existing authentication tokens.
+      const profileOverrides: ProfileOverrides = {
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        username: updatedUser.username,
+        email: updatedUser.email,
+      };
+
+      await authStorage.setProfileOverrides(
+        state.user.id,
+        profileOverrides
+      );
+
       await authStorage.setUser(updatedUser);
 
       dispatch({
@@ -296,22 +345,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const freshUser = await authApi.getMe();
       const storedUser = await authApi.getStoredUser();
 
-      if (storedUser) {
-        const mergedUser = {
-          ...freshUser,
-          firstName: storedUser.firstName || freshUser.firstName,
-          lastName: storedUser.lastName || freshUser.lastName,
-          username: storedUser.username || freshUser.username,
-          email: storedUser.email || freshUser.email,
-          token: storedUser.token,
-          refreshToken: storedUser.refreshToken,
-        };
-
-        dispatch({
-          type: 'AUTH_SUCCESS',
-          payload: mergedUser,
-        });
+      if (!storedUser) {
+        return;
       }
+
+      const profileOverrides =
+        await authStorage.getProfileOverrides(storedUser.id);
+
+      const mergedUser: AuthUser = {
+        ...freshUser,
+        ...(profileOverrides ?? {}),
+        token: storedUser.token,
+        refreshToken: storedUser.refreshToken,
+      };
+
+      await authStorage.setUser(mergedUser);
+
+      dispatch({
+        type: 'AUTH_SUCCESS',
+        payload: mergedUser,
+      });
     } catch {
       // The API interceptor handles token refresh.
     }
@@ -338,7 +391,9 @@ export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error(
+      'useAuth must be used within an AuthProvider'
+    );
   }
 
   return context;

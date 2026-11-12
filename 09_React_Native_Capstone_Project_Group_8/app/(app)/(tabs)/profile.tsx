@@ -43,6 +43,18 @@ interface ProfileStats {
   plannedMeals: number;
 }
 
+const COLORS = {
+  primary: '#43A52F',
+  secondary: '#2E7D32',
+  lightGreen: '#E8F5E9',
+  background: '#F5FAF3',
+  text: '#202B20',
+  secondaryText: '#52634F',
+  divider: '#D5E3D0',
+  white: '#FFFFFF',
+  error: '#D32F2F',
+};
+
 export default function ProfileScreen() {
   const router = useRouter();
 
@@ -135,7 +147,10 @@ export default function ProfileScreen() {
             plannedMeals: plannedMealCount,
           });
         } catch (error) {
-          console.error('Failed to load profile statistics:', error);
+          console.error(
+            'Failed to load profile statistics:',
+            error
+          );
         } finally {
           if (active) {
             setStatsLoading(false);
@@ -294,7 +309,8 @@ export default function ProfileScreen() {
     );
   }
 
-  const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`;
+  const initials =
+    `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`;
 
   return (
     <>
@@ -316,7 +332,7 @@ export default function ProfileScreen() {
               size={88}
               label={initials || 'U'}
               style={styles.avatar}
-              color="#E85D04"
+              color={COLORS.primary}
             />
           )}
 
@@ -339,44 +355,38 @@ export default function ProfileScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             {statsLoading ? (
-              <ActivityIndicator color="#E85D04" />
+              <ActivityIndicator color={COLORS.primary} />
             ) : (
               <Text style={styles.statValue}>
                 {stats.recipes}
               </Text>
             )}
 
-            <Text style={styles.statLabel}>
-              Recipes
-            </Text>
+            <Text style={styles.statLabel}>Recipes</Text>
           </View>
 
           <View style={styles.statItem}>
             {statsLoading ? (
-              <ActivityIndicator color="#E85D04" />
+              <ActivityIndicator color={COLORS.primary} />
             ) : (
               <Text style={styles.statValue}>
                 {stats.favorites}
               </Text>
             )}
 
-            <Text style={styles.statLabel}>
-              Favorites
-            </Text>
+            <Text style={styles.statLabel}>Favorites</Text>
           </View>
 
           <View style={styles.statItem}>
             {statsLoading ? (
-              <ActivityIndicator color="#E85D04" />
+              <ActivityIndicator color={COLORS.primary} />
             ) : (
               <Text style={styles.statValue}>
                 {stats.plannedMeals}
               </Text>
             )}
 
-            <Text style={styles.statLabel}>
-              Planned Meals
-            </Text>
+            <Text style={styles.statLabel}>Planned Meals</Text>
           </View>
         </View>
 
@@ -387,11 +397,13 @@ export default function ProfileScreen() {
               <List.Item
                 title="My Recipes"
                 description="Recipes you've created"
+                titleStyle={{ color: COLORS.text }}
+                descriptionStyle={{ color: COLORS.secondaryText }}
                 left={(props) => (
                   <MaterialCommunityIcons
                     name="book-edit"
                     size={24}
-                    color="#E85D04"
+                    color={COLORS.primary}
                     style={props.style}
                   />
                 )}
@@ -399,11 +411,13 @@ export default function ProfileScreen() {
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={24}
-                    color="#8D6E63"
+                    color={COLORS.secondaryText}
                     style={props.style}
                   />
                 )}
-                onPress={() => router.push('/(app)/my-recipes')}
+                onPress={() =>
+                  router.push('/(app)/my-recipes')
+                }
               />
 
               <Divider style={styles.divider} />
@@ -411,11 +425,13 @@ export default function ProfileScreen() {
               <List.Item
                 title="My Cookbook"
                 description="Your saved recipes and meal plans"
+                titleStyle={{ color: COLORS.text }}
+                descriptionStyle={{ color: COLORS.secondaryText }}
                 left={(props) => (
                   <MaterialCommunityIcons
                     name="book-open-page-variant"
                     size={24}
-                    color="#E85D04"
+                    color={COLORS.primary}
                     style={props.style}
                   />
                 )}
@@ -423,11 +439,13 @@ export default function ProfileScreen() {
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={24}
-                    color="#8D6E63"
+                    color={COLORS.secondaryText}
                     style={props.style}
                   />
                 )}
-                onPress={() => router.push('/(app)/my-cookbook')}
+                onPress={() =>
+                  router.push('/(app)/my-cookbook')
+                }
               />
 
               <Divider style={styles.divider} />
@@ -435,11 +453,13 @@ export default function ProfileScreen() {
               <List.Item
                 title="Favorites"
                 description="Your saved recipes"
+                titleStyle={{ color: COLORS.text }}
+                descriptionStyle={{ color: COLORS.secondaryText }}
                 left={(props) => (
                   <MaterialCommunityIcons
                     name="heart"
                     size={24}
-                    color="#E85D04"
+                    color={COLORS.primary}
                     style={props.style}
                   />
                 )}
@@ -447,7 +467,7 @@ export default function ProfileScreen() {
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={24}
-                    color="#8D6E63"
+                    color={COLORS.secondaryText}
                     style={props.style}
                   />
                 )}
@@ -466,11 +486,13 @@ export default function ProfileScreen() {
               <List.Item
                 title="Edit Profile"
                 description="Update your personal information"
+                titleStyle={{ color: COLORS.text }}
+                descriptionStyle={{ color: COLORS.secondaryText }}
                 left={(props) => (
                   <MaterialCommunityIcons
                     name="account-edit"
                     size={24}
-                    color="#E85D04"
+                    color={COLORS.primary}
                     style={props.style}
                   />
                 )}
@@ -478,7 +500,7 @@ export default function ProfileScreen() {
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={24}
-                    color="#8D6E63"
+                    color={COLORS.secondaryText}
                     style={props.style}
                   />
                 )}
@@ -490,11 +512,13 @@ export default function ProfileScreen() {
               <List.Item
                 title="Settings"
                 description="Notifications, theme, and preferences"
+                titleStyle={{ color: COLORS.text }}
+                descriptionStyle={{ color: COLORS.secondaryText }}
                 left={(props) => (
                   <MaterialCommunityIcons
                     name="cog"
                     size={24}
-                    color="#E85D04"
+                    color={COLORS.primary}
                     style={props.style}
                   />
                 )}
@@ -502,7 +526,7 @@ export default function ProfileScreen() {
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={24}
-                    color="#8D6E63"
+                    color={COLORS.secondaryText}
                     style={props.style}
                   />
                 )}
@@ -520,7 +544,7 @@ export default function ProfileScreen() {
             style={styles.logoutButton}
             contentStyle={styles.logoutButtonContent}
             icon="logout"
-            textColor="#C62828"
+            textColor={COLORS.primary}
           >
             Logout
           </Button>
@@ -543,9 +567,11 @@ export default function ProfileScreen() {
               setEditVisible(false);
             }
           }}
-          style={{ backgroundColor: '#FFFFFF' }}
+          style={{ backgroundColor: COLORS.white }}
         >
-          <Dialog.Title>
+          <Dialog.Title
+            style={{ color: COLORS.text }}
+          >
             Edit Profile
           </Dialog.Title>
 
@@ -557,6 +583,8 @@ export default function ProfileScreen() {
               mode="outlined"
               style={{ marginBottom: 12 }}
               disabled={saving}
+              outlineColor={COLORS.divider}
+              activeOutlineColor={COLORS.primary}
             />
 
             <TextInput
@@ -566,6 +594,8 @@ export default function ProfileScreen() {
               mode="outlined"
               style={{ marginBottom: 12 }}
               disabled={saving}
+              outlineColor={COLORS.divider}
+              activeOutlineColor={COLORS.primary}
             />
 
             <TextInput
@@ -576,6 +606,8 @@ export default function ProfileScreen() {
               style={{ marginBottom: 12 }}
               autoCapitalize="none"
               disabled={saving}
+              outlineColor={COLORS.divider}
+              activeOutlineColor={COLORS.primary}
             />
 
             <TextInput
@@ -586,11 +618,13 @@ export default function ProfileScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               disabled={saving}
+              outlineColor={COLORS.divider}
+              activeOutlineColor={COLORS.primary}
             />
 
             <Text
               style={{
-                color: '#8D6E63',
+                color: COLORS.secondaryText,
                 fontSize: 12,
                 marginTop: 12,
               }}
@@ -603,7 +637,7 @@ export default function ProfileScreen() {
             <Button
               onPress={() => setEditVisible(false)}
               disabled={saving}
-              textColor="#8D6E63"
+              textColor={COLORS.secondaryText}
             >
               Cancel
             </Button>
@@ -612,7 +646,7 @@ export default function ProfileScreen() {
               onPress={() => void handleSaveProfile()}
               loading={saving}
               disabled={saving}
-              textColor="#E85D04"
+              textColor={COLORS.primary}
             >
               Save Changes
             </Button>
