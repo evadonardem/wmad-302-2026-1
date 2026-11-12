@@ -44,19 +44,56 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   Lamb: ['lamb', 'mutton'],
   Pork: ['pork', 'bacon', 'ham', 'prosciutto', 'pancetta'],
   Seafood: [
-    'seafood', 'fish', 'shrimp', 'prawn', 'salmon',
-    'tuna', 'crab', 'lobster', 'squid', 'octopus',
-    'mussel', 'clam', 'oyster', 'scallop', 'anchovy',
-    'sardine', 'cod', 'tilapia',
+    'seafood',
+    'fish',
+    'shrimp',
+    'prawn',
+    'salmon',
+    'tuna',
+    'crab',
+    'lobster',
+    'squid',
+    'octopus',
+    'mussel',
+    'clam',
+    'oyster',
+    'scallop',
+    'anchovy',
+    'sardine',
+    'cod',
+    'tilapia',
   ],
 };
 
 const MEAT_KEYWORDS = [
-  'beef', 'chicken', 'pork', 'bacon', 'ham', 'lamb',
-  'mutton', 'turkey', 'duck', 'goat', 'veal', 'sausage',
-  'fish', 'shrimp', 'prawn', 'salmon', 'tuna', 'crab',
-  'lobster', 'squid', 'octopus', 'mussel', 'clam',
-  'oyster', 'scallop', 'anchovy', 'sardine', 'cod',
+  'beef',
+  'chicken',
+  'pork',
+  'bacon',
+  'ham',
+  'lamb',
+  'mutton',
+  'turkey',
+  'duck',
+  'goat',
+  'veal',
+  'sausage',
+  'fish',
+  'shrimp',
+  'prawn',
+  'salmon',
+  'tuna',
+  'crab',
+  'lobster',
+  'squid',
+  'octopus',
+  'mussel',
+  'clam',
+  'oyster',
+  'scallop',
+  'anchovy',
+  'sardine',
+  'cod',
   'tilapia',
 ];
 
@@ -70,7 +107,9 @@ function matchesCategory(
     recipe.cuisine,
     ...recipe.ingredients,
     ...recipe.tags,
-  ].join(' ').toLowerCase();
+  ]
+    .join(' ')
+    .toLowerCase();
 
   const tags = recipe.tags.map((tag) => tag.toLowerCase());
 
@@ -136,7 +175,9 @@ function getFilteredRecipes(
         ...recipe.ingredients,
         ...recipe.tags,
         ...recipe.mealType,
-      ].join(' ').toLowerCase();
+      ]
+        .join(' ')
+        .toLowerCase();
 
       return searchableText.includes(searchTerm);
     });
@@ -426,9 +467,9 @@ export default function SearchScreen() {
             alignItems: 'center',
             height: 52,
             backgroundColor: '#FFFFFF',
-            borderRadius: 12,
+            borderRadius: 14,
             borderWidth: 1,
-            borderColor: '#E0E0E0',
+            borderColor: '#DCEBD8',
             paddingLeft: 12,
             paddingRight: 4,
           }}
@@ -436,7 +477,7 @@ export default function SearchScreen() {
           <MaterialCommunityIcons
             name="magnify"
             size={24}
-            color="#8D6E63"
+            color="#43A52F"
           />
 
           <TextInput
@@ -450,7 +491,7 @@ export default function SearchScreen() {
               },
             ]}
             placeholder="Search recipes or ingredients..."
-            placeholderTextColor="#8D6E63"
+            placeholderTextColor="#8AA187"
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
@@ -520,9 +561,14 @@ export default function SearchScreen() {
 
         {loading ? (
           <View style={styles.loadingCenter}>
-            <ActivityIndicator size="large" color="#E85D04" />
+            <ActivityIndicator size="large" color="#43A52F" />
 
-            <Text style={{ marginTop: 10, color: '#8D6E63' }}>
+            <Text
+              style={{
+                marginTop: 10,
+                color: '#668064',
+              }}
+            >
               Loading recipes...
             </Text>
           </View>
@@ -544,10 +590,10 @@ export default function SearchScreen() {
                 onPress={handleLoadMore}
                 disabled={loadingMore}
                 style={{
-                  backgroundColor: '#E85D04',
+                  backgroundColor: '#43A52F',
                   paddingVertical: 12,
                   paddingHorizontal: 20,
-                  borderRadius: 10,
+                  borderRadius: 12,
                   alignItems: 'center',
                   marginVertical: 16,
                 }}
@@ -570,7 +616,7 @@ export default function SearchScreen() {
             <Text
               style={{
                 textAlign: 'center',
-                color: '#8D6E63',
+                color: '#668064',
                 marginVertical: 10,
               }}
             >
@@ -582,7 +628,7 @@ export default function SearchScreen() {
             <MaterialCommunityIcons
               name="magnify"
               size={64}
-              color="#BCAAA4"
+              color="#A5C59E"
             />
 
             <Text style={styles.emptyText}>
@@ -598,7 +644,7 @@ export default function SearchScreen() {
             <MaterialCommunityIcons
               name="magnify"
               size={64}
-              color="#BCAAA4"
+              color="#A5C59E"
             />
 
             <Text style={styles.emptyText}>

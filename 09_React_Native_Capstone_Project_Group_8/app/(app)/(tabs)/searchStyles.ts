@@ -1,12 +1,14 @@
+
 /**
- * Search Screen Styles - Shared base
+ * Search Screen Styles - Green and White Theme
  */
+
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#F5FAF3',
   },
   content: {
     paddingHorizontal: 16,
@@ -18,19 +20,19 @@ export const styles = StyleSheet.create({
   searchInput: {
     height: 52,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#DCEBD8',
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#3E2723',
+    color: '#1B5E20',
   },
   clearButton: {
     padding: 8,
   },
   searchButton: {
-    backgroundColor: '#E85D04',
-    borderRadius: 12,
+    backgroundColor: '#43A52F',
+    borderRadius: 14,
     paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -44,8 +46,8 @@ export const styles = StyleSheet.create({
   },
   filterTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#3E2723',
+    fontWeight: '700',
+    color: '#1B5E20',
     marginBottom: 12,
   },
   filterList: {
@@ -54,20 +56,20 @@ export const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#C8DFC2',
     backgroundColor: '#FFFFFF',
   },
   filterChipSelected: {
-    backgroundColor: '#E85D04',
-    borderColor: '#E85D04',
+    backgroundColor: '#43A52F',
+    borderColor: '#43A52F',
   },
   filterChipText: {
     fontSize: 13,
-    fontWeight: '500',
-    color: '#E85D04',
+    fontWeight: '600',
+    color: '#2E7D32',
   },
   filterChipTextSelected: {
     color: '#FFFFFF',
@@ -82,17 +84,17 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#C8DFC2',
     backgroundColor: '#FFFFFF',
   },
   sortChipSelected: {
-    backgroundColor: '#E85D04',
-    borderColor: '#E85D04',
+    backgroundColor: '#43A52F',
+    borderColor: '#43A52F',
   },
   sortChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#E85D04',
+    color: '#2E7D32',
   },
   sortChipTextSelected: {
     color: '#FFFFFF',
@@ -103,27 +105,29 @@ export const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#3E2723',
+    color: '#1B5E20',
     marginBottom: 16,
   },
   resultsList: {
     paddingBottom: 20,
   },
   resultCard: {
-    marginBottom: 8,
+    marginBottom: 10,
   },
   card: {
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    elevation: 2,
   },
   resultContent: {
     flexDirection: 'row',
     padding: 12,
   },
   resultImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: 88,
+    height: 88,
+    borderRadius: 12,
     marginRight: 12,
   },
   resultInfo: {
@@ -132,15 +136,15 @@ export const styles = StyleSheet.create({
   },
   resultCategory: {
     fontSize: 11,
-    color: '#1A73E8',
-    fontWeight: '600',
+    color: '#43A52F',
+    fontWeight: '700',
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   resultTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#3E2723',
+    fontWeight: '700',
+    color: '#1B5E20',
     marginBottom: 4,
   },
   resultPrice: {
@@ -152,7 +156,7 @@ export const styles = StyleSheet.create({
   currentPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#2E7D32',
   },
   originalPrice: {
     fontSize: 13,
@@ -165,14 +169,14 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   difficultyChip: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#E8F5E9',
   },
   cuisineChip: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#F1F8EE',
   },
   resultDetails: {
     fontSize: 12,
-    color: '#8D6E63',
+    color: '#668064',
   },
   loadingCenter: {
     paddingVertical: 40,
@@ -184,14 +188,15 @@ export const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#3E2723',
+    fontWeight: '700',
+    color: '#1B5E20',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#8D6E63',
+    color: '#668064',
     marginTop: 4,
+    textAlign: 'center',
   },
   separator: {
     height: 8,
@@ -199,20 +204,20 @@ export const styles = StyleSheet.create({
   guideContainer: {
     marginTop: 24,
     padding: 16,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#FFCC80',
+    borderColor: '#C8DFC2',
   },
   guideTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#E85D04',
+    color: '#1B5E20',
     marginBottom: 8,
   },
   guideText: {
     fontSize: 13,
-    color: '#5D4037',
+    color: '#426B40',
     lineHeight: 20,
   },
 });
