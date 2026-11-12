@@ -14,9 +14,18 @@ import React, {
   ReactNode,
 } from 'react';
 
-import { AuthState, AuthAction, AuthUser } from '@/types/auth';
+import {
+  AuthState,
+  AuthAction,
+  AuthUser,
+} from '@/types/auth';
+
 import { authApi } from '@/services/authApi';
-import { authStorage, ProfileOverrides } from '@/utils/storage';
+
+import {
+  authStorage,
+  ProfileOverrides,
+} from '@/utils/storage';
 
 type ProfileUpdates = Partial<ProfileOverrides>;
 
@@ -26,6 +35,11 @@ const initialState: AuthState = {
   isLoading: true,
   error: null,
 };
+
+// Check whether the user is a locally registered account.
+function isLocalUser(user: AuthUser): boolean {
+  return user.token.startsWith('local-');
+}
 
 function authReducer(
   state: AuthState,
@@ -94,7 +108,10 @@ function authReducer(
 }
 
 interface AuthContextType extends AuthState {
-  login: (username: string, password: string) => Promise<void>;
+  login: (
+    username: string,
+    password: string
+  ) => Promise<void>;
 
   register: (data: {
     firstName: string;
@@ -115,9 +132,9 @@ interface AuthContextType extends AuthState {
   refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+const AuthContext = createContext<
+  AuthContextType | undefined
+>(undefined);
 
 export function AuthProvider({
   children,
@@ -129,18 +146,50 @@ export function AuthProvider({
     initialState
   );
 
-  // Restore authentication and locally saved profile information.
+  // ======================================
+  // RESTORE AUTHENTICATION
+  // ======================================
+
   useEffect(() => {
     const hydrateAuth = async () => {
       try {
         const storedUser = await authApi.getStoredUser();
 
-        if (storedUser?.token && storedUser?.refreshToken) {
+        if (
+          storedUser?.token &&
+          storedUser?.refreshToken
+        ) {
+          // Locally registered accounts do not need
+          // DummyJSON token verification or refreshing.
+          if (isLocalUser(storedUser)) {
+            const profileOverrides =
+              await authStorage.getProfileOverrides(
+                storedUser.id
+              );
+
+            const mergedUser: AuthUser = {
+              ...storedUser,
+              ...(profileOverrides ?? {}),
+            };
+
+            await authStorage.setUser(mergedUser);
+
+            dispatch({
+              type: 'AUTH_HYDRATE',
+              payload: mergedUser,
+            });
+
+            return;
+          }
+
+          // Existing DummyJSON account authentication.
           try {
             const freshUser = await authApi.getMe();
 
             const profileOverrides =
-              await authStorage.getProfileOverrides(storedUser.id);
+              await authStorage.getProfileOverrides(
+                storedUser.id
+              );
 
             const mergedUser: AuthUser = {
               ...freshUser,
@@ -156,6 +205,7 @@ export function AuthProvider({
               payload: mergedUser,
             });
           } catch {
+            // Try refreshing the DummyJSON token.
             try {
               await authApi.refreshAccessToken();
 
@@ -163,7 +213,9 @@ export function AuthProvider({
                 await authApi.getStoredUser();
 
               if (!storedAgain) {
-                throw new Error('Stored user not found.');
+                throw new Error(
+                  'Stored user not found.'
+                );
               }
 
               const profileOverrides =
@@ -208,10 +260,15 @@ export function AuthProvider({
     void hydrateAuth();
   }, []);
 
-  // Login and restore profile edits belonging to this account.
+  // ======================================
+  // LOGIN
+  // ======================================
+
   const login = useCallback(
     async (username: string, password: string) => {
-      dispatch({ type: 'AUTH_START' });
+      dispatch({
+        type: 'AUTH_START',
+      });
 
       try {
         const apiUser = await authApi.login({
@@ -220,7 +277,9 @@ export function AuthProvider({
         });
 
         const profileOverrides =
-          await authStorage.getProfileOverrides(apiUser.id);
+          await authStorage.getProfileOverrides(
+            apiUser.id
+          );
 
         const user: AuthUser = {
           ...apiUser,
@@ -235,7 +294,9 @@ export function AuthProvider({
         });
       } catch (error: unknown) {
         const message =
-          error instanceof Error ? error.message : 'Login failed';
+          error instanceof Error
+            ? error.message
+            : 'Login failed';
 
         dispatch({
           type: 'AUTH_FAILURE',
@@ -248,7 +309,10 @@ export function AuthProvider({
     []
   );
 
-  // Register
+  // ======================================
+  // REGISTER
+  // ======================================
+
   const register = useCallback(
     async (data: {
       firstName: string;
@@ -259,11 +323,16 @@ export function AuthProvider({
       age?: number;
       gender?: 'male' | 'female';
     }) => {
-      dispatch({ type: 'AUTH_START' });
+      dispatch({
+        type: 'AUTH_START',
+      });
 
       try {
         await authApi.register(data);
 
+        // Registration is complete.
+        // Keep the user on the authentication flow
+        // so they can sign in with their new account.
         dispatch({
           type: 'AUTH_HYDRATE',
           payload: null,
@@ -285,7 +354,12 @@ export function AuthProvider({
     []
   );
 
-  // Logout. Profile overrides are intentionally retained locally.
+  // ======================================
+  // LOGOUT
+  // ======================================
+
+  // Profile overrides and registered accounts
+  // are intentionally retained after logout.
   const logout = useCallback(async () => {
     await authApi.logout();
 
@@ -294,11 +368,16 @@ export function AuthProvider({
     });
   }, []);
 
-  // Update profile and save changes separately from API data.
+  // ======================================
+  // UPDATE USER PROFILE
+  // ======================================
+
   const updateUser = useCallback(
     async (updates: ProfileUpdates) => {
       if (!state.user) {
-        throw new Error('No authenticated user found.');
+        throw new Error(
+          'No authenticated user found.'
+        );
       }
 
       const updatedUser: AuthUser = {
@@ -328,29 +407,44 @@ export function AuthProvider({
     [state.user]
   );
 
-  // Clear authentication error.
+  // ======================================
+  // CLEAR ERROR
+  // ======================================
+
   const clearError = useCallback(() => {
     dispatch({
       type: 'AUTH_CLEAR_ERROR',
     });
   }, []);
 
-  // Refresh current user while preserving local profile edits.
+  // ======================================
+  // REFRESH USER
+  // ======================================
+
   const refreshUser = useCallback(async () => {
-    if (!state.isAuthenticated) {
+    if (!state.isAuthenticated || !state.user) {
+      return;
+    }
+
+    // Local accounts do not use the DummyJSON API.
+    if (isLocalUser(state.user)) {
       return;
     }
 
     try {
       const freshUser = await authApi.getMe();
-      const storedUser = await authApi.getStoredUser();
+
+      const storedUser =
+        await authApi.getStoredUser();
 
       if (!storedUser) {
         return;
       }
 
       const profileOverrides =
-        await authStorage.getProfileOverrides(storedUser.id);
+        await authStorage.getProfileOverrides(
+          storedUser.id
+        );
 
       const mergedUser: AuthUser = {
         ...freshUser,
@@ -368,7 +462,11 @@ export function AuthProvider({
     } catch {
       // The API interceptor handles token refresh.
     }
-  }, [state.isAuthenticated]);
+  }, [state.isAuthenticated, state.user]);
+
+  // ======================================
+  // CONTEXT PROVIDER
+  // ======================================
 
   return (
     <AuthContext.Provider
@@ -386,6 +484,10 @@ export function AuthProvider({
     </AuthContext.Provider>
   );
 }
+
+// ======================================
+// USE AUTH HOOK
+// ======================================
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);

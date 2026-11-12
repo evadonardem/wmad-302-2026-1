@@ -1,7 +1,10 @@
 
 /**
- * Auth API Service - DummyJSON Authentication
- * Docs: https://dummyjson.com/docs/auth
+ * Authentication API Service
+ * Handles login, registration, token refresh, and user sessions.
+ *
+ * Newly registered accounts are saved locally using AsyncStorage.
+ * Existing DummyJSON demo accounts can still log in through the API.
  */
 
 import axios, {
@@ -35,7 +38,7 @@ class AuthApiService {
       },
     });
 
-    // Add the stored access token to requests.
+    // Attach the stored access token to API requests.
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         const user = await authStorage.getUser();
@@ -50,12 +53,11 @@ class AuthApiService {
       (error) => Promise.reject(error)
     );
 
-    // Handle expired access tokens.
+    // Handle expired tokens.
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-
         const requestUrl = originalRequest?.url || '';
 
         const isAuthRequest =
@@ -80,7 +82,9 @@ class AuthApiService {
           } catch (refreshError) {
             await this.clearTokens();
 
-            console.warn('Token refresh failed. User logged out.');
+            console.warn(
+              'Token refresh failed. User logged out.'
+            );
 
             return Promise.reject(refreshError);
           }
@@ -91,22 +95,51 @@ class AuthApiService {
     );
   }
 
-  // Save authenticated user information.
   private async setTokens(user: AuthUser): Promise<void> {
     await authStorage.setUser(user);
   }
 
-  // Remove stored authentication information.
   private async clearTokens(): Promise<void> {
     await authStorage.clearUser();
   }
 
   /**
-   * Login user.
-   * POST /auth/login
+   * Login:
+   * 1. Check locally registered accounts first.
+   * 2. If no local account exists, use DummyJSON demo login.
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
     try {
+      // Check whether the username belongs to a local account.
+      const localAccount = await authStorage.findLocalAccount(
+        credentials.username
+      );
+
+      if (localAccount) {
+        // Do not allow an incorrect local password to fall
+        // through to the DummyJSON demo-account login.
+        if (localAccount.password !== credentials.password) {
+          throw new Error('Invalid username or password.');
+        }
+
+        const localUser: AuthUser = {
+          id: localAccount.id,
+          username: localAccount.username,
+          email: localAccount.email,
+          firstName: localAccount.firstName,
+          lastName: localAccount.lastName,
+          gender: localAccount.gender,
+          image: '',
+          token: `local-${localAccount.id}`,
+          refreshToken: `local-${localAccount.id}`,
+        };
+
+        await this.setTokens(localUser);
+
+        return localUser;
+      }
+
+      // No local account found. Continue with DummyJSON login.
       const response = await this.client.post<RefreshTokenResponse>(
         '/login',
         {
@@ -118,7 +151,6 @@ class AuthApiService {
 
       const apiUser = response.data;
 
-      // Convert DummyJSON accessToken to the project's token property.
       const user: AuthUser = {
         id: apiUser.id,
         username: apiUser.username,
@@ -134,10 +166,15 @@ class AuthApiService {
       await this.setTokens(user);
 
       return user;
-    } catch (error: unknown) {
+    } catch (error) {
+      if (error instanceof Error && !axios.isAxiosError(error)) {
+        throw error;
+      }
+
       if (axios.isAxiosError(error)) {
         throw new Error(
-          error.response?.data?.message || 'Login failed. Please try again.'
+          error.response?.data?.message ||
+            'Login failed. Please try again.'
         );
       }
 
@@ -146,54 +183,34 @@ class AuthApiService {
   }
 
   /**
-   * Register new user.
-   * POST https://dummyjson.com/users/add
-   *
-   * Important:
-   * DummyJSON simulates user creation.
-   * Newly created users are not permanently saved.
+   * Register a new account locally.
+   * DummyJSON's users/add endpoint does not permanently save accounts,
+   * so AsyncStorage is used for this capstone prototype.
    */
   async register(data: RegisterData): Promise<void> {
     try {
-      const response = await axios.post<{ id: number }>(
-        'https://dummyjson.com/users/add',
-        {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          username: data.username,
-          password: data.password,
-          email: data.email,
-          age: data.age,
-          gender: data.gender,
-          image: data.image,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 10000,
-        }
+      await authStorage.registerLocalAccount({
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        username: data.username.trim(),
+        password: data.password,
+        email: data.email.trim(),
+        age: data.age,
+        gender: data.gender ?? 'male',
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      throw new Error(
+        'Unable to create your account. Please try again.'
       );
-
-      if (!response.data || !response.data.id) {
-        throw new Error('Registration failed. Please try again.');
-      }
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const message =
-          error.response?.data?.message ||
-          'Unable to create your account. Please try again.';
-
-        throw new Error(message);
-      }
-
-      throw error;
     }
   }
 
   /**
-   * Get current user profile.
-   * GET /auth/me
+   * Get the currently authenticated DummyJSON user.
    */
   async getMe(): Promise<AuthUser> {
     const response = await this.client.get<
@@ -210,8 +227,7 @@ class AuthApiService {
   }
 
   /**
-   * Refresh access token.
-   * POST /auth/refresh
+   * Refresh the current DummyJSON access token.
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
     if (this.refreshTokenPromise) {
@@ -253,22 +269,22 @@ class AuthApiService {
   }
 
   /**
-   * Get stored user information.
+   * Get the stored authenticated user.
    */
   async getStoredUser(): Promise<AuthUser | null> {
     return authStorage.getUser() as Promise<AuthUser | null>;
   }
 
   /**
-   * Logout user.
-   * Clears locally stored authentication information.
+   * Log out the current user.
+   * Locally registered accounts are not deleted.
    */
   async logout(): Promise<void> {
     await this.clearTokens();
   }
 
   /**
-   * Check whether authentication tokens exist.
+   * Check whether access and refresh tokens are stored.
    */
   async hasValidTokens(): Promise<boolean> {
     const user = await this.getStoredUser();
@@ -277,8 +293,6 @@ class AuthApiService {
   }
 }
 
-// Export singleton instance.
 export const authApi = new AuthApiService();
 
-// Export class for testing.
 export { AuthApiService };

@@ -2,6 +2,8 @@
 /**
  * AsyncStorage Utilities
  * Wrapper for AsyncStorage with TypeScript support.
+ * Includes authentication, local accounts, favorites,
+ * meal planning, cart, and settings storage.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +24,7 @@ export interface MealPlanEntry {
 const STORAGE_KEYS = {
   AUTH_USER: 'auth_user',
   PROFILE_OVERRIDES: 'profile_overrides',
+  LOCAL_ACCOUNTS: 'local_registered_accounts',
   FAVORITES: 'favorite_recipe_ids',
   CART: 'cart_items',
   SETTINGS: 'user_settings',
@@ -120,7 +123,21 @@ export interface ProfileOverrides {
   email: string;
 }
 
+// Locally registered account information.
+export interface LocalAccount {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+  password: string;
+  email: string;
+  age?: number;
+  gender: 'male' | 'female';
+  createdAt: string;
+}
+
 export const authStorage = {
+  // Get the currently authenticated user.
   getUser: () =>
     getStorageItem<{
       id: number;
@@ -132,9 +149,75 @@ export const authStorage = {
       refreshToken: string;
     }>(STORAGE_KEYS.AUTH_USER),
 
+  // Save the currently authenticated user.
   setUser: (user: unknown) =>
     setStorageItem(STORAGE_KEYS.AUTH_USER, user),
 
+  // Get locally registered accounts.
+  getLocalAccounts: async (): Promise<LocalAccount[]> => {
+    return (
+      (await getStorageItem<LocalAccount[]>(
+        STORAGE_KEYS.LOCAL_ACCOUNTS
+      )) ?? []
+    );
+  },
+
+  // Register and save a new local account.
+  registerLocalAccount: async (
+    data: Omit<LocalAccount, 'id' | 'createdAt'>
+  ): Promise<LocalAccount> => {
+    const accounts = await authStorage.getLocalAccounts();
+
+    const usernameExists = accounts.some(
+      (account) =>
+        account.username.toLowerCase() ===
+        data.username.toLowerCase()
+    );
+
+    if (usernameExists) {
+      throw new Error('This username is already registered.');
+    }
+
+    const emailExists = accounts.some(
+      (account) =>
+        account.email.toLowerCase() ===
+        data.email.toLowerCase()
+    );
+
+    if (emailExists) {
+      throw new Error('This email is already registered.');
+    }
+
+    const newAccount: LocalAccount = {
+      ...data,
+      id: -Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+
+    await setStorageItem(
+      STORAGE_KEYS.LOCAL_ACCOUNTS,
+      [...accounts, newAccount]
+    );
+
+    return newAccount;
+  },
+
+  // Find a locally registered account by username.
+  findLocalAccount: async (
+    username: string
+  ): Promise<LocalAccount | null> => {
+    const accounts = await authStorage.getLocalAccounts();
+
+    return (
+      accounts.find(
+        (account) =>
+          account.username.toLowerCase() ===
+          username.trim().toLowerCase()
+      ) ?? null
+    );
+  },
+
+  // Get profile changes saved for a particular user.
   getProfileOverrides: async (
     userId: number
   ): Promise<ProfileOverrides | null> => {
@@ -154,6 +237,7 @@ export const authStorage = {
     };
   },
 
+  // Save profile changes separately from API data.
   setProfileOverrides: (
     userId: number,
     updates: ProfileOverrides
@@ -163,11 +247,11 @@ export const authStorage = {
       ...updates,
     }),
 
+  // Remove saved profile changes.
   clearProfileOverrides: () =>
     removeStorageItem(STORAGE_KEYS.PROFILE_OVERRIDES),
 
-  // Keep profile overrides when logging out.
-  // They are associated with a user ID and restored on the next login.
+  // Clear the current session without deleting registered accounts.
   clearUser: () => removeStorageItem(STORAGE_KEYS.AUTH_USER),
 };
 
