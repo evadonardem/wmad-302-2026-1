@@ -1,6 +1,8 @@
+
 /**
  * My Cookbook Screen
  * Displays favorite recipes and recipes added to the Meal Planner.
+ * Supports Light Mode and Dark Mode.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -17,11 +19,16 @@ import {
 
 import { useFocusEffect, useRouter } from 'expo-router';
 
-import { Card, Chip } from 'react-native-paper';
+import {
+  Card,
+  Chip,
+  useTheme,
+  MD3Theme,
+} from 'react-native-paper';
 
 import { favoritesStorage, mealPlanStorage } from '@/utils/storage';
 import { recipeApi } from '@/services/recipeApi';
-import { Recipe, } from '@/types/recipe';
+import { Recipe } from '@/types/recipe';
 import { MealPlanEntry } from '@/utils/storage';
 
 interface PlannedRecipe {
@@ -31,6 +38,10 @@ interface PlannedRecipe {
 
 export default function MyCookbookScreen() {
   const router = useRouter();
+
+  const theme = useTheme<MD3Theme>();
+  const colors = theme.colors;
+  const styles = createStyles(colors);
 
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [plannedRecipes, setPlannedRecipes] = useState<PlannedRecipe[]>([]);
@@ -138,11 +149,19 @@ export default function MyCookbookScreen() {
             </Text>
 
             <View style={styles.chips}>
-              <Chip compact style={styles.chip}>
+              <Chip
+                compact
+                style={styles.difficultyChip}
+                textStyle={styles.difficultyChipText}
+              >
                 {recipe.difficulty}
               </Chip>
 
-              <Chip compact style={styles.chip}>
+              <Chip
+                compact
+                style={styles.ratingChip}
+                textStyle={styles.ratingChipText}
+              >
                 ⭐ {recipe.rating}
               </Chip>
             </View>
@@ -159,7 +178,7 @@ export default function MyCookbookScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#E85D04" />
+        <ActivityIndicator size="large" color={colors.primary} />
 
         <Text style={styles.loadingText}>
           Loading your cookbook...
@@ -240,102 +259,137 @@ export default function MyCookbookScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFDF8',
-  },
-  list: {
-    paddingBottom: 30,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 18,
-  },
-  heading: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#4E342E',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#8D6E63',
-    marginTop: 5,
-    lineHeight: 20,
-  },
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4E342E',
-    marginBottom: 14,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  cardContent: {
-    flexDirection: 'row',
-    padding: 10,
-    alignItems: 'center',
-  },
-  image: {
-    width: 105,
-    height: 105,
-    borderRadius: 9,
-  },
-  info: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  recipeName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#4E342E',
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#8D6E63',
-    marginTop: 5,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 7,
-    gap: 6,
-  },
-  chip: {
-    backgroundColor: '#FFF3E0',
-  },
-  details: {
-    fontSize: 12,
-    color: '#795548',
-    marginTop: 6,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#8D6E63',
-    paddingVertical: 12,
-    lineHeight: 21,
-  },
-  errorText: {
-    color: '#C62828',
-    padding: 20,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFDF8',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#795548',
-  },
-});
+/**
+ * Dynamic styles based on the active app theme.
+ */
+const createStyles = (colors: MD3Theme['colors']) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+
+    list: {
+      paddingBottom: 30,
+    },
+
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 24,
+      paddingBottom: 18,
+    },
+
+    heading: {
+      fontSize: 26,
+      fontWeight: 'bold',
+      color: colors.onSurface,
+    },
+
+    headerSubtitle: {
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+      marginTop: 5,
+      lineHeight: 20,
+    },
+
+    section: {
+      paddingHorizontal: 16,
+      marginBottom: 24,
+    },
+
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.onSurface,
+      marginBottom: 14,
+    },
+
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginBottom: 12,
+      overflow: 'hidden',
+    },
+
+    cardContent: {
+      flexDirection: 'row',
+      padding: 10,
+      alignItems: 'center',
+    },
+
+    image: {
+      width: 105,
+      height: 105,
+      borderRadius: 9,
+    },
+
+    info: {
+      flex: 1,
+      marginLeft: 12,
+    },
+
+    recipeName: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      color: colors.onSurface,
+    },
+
+    subtitle: {
+      fontSize: 12,
+      color: colors.onSurfaceVariant,
+      marginTop: 5,
+    },
+
+    chips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 7,
+      gap: 6,
+    },
+
+    difficultyChip: {
+      backgroundColor: colors.secondaryContainer,
+    },
+
+    difficultyChipText: {
+      color: colors.onSecondaryContainer,
+    },
+
+    ratingChip: {
+      backgroundColor: colors.tertiaryContainer,
+    },
+
+    ratingChipText: {
+      color: colors.onTertiaryContainer,
+    },
+
+    details: {
+      fontSize: 12,
+      color: colors.onSurfaceVariant,
+      marginTop: 6,
+    },
+
+    emptyText: {
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+      paddingVertical: 12,
+      lineHeight: 21,
+    },
+
+    errorText: {
+      color: colors.error,
+      padding: 20,
+    },
+
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+
+    loadingText: {
+      marginTop: 12,
+      color: colors.onSurfaceVariant,
+    },
+  });
