@@ -243,7 +243,7 @@ export default function HomeScreen() {
           size={56}
           icon="chef-hat"
           style={styles.welcomeAvatar}
-          color={colors.onPrimary}
+          color={colors.onPrimaryContainer}
         />
       </View>
 

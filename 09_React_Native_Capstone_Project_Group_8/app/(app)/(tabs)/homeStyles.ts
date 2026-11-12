@@ -58,7 +58,7 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
       paddingHorizontal: 20,
       paddingTop: 24,
       paddingBottom: 28,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.background,
     },
 
     welcomeTextContainer: {
@@ -68,13 +68,13 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
     welcomeGreeting: {
       fontSize: 15,
       fontWeight: '500',
-      color: colors.onPrimary,
+      color: colors.onSurfaceVariant,
     },
 
     welcomeSubtitle: {
       fontSize: 23,
       fontWeight: '700',
-      color: colors.onPrimary,
+      color: colors.onSurface,
       marginTop: 8,
     },
 

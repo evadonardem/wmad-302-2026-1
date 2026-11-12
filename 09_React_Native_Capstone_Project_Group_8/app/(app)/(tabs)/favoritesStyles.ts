@@ -9,26 +9,25 @@ import type { MD3Theme } from 'react-native-paper';
 
 export function createFavoritesStyles(theme: MD3Theme) {
   const colors = theme.colors;
-  const dark = theme.dark;
 
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: dark ? colors.background : colors.primary,
+      backgroundColor: colors.background,
     },
 
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: dark ? colors.background : colors.primary,
+      backgroundColor: colors.background,
     },
 
     loadingText: {
       marginTop: 16,
       fontSize: 16,
       fontWeight: '500',
-      color: dark ? colors.onBackground : '#FFFFFF',
+      color: colors.onBackground,
     },
 
     // Empty Favorites
@@ -52,14 +51,14 @@ export function createFavoritesStyles(theme: MD3Theme) {
     emptyTitle: {
       fontSize: 25,
       fontWeight: '700',
-      color: dark ? colors.onBackground : '#FFFFFF',
+      color: colors.onBackground,
       marginTop: 24,
     },
 
     emptyText: {
       fontSize: 15,
       lineHeight: 23,
-      color: dark ? colors.onSurfaceVariant : '#F1F8E9',
+      color: colors.onSurfaceVariant,
       marginTop: 10,
       textAlign: 'center',
     },
@@ -91,19 +90,19 @@ export function createFavoritesStyles(theme: MD3Theme) {
       fontSize: 12,
       fontWeight: '700',
       letterSpacing: 2,
-      color: dark ? colors.onSurfaceVariant : '#D9F2D3',
+      color: colors.onSurfaceVariant,
       marginBottom: 6,
     },
 
     headerTitle: {
       fontSize: 29,
       fontWeight: '700',
-      color: dark ? colors.onBackground : '#FFFFFF',
+      color: colors.onBackground,
     },
 
     headerSubtitle: {
       fontSize: 14,
-      color: dark ? colors.onSurfaceVariant : '#F1F8E9',
+      color: colors.onSurfaceVariant,
       marginTop: 4,
     },
 
@@ -111,9 +110,7 @@ export function createFavoritesStyles(theme: MD3Theme) {
       flexDirection: 'row',
       alignItems: 'center',
       alignSelf: 'flex-start',
-      backgroundColor: dark
-        ? colors.primaryContainer
-        : '#2E8B25',
+      backgroundColor: colors.primaryContainer,
       paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: 20,
@@ -124,7 +121,7 @@ export function createFavoritesStyles(theme: MD3Theme) {
     countText: {
       fontSize: 13,
       fontWeight: '600',
-      color: dark ? colors.onPrimaryContainer : '#FFFFFF',
+      color: colors.onPrimaryContainer,
     },
 
     // Recipe card
