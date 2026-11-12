@@ -1,7 +1,7 @@
-
 /**
  * Search Screen - Cookbook
  * Searches and filters the complete DummyJSON recipe catalog.
+ * Supports Light Mode and Dark Mode.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -18,12 +18,13 @@ import {
 } from 'react-native';
 
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Card, Title, Chip } from 'react-native-paper';
+import { Card, Title, Chip, useTheme } from 'react-native-paper';
+import type { MD3Theme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { recipeApi } from '@/services/recipeApi';
 import type { Recipe } from '@/types/recipe';
-import { styles } from './searchStyles';
+import { createStyles } from './searchStyles';
 
 const PAGE_SIZE = 10;
 
@@ -188,6 +189,11 @@ function getFilteredRecipes(
 
 export default function SearchScreen() {
   const router = useRouter();
+
+  // Use the active Light or Dark theme.
+  const theme = useTheme<MD3Theme>();
+  const colors = theme.colors;
+  const styles = createStyles(colors);
 
   // Read a category passed from the Categories Screen.
   const { category: categoryParam } = useLocalSearchParams<{
@@ -433,11 +439,17 @@ export default function SearchScreen() {
             </Title>
 
             <View style={styles.resultMeta}>
-              <Chip style={styles.difficultyChip}>
+              <Chip
+                style={styles.difficultyChip}
+                textStyle={{ color: colors.onSecondaryContainer }}
+              >
                 {item.difficulty}
               </Chip>
 
-              <Chip style={styles.cuisineChip}>
+              <Chip
+                style={styles.cuisineChip}
+                textStyle={{ color: colors.onTertiaryContainer }}
+              >
                 {item.cuisine}
               </Chip>
             </View>
@@ -466,10 +478,10 @@ export default function SearchScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             height: 52,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.surface,
             borderRadius: 14,
             borderWidth: 1,
-            borderColor: '#DCEBD8',
+            borderColor: colors.outlineVariant,
             paddingLeft: 12,
             paddingRight: 4,
           }}
@@ -477,7 +489,7 @@ export default function SearchScreen() {
           <MaterialCommunityIcons
             name="magnify"
             size={24}
-            color="#43A52F"
+            color={colors.primary}
           />
 
           <TextInput
@@ -488,10 +500,11 @@ export default function SearchScreen() {
                 borderWidth: 0,
                 height: 50,
                 paddingHorizontal: 12,
+                backgroundColor: 'transparent',
               },
             ]}
             placeholder="Search recipes or ingredients..."
-            placeholderTextColor="#8AA187"
+            placeholderTextColor={colors.onSurfaceVariant}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
@@ -561,14 +574,12 @@ export default function SearchScreen() {
 
         {loading ? (
           <View style={styles.loadingCenter}>
-            <ActivityIndicator size="large" color="#43A52F" />
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+            />
 
-            <Text
-              style={{
-                marginTop: 10,
-                color: '#668064',
-              }}
-            >
+            <Text style={styles.loadingText}>
               Loading recipes...
             </Text>
           </View>
@@ -589,37 +600,19 @@ export default function SearchScreen() {
               <TouchableOpacity
                 onPress={handleLoadMore}
                 disabled={loadingMore}
-                style={{
-                  backgroundColor: '#43A52F',
-                  paddingVertical: 12,
-                  paddingHorizontal: 20,
-                  borderRadius: 12,
-                  alignItems: 'center',
-                  marginVertical: 16,
-                }}
+                style={styles.loadMoreButton}
               >
                 {loadingMore ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text
-                    style={{
-                      color: '#FFFFFF',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                  <Text style={styles.loadMoreText}>
                     Load More Recipes
                   </Text>
                 )}
               </TouchableOpacity>
             )}
 
-            <Text
-              style={{
-                textAlign: 'center',
-                color: '#668064',
-                marginVertical: 10,
-              }}
-            >
+            <Text style={styles.showingText}>
               Showing {results.length} of {totalResults} recipes
             </Text>
           </>
@@ -628,7 +621,7 @@ export default function SearchScreen() {
             <MaterialCommunityIcons
               name="magnify"
               size={64}
-              color="#A5C59E"
+              color={colors.primary}
             />
 
             <Text style={styles.emptyText}>
@@ -644,7 +637,7 @@ export default function SearchScreen() {
             <MaterialCommunityIcons
               name="magnify"
               size={64}
-              color="#A5C59E"
+              color={colors.primary}
             />
 
             <Text style={styles.emptyText}>
