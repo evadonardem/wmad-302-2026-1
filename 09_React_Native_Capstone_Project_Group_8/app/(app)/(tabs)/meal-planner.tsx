@@ -1,4 +1,10 @@
 
+/**
+ * Meal Planner Screen - Cookbook App
+ * Supports Light Mode, Dark Mode, and System Default.
+ * Manages daily meal plans using local storage.
+ */
+
 import React, { useCallback, useState } from 'react';
 import {
   View,
@@ -9,11 +15,13 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  StyleSheet,
 } from 'react-native';
 
 import { useFocusEffect, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Button, Card } from 'react-native-paper';
+import { Button, Card, useTheme } from 'react-native-paper';
+import type { MD3Theme } from 'react-native-paper';
 
 import { mealPlanStorage } from '@/utils/storage';
 import type { MealType, MealPlanEntry } from '@/utils/storage';
@@ -36,22 +44,22 @@ interface PlannedRecipe {
 const MEALS: {
   type: MealType;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  color: string;
+  colorKey: 'primary' | 'secondary' | 'tertiary';
 }[] = [
   {
     type: 'Breakfast',
     icon: 'weather-sunny',
-    color: '#43A52F',
+    colorKey: 'primary',
   },
   {
     type: 'Lunch',
     icon: 'white-balance-sunny',
-    color: '#2E7D32',
+    colorKey: 'secondary',
   },
   {
     type: 'Dinner',
     icon: 'weather-night',
-    color: '#1B5E20',
+    colorKey: 'tertiary',
   },
 ];
 
@@ -79,6 +87,10 @@ function formatDate(dateKey: string): string {
 
 export default function MealPlannerScreen() {
   const router = useRouter();
+
+  const theme = useTheme<MD3Theme>();
+  const colors = theme.colors;
+  const styles = createStyles(colors);
 
   const [selectedDate, setSelectedDate] = useState(
     () => getDateKey(new Date())
@@ -242,6 +254,7 @@ export default function MealPlannerScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.headerSubtitle}>
@@ -260,10 +273,11 @@ export default function MealPlannerScreen() {
           <MaterialCommunityIcons
             name="calendar-check"
             size={48}
-            color="#43A52F"
+            color={colors.primary}
           />
         </View>
 
+        {/* Date Navigation */}
         <Card style={styles.dateCard} elevation={1}>
           <View style={styles.dateNavigation}>
             <TouchableOpacity
@@ -274,7 +288,7 @@ export default function MealPlannerScreen() {
               <MaterialCommunityIcons
                 name="chevron-left"
                 size={28}
-                color="#43A52F"
+                color={colors.primary}
               />
             </TouchableOpacity>
 
@@ -296,7 +310,7 @@ export default function MealPlannerScreen() {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={28}
-                color="#43A52F"
+                color={colors.primary}
               />
             </TouchableOpacity>
           </View>
@@ -304,7 +318,7 @@ export default function MealPlannerScreen() {
           {!isToday && (
             <Button
               mode="text"
-              textColor="#43A52F"
+              textColor={colors.primary}
               onPress={() => setSelectedDate(getDateKey(new Date()))}
             >
               Return to Today
@@ -312,9 +326,13 @@ export default function MealPlannerScreen() {
           )}
         </Card>
 
+        {/* Meal Sections */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#43A52F" />
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+            />
 
             <Text style={styles.loadingText}>
               Loading your meal plan...
@@ -332,7 +350,7 @@ export default function MealPlannerScreen() {
                       <MaterialCommunityIcons
                         name={meal.icon}
                         size={26}
-                        color={meal.color}
+                        color={colors[meal.colorKey]}
                       />
 
                       <Text style={styles.mealTitle}>
@@ -352,7 +370,7 @@ export default function MealPlannerScreen() {
                       <MaterialCommunityIcons
                         name="food-outline"
                         size={35}
-                        color="#81C784"
+                        color={colors.primary}
                       />
 
                       <Text style={styles.emptyMealText}>
@@ -419,13 +437,13 @@ export default function MealPlannerScreen() {
                             {removingId === recipe.id ? (
                               <ActivityIndicator
                                 size="small"
-                                color="#C62828"
+                                color={colors.error}
                               />
                             ) : (
                               <MaterialCommunityIcons
                                 name="close-circle-outline"
                                 size={25}
-                                color="#C62828"
+                                color={colors.error}
                               />
                             )}
                           </TouchableOpacity>
@@ -437,10 +455,11 @@ export default function MealPlannerScreen() {
               );
             })}
 
+            {/* Browse Recipes */}
             <Button
               mode="contained"
-              buttonColor="#43A52F"
-              textColor="#FFFFFF"
+              buttonColor={colors.primary}
+              textColor={colors.onPrimary}
               icon="plus"
               style={styles.browseButton}
               contentStyle={styles.browseButtonContent}
@@ -457,171 +476,204 @@ export default function MealPlannerScreen() {
   );
 }
 
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: '#F5FAF3',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 35,
-  },
-  header: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    marginTop: 35,
-    marginBottom: 20,
-  },
-  headerSubtitle: {
-    color: '#43A52F',
-    fontSize: 11,
-    fontWeight: 'bold' as const,
-    letterSpacing: 1.5,
-  },
-  headerTitle: {
-    fontSize: 29,
-    fontWeight: 'bold' as const,
-    color: '#1B5E20',
-    marginTop: 5,
-  },
-  headerDescription: {
-    fontSize: 13,
-    color: '#777777',
-    marginTop: 6,
-    maxWidth: 260,
-    lineHeight: 19,
-  },
-  dateCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 25,
-  },
-  dateNavigation: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-  },
-  dateArrow: {
-    padding: 5,
-  },
-  dateTextContainer: {
-    alignItems: 'center' as const,
-    flex: 1,
-  },
-  dateLabel: {
-    fontSize: 10,
-    fontWeight: 'bold' as const,
-    color: '#43A52F',
-    letterSpacing: 1,
-  },
-  dateText: {
-    fontSize: 15,
-    fontWeight: 'bold' as const,
-    color: '#1B5E20',
-    marginTop: 4,
-    textAlign: 'center' as const,
-  },
-  loadingContainer: {
-    padding: 50,
-    alignItems: 'center' as const,
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#777777',
-  },
-  mealSection: {
-    marginBottom: 25,
-  },
-  mealHeader: {
-    marginBottom: 12,
-  },
-  mealTitleContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 9,
-  },
-  mealTitle: {
-    fontSize: 21,
-    fontWeight: 'bold' as const,
-    color: '#1B5E20',
-  },
-  countBadge: {
-    backgroundColor: '#E8F5E9',
-    minWidth: 25,
-    height: 25,
-    borderRadius: 13,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-  countText: {
-    color: '#2E7D32',
-    fontSize: 12,
-    fontWeight: 'bold' as const,
-  },
-  emptyMeal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 22,
-    alignItems: 'center' as const,
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
-    borderStyle: 'dashed' as const,
-  },
-  emptyMealText: {
-    color: '#777777',
-    fontSize: 13,
-    marginTop: 8,
-  },
-  addRecipeText: {
-    color: '#43A52F',
-    fontWeight: 'bold' as const,
-    marginTop: 10,
-  },
-  recipeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 10,
-    overflow: 'hidden' as const,
-  },
-  recipeRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    padding: 10,
-  },
-  recipeDetailsButton: {
-    flex: 1,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-  },
-  recipeImage: {
-    width: 85,
-    height: 85,
-    borderRadius: 9,
-  },
-  recipeInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  recipeName: {
-    color: '#1B5E20',
-    fontSize: 15,
-    fontWeight: 'bold' as const,
-  },
-  recipeMeta: {
-    color: '#888888',
-    fontSize: 12,
-    marginTop: 5,
-  },
-  removeButton: {
-    padding: 5,
-  },
-  browseButton: {
-    marginTop: 5,
-    borderRadius: 9,
-  },
-  browseButtonContent: {
-    paddingVertical: 6,
-  },
-};
+const createStyles = (colors: MD3Theme['colors']) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+
+    scrollContent: {
+      padding: 20,
+      paddingBottom: 35,
+    },
+
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 35,
+      marginBottom: 20,
+    },
+
+    headerSubtitle: {
+      color: colors.primary,
+      fontSize: 11,
+      fontWeight: 'bold',
+      letterSpacing: 1.5,
+    },
+
+    headerTitle: {
+      fontSize: 29,
+      fontWeight: 'bold',
+      color: colors.onSurface,
+      marginTop: 5,
+    },
+
+    headerDescription: {
+      fontSize: 13,
+      color: colors.onSurfaceVariant,
+      marginTop: 6,
+      maxWidth: 260,
+      lineHeight: 19,
+    },
+
+    dateCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: 12,
+      marginBottom: 25,
+    },
+
+    dateNavigation: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+
+    dateArrow: {
+      padding: 5,
+    },
+
+    dateTextContainer: {
+      alignItems: 'center',
+      flex: 1,
+    },
+
+    dateLabel: {
+      fontSize: 10,
+      fontWeight: 'bold',
+      color: colors.primary,
+      letterSpacing: 1,
+    },
+
+    dateText: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      color: colors.onSurface,
+      marginTop: 4,
+      textAlign: 'center',
+    },
+
+    loadingContainer: {
+      padding: 50,
+      alignItems: 'center',
+    },
+
+    loadingText: {
+      marginTop: 12,
+      color: colors.onSurfaceVariant,
+    },
+
+    mealSection: {
+      marginBottom: 25,
+    },
+
+    mealHeader: {
+      marginBottom: 12,
+    },
+
+    mealTitleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+    },
+
+    mealTitle: {
+      fontSize: 21,
+      fontWeight: 'bold',
+      color: colors.onSurface,
+    },
+
+    countBadge: {
+      backgroundColor: colors.primaryContainer,
+      minWidth: 25,
+      height: 25,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    countText: {
+      color: colors.onPrimaryContainer,
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+
+    emptyMeal: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 22,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      borderStyle: 'dashed',
+    },
+
+    emptyMealText: {
+      color: colors.onSurfaceVariant,
+      fontSize: 13,
+      marginTop: 8,
+    },
+
+    addRecipeText: {
+      color: colors.primary,
+      fontWeight: 'bold',
+      marginTop: 10,
+    },
+
+    recipeCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginBottom: 10,
+      overflow: 'hidden',
+    },
+
+    recipeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+    },
+
+    recipeDetailsButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+
+    recipeImage: {
+      width: 85,
+      height: 85,
+      borderRadius: 9,
+    },
+
+    recipeInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+
+    recipeName: {
+      color: colors.onSurface,
+      fontSize: 15,
+      fontWeight: 'bold',
+    },
+
+    recipeMeta: {
+      color: colors.onSurfaceVariant,
+      fontSize: 12,
+      marginTop: 5,
+    },
+
+    removeButton: {
+      padding: 5,
+    },
+
+    browseButton: {
+      marginTop: 5,
+      borderRadius: 9,
+    },
+
+    browseButtonContent: {
+      paddingVertical: 6,
+    },
+  });
