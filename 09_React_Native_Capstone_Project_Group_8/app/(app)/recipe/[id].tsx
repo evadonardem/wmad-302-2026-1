@@ -1,7 +1,7 @@
 
 /**
  * Recipe Details Screen - Cookbook
- * Green and white food-inspired design.
+ * Supports Light Mode and Dark Mode.
  * Manages Favorites and Meal Planning.
  */
 
@@ -20,7 +20,14 @@ import {
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Card, Chip, Button } from 'react-native-paper';
+
+import {
+  Card,
+  Chip,
+  Button,
+  useTheme,
+  type MD3Theme,
+} from 'react-native-paper';
 
 import {
   favoritesStorage,
@@ -50,6 +57,10 @@ interface Recipe {
 export default function RecipeDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+
+  // Get the currently selected application theme.
+  const theme = useTheme();
+  const styles = createStyles(theme);
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -185,7 +196,10 @@ export default function RecipeDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#43A52F" />
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.primary}
+        />
 
         <Text style={styles.loadingText}>
           Preparing your recipe...
@@ -204,7 +218,7 @@ export default function RecipeDetailsScreen() {
         <MaterialCommunityIcons
           name="food-off"
           size={65}
-          color="#8A9687"
+          color={theme.colors.onSurfaceVariant}
         />
 
         <Text style={styles.errorTitle}>
@@ -217,7 +231,7 @@ export default function RecipeDetailsScreen() {
 
         <Button
           mode="contained"
-          buttonColor="#43A52F"
+          buttonColor={theme.colors.primary}
           onPress={() => router.back()}
           style={styles.backActionButton}
         >
@@ -303,7 +317,7 @@ export default function RecipeDetailsScreen() {
             <MaterialCommunityIcons
               name="silverware-fork-knife"
               size={17}
-              color="#43A52F"
+              color={theme.colors.primary}
             />
 
             <Text style={styles.cuisine}>
@@ -361,7 +375,7 @@ export default function RecipeDetailsScreen() {
                     <MaterialCommunityIcons
                       name="clock-outline"
                       size={24}
-                      color="#43A52F"
+                      color={theme.colors.primary}
                     />
                   </View>
 
@@ -381,7 +395,7 @@ export default function RecipeDetailsScreen() {
                     <MaterialCommunityIcons
                       name="stove"
                       size={24}
-                      color="#43A52F"
+                      color={theme.colors.primary}
                     />
                   </View>
 
@@ -401,7 +415,7 @@ export default function RecipeDetailsScreen() {
                     <MaterialCommunityIcons
                       name="account-group-outline"
                       size={24}
-                      color="#43A52F"
+                      color={theme.colors.primary}
                     />
                   </View>
 
@@ -434,7 +448,7 @@ export default function RecipeDetailsScreen() {
               <MaterialCommunityIcons
                 name="basket-outline"
                 size={23}
-                color="#43A52F"
+                color={theme.colors.primary}
               />
             </View>
           </View>
@@ -453,7 +467,7 @@ export default function RecipeDetailsScreen() {
                   <MaterialCommunityIcons
                     name="check-circle-outline"
                     size={21}
-                    color="#43A52F"
+                    color={theme.colors.primary}
                   />
 
                   <Text style={styles.ingredientText}>
@@ -481,7 +495,7 @@ export default function RecipeDetailsScreen() {
               <MaterialCommunityIcons
                 name="chef-hat"
                 size={23}
-                color="#43A52F"
+                color={theme.colors.primary}
               />
             </View>
           </View>
@@ -526,7 +540,7 @@ export default function RecipeDetailsScreen() {
               <MaterialCommunityIcons
                 name="leaf"
                 size={23}
-                color="#43A52F"
+                color={theme.colors.primary}
               />
             </View>
           </View>
@@ -538,7 +552,7 @@ export default function RecipeDetailsScreen() {
                   <MaterialCommunityIcons
                     name="fire"
                     size={28}
-                    color="#43A52F"
+                    color={theme.colors.primary}
                   />
                 </View>
 
@@ -578,8 +592,8 @@ export default function RecipeDetailsScreen() {
 
             <Button
               mode="contained"
-              buttonColor="#43A52F"
-              textColor="#FFFFFF"
+              buttonColor={theme.colors.primary}
+              textColor={theme.colors.onPrimary}
               icon="calendar-plus"
               loading={savingMeal}
               disabled={savingMeal}
@@ -618,7 +632,7 @@ export default function RecipeDetailsScreen() {
                             : 'weather-night'
                       }
                       size={23}
-                      color="#43A52F"
+                      color={theme.colors.primary}
                     />
 
                     <Text style={styles.mealOptionText}>
@@ -628,7 +642,7 @@ export default function RecipeDetailsScreen() {
                     <MaterialCommunityIcons
                       name="chevron-right"
                       size={21}
-                      color="#8A9687"
+                      color={theme.colors.onSurfaceVariant}
                     />
                   </TouchableOpacity>
                 ))}
@@ -639,8 +653,8 @@ export default function RecipeDetailsScreen() {
 
             <Button
               mode="outlined"
-              buttonColor="#FFFFFF"
-              textColor="#43A52F"
+              buttonColor={theme.colors.surface}
+              textColor={theme.colors.primary}
               icon={isFavorite ? 'heart' : 'heart-outline'}
               loading={savingFavorite}
               disabled={savingFavorite}
@@ -661,474 +675,478 @@ export default function RecipeDetailsScreen() {
 }
 
 // ======================================
-// STYLES
+// THEME-AWARE STYLES
 // ======================================
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5FAF3',
-  },
-
-  scrollContent: {
-    paddingBottom: 35,
-  },
-
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FAF3',
-    padding: 24,
-    gap: 15,
-  },
-
-  loadingText: {
-    color: '#52634F',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-
-  errorTitle: {
-    fontSize: 23,
-    fontWeight: '700',
-    color: '#1B5E20',
-  },
-
-  errorText: {
-    fontSize: 14,
-    color: '#687868',
-    textAlign: 'center',
-    lineHeight: 21,
-  },
-
-  backActionButton: {
-    marginTop: 10,
-    borderRadius: 12,
-  },
-
-  // Hero image
-
-  imageContainer: {
-    width: '100%',
-    height: 300,
-    position: 'relative',
-    backgroundColor: '#DDEBDD',
-  },
-
-  recipeImage: {
-    width: '100%',
-    height: '100%',
-  },
-
-  imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.12)',
-  },
-
-  backButton: {
-    position: 'absolute',
-    top: 48,
-    left: 18,
-    width: 46,
-    height: 46,
-    backgroundColor: 'rgba(27, 94, 32, 0.85)',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  favoriteButton: {
-    position: 'absolute',
-    top: 48,
-    right: 18,
-    width: 46,
-    height: 46,
-    backgroundColor: 'rgba(27, 94, 32, 0.85)',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  imageLabel: {
-    position: 'absolute',
-    bottom: 18,
-    left: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: 'rgba(27, 94, 32, 0.85)',
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-
-  imageLabelText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-
-  // Main content
-
-  content: {
-    paddingHorizontal: 18,
-    paddingTop: 23,
-  },
-
-  recipeName: {
-    fontSize: 27,
-    lineHeight: 35,
-    fontWeight: '700',
-    color: '#1B5E20',
-  },
-
-  cuisineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    marginTop: 9,
-  },
-
-  cuisine: {
-    fontSize: 15,
-    color: '#687868',
-    fontWeight: '500',
-  },
-
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 13,
-    gap: 5,
-  },
-
-  ratingValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#344534',
-  },
-
-  ratingText: {
-    fontSize: 13,
-    color: '#849083',
-  },
-
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 9,
-    marginTop: 16,
-    marginBottom: 12,
-  },
-
-  difficultyChip: {
-    backgroundColor: '#E8F5E9',
-  },
-
-  mealChip: {
-    backgroundColor: '#F1F8E9',
-  },
-
-  chipText: {
-    color: '#2E7D32',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Section headings
-
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 25,
-    marginBottom: 13,
-  },
-
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1B5E20',
-  },
-
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#81907E',
-    marginTop: 4,
-  },
-
-  sectionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Cooking information
-
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginTop: 3,
-    borderWidth: 1,
-    borderColor: '#E3EDE0',
-  },
-
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-
-  infoItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 5,
-  },
-
-  infoIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 3,
-  },
-
-  infoValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1B5E20',
-  },
-
-  infoLabel: {
-    fontSize: 11,
-    color: '#81907E',
-    textAlign: 'center',
-  },
-
-  infoDivider: {
-    width: 1,
-    height: 65,
-    backgroundColor: '#E3EDE0',
-  },
-
-  // Ingredients
-
-  ingredientsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3EDE0',
-  },
-
-  ingredientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    gap: 12,
-  },
-
-  ingredientBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EDF3EA',
-  },
-
-  ingredientText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#405040',
-  },
-
-  // Cooking instructions
-
-  instructionRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-    gap: 13,
-  },
-
-  stepNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
-    backgroundColor: '#43A52F',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  stepNumberText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  instructionContent: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 13,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E3EDE0',
-  },
-
-  stepLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#43A52F',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-
-  instructionText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#405040',
-  },
-
-  // Nutrition
-
-  nutritionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E3EDE0',
-  },
-
-  nutritionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  calorieIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 15,
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  calorieInfo: {
-    flex: 1,
-  },
-
-  nutritionLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#344534',
-  },
-
-  nutritionDescription: {
-    fontSize: 11,
-    color: '#849083',
-    marginTop: 4,
-  },
-
-  calorieValueContainer: {
-    alignItems: 'flex-end',
-  },
-
-  nutritionValue: {
-    fontSize: 23,
-    fontWeight: '700',
-    color: '#2E7D32',
-  },
-
-  kcalText: {
-    fontSize: 11,
-    color: '#81907E',
-  },
-
-  // Actions
-
-  actionsContainer: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 18,
-    padding: 17,
-    marginTop: 28,
-  },
-
-  actionsTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1B5E20',
-  },
-
-  actionsSubtitle: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#52634F',
-    marginTop: 5,
-    marginBottom: 16,
-  },
-
-  actionButton: {
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-
-  actionButtonContent: {
-    height: 49,
-  },
-
-  actionButtonLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  favoriteActionButton: {
-    borderColor: '#43A52F',
-    borderWidth: 1.5,
-    borderRadius: 12,
-  },
-
-  favoriteButtonLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  // Meal selection
-
-  mealOptionsContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 13,
-    borderRadius: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#D5E8D0',
-  },
-
-  mealOptionsTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1B5E20',
-    marginBottom: 9,
-  },
-
-  mealOption: {
-    backgroundColor: '#F5FAF3',
-    paddingHorizontal: 13,
-    paddingVertical: 13,
-    borderRadius: 10,
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  mealOptionText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#344534',
-  },
-});
+function createStyles(theme: MD3Theme) {
+  const colors = theme.colors;
+
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+
+    scrollContent: {
+      paddingBottom: 35,
+    },
+
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      padding: 24,
+      gap: 15,
+    },
+
+    loadingText: {
+      color: colors.onSurfaceVariant,
+      fontSize: 16,
+      fontWeight: '500',
+    },
+
+    errorTitle: {
+      fontSize: 23,
+      fontWeight: '700',
+      color: colors.onSurface,
+    },
+
+    errorText: {
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      lineHeight: 21,
+    },
+
+    backActionButton: {
+      marginTop: 10,
+      borderRadius: 12,
+    },
+
+    // Hero image
+
+    imageContainer: {
+      width: '100%',
+      height: 300,
+      position: 'relative',
+      backgroundColor: colors.surfaceVariant,
+    },
+
+    recipeImage: {
+      width: '100%',
+      height: '100%',
+    },
+
+    imageOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0, 0, 0, 0.12)',
+    },
+
+    backButton: {
+      position: 'absolute',
+      top: 48,
+      left: 18,
+      width: 46,
+      height: 46,
+      backgroundColor: 'rgba(27, 94, 32, 0.85)',
+      borderRadius: 25,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    favoriteButton: {
+      position: 'absolute',
+      top: 48,
+      right: 18,
+      width: 46,
+      height: 46,
+      backgroundColor: 'rgba(27, 94, 32, 0.85)',
+      borderRadius: 25,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    imageLabel: {
+      position: 'absolute',
+      bottom: 18,
+      left: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      backgroundColor: 'rgba(27, 94, 32, 0.85)',
+      paddingHorizontal: 13,
+      paddingVertical: 8,
+      borderRadius: 20,
+    },
+
+    imageLabelText: {
+      color: '#FFFFFF',
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1,
+    },
+
+    // Main content
+
+    content: {
+      paddingHorizontal: 18,
+      paddingTop: 23,
+    },
+
+    recipeName: {
+      fontSize: 27,
+      lineHeight: 35,
+      fontWeight: '700',
+      color: colors.onSurface,
+    },
+
+    cuisineRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      marginTop: 9,
+    },
+
+    cuisine: {
+      fontSize: 15,
+      color: colors.onSurfaceVariant,
+      fontWeight: '500',
+    },
+
+    ratingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 13,
+      gap: 5,
+    },
+
+    ratingValue: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.onSurface,
+    },
+
+    ratingText: {
+      fontSize: 13,
+      color: colors.onSurfaceVariant,
+    },
+
+    chipContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 9,
+      marginTop: 16,
+      marginBottom: 12,
+    },
+
+    difficultyChip: {
+      backgroundColor: colors.secondaryContainer,
+    },
+
+    mealChip: {
+      backgroundColor: colors.primaryContainer,
+    },
+
+    chipText: {
+      color: colors.onSecondaryContainer,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+
+    // Section headings
+
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 25,
+      marginBottom: 13,
+    },
+
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.onSurface,
+    },
+
+    sectionSubtitle: {
+      fontSize: 12,
+      color: colors.onSurfaceVariant,
+      marginTop: 4,
+    },
+
+    sectionIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      backgroundColor: colors.primaryContainer,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    // Cooking information
+
+    infoCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      marginTop: 3,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+    },
+
+    infoItem: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 5,
+    },
+
+    infoIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: colors.primaryContainer,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 3,
+    },
+
+    infoValue: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.onSurface,
+    },
+
+    infoLabel: {
+      fontSize: 11,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+    },
+
+    infoDivider: {
+      width: 1,
+      height: 65,
+      backgroundColor: colors.outlineVariant,
+    },
+
+    // Ingredients
+
+    ingredientsCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+
+    ingredientRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 13,
+      gap: 12,
+    },
+
+    ingredientBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.outlineVariant,
+    },
+
+    ingredientText: {
+      flex: 1,
+      fontSize: 14,
+      lineHeight: 21,
+      color: colors.onSurface,
+    },
+
+    // Cooking instructions
+
+    instructionRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+      gap: 13,
+    },
+
+    stepNumber: {
+      width: 36,
+      height: 36,
+      borderRadius: 13,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    stepNumberText: {
+      color: colors.onPrimary,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+
+    instructionContent: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 13,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+
+    stepLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.primary,
+      letterSpacing: 1,
+      marginBottom: 6,
+    },
+
+    instructionText: {
+      fontSize: 14,
+      lineHeight: 22,
+      color: colors.onSurface,
+    },
+
+    // Nutrition
+
+    nutritionCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+
+    nutritionContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+
+    calorieIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 15,
+      backgroundColor: colors.primaryContainer,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    calorieInfo: {
+      flex: 1,
+    },
+
+    nutritionLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.onSurface,
+    },
+
+    nutritionDescription: {
+      fontSize: 11,
+      color: colors.onSurfaceVariant,
+      marginTop: 4,
+    },
+
+    calorieValueContainer: {
+      alignItems: 'flex-end',
+    },
+
+    nutritionValue: {
+      fontSize: 23,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+
+    kcalText: {
+      fontSize: 11,
+      color: colors.onSurfaceVariant,
+    },
+
+    // Actions
+
+    actionsContainer: {
+      backgroundColor: colors.primaryContainer,
+      borderRadius: 18,
+      padding: 17,
+      marginTop: 28,
+    },
+
+    actionsTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.onPrimaryContainer,
+    },
+
+    actionsSubtitle: {
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.onPrimaryContainer,
+      marginTop: 5,
+      marginBottom: 16,
+    },
+
+    actionButton: {
+      borderRadius: 12,
+      marginBottom: 10,
+    },
+
+    actionButtonContent: {
+      height: 49,
+    },
+
+    actionButtonLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
+
+    favoriteActionButton: {
+      borderColor: colors.primary,
+      borderWidth: 1.5,
+      borderRadius: 12,
+    },
+
+    favoriteButtonLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
+
+    // Meal selection
+
+    mealOptionsContainer: {
+      backgroundColor: colors.surface,
+      padding: 13,
+      borderRadius: 14,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+
+    mealOptionsTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.onSurface,
+      marginBottom: 9,
+    },
+
+    mealOption: {
+      backgroundColor: colors.surfaceVariant,
+      paddingHorizontal: 13,
+      paddingVertical: 13,
+      borderRadius: 10,
+      marginBottom: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+
+    mealOptionText: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.onSurface,
+    },
+  });
+}
