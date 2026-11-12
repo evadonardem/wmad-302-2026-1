@@ -1,7 +1,7 @@
 
 /**
  * Home Screen - Cookbook Discover Tab
- * Students implement: Recipe grid, categories, featured recipes
+ * Supports Light Mode, Dark Mode, and System Default.
  * API: https://dummyjson.com/docs/recipes
  */
 
@@ -18,8 +18,16 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Chip, Avatar, Button } from 'react-native-paper';
-import { styles } from './homeStyles';
+import {
+  Card,
+  Title,
+  Chip,
+  Avatar,
+  Button,
+  useTheme,
+} from 'react-native-paper';
+import type { MD3Theme } from 'react-native-paper';
+import { createHomeStyles } from './homeStyles';
 
 // Types for DummyJSON Recipes API
 interface Recipe {
@@ -51,6 +59,10 @@ interface RecipesResponse {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+
+  const theme = useTheme<MD3Theme>();
+  const colors = theme.colors;
+  const styles = createHomeStyles(colors);
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,7 +186,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>
           Loading recipes...
         </Text>
@@ -192,6 +204,7 @@ export default function HomeScreen() {
           mode="contained"
           onPress={() => fetchRecipes()}
           style={styles.retryButton}
+          buttonColor={colors.primary}
         >
           Retry
         </Button>
@@ -206,7 +219,8 @@ export default function HomeScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={['#E85D04']}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
         />
       }
       contentContainerStyle={styles.scrollContent}
@@ -229,6 +243,7 @@ export default function HomeScreen() {
           size={56}
           icon="chef-hat"
           style={styles.welcomeAvatar}
+          color={colors.onPrimary}
         />
       </View>
 
@@ -256,10 +271,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.categoryList}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[
-                styles.categoryChip,
-                { backgroundColor: '#FFF3E0' },
-              ]}
+              style={styles.categoryChip}
               onPress={() =>
                 router.push(`/(app)/(tabs)/search?category=${item}`)
               }
