@@ -2,6 +2,7 @@
 /**
  * Categories Screen - Cookbook
  * Browse recipes using real category counts from DummyJSON.
+ * Supports Light Mode, Dark Mode, and System Default.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -15,12 +16,12 @@ import {
 } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import { Card, Title } from 'react-native-paper';
+import { Card, Title, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { recipeApi } from '@/services/recipeApi';
 import type { Recipe } from '@/types/recipe';
-import { styles } from './categoriesStyles';
+import { createCategoriesStyles } from './categoriesStyles';
 
 interface Category {
   name: string;
@@ -155,6 +156,8 @@ function matchesCategory(
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const theme = useTheme();
+  const styles = createCategoriesStyles(theme);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,7 +216,7 @@ export default function CategoriesScreen() {
             <MaterialCommunityIcons
               name={getCategoryIcon(item.name)}
               size={34}
-              color="#43A52F"
+              color={theme.colors.primary}
             />
           </View>
 
@@ -233,7 +236,7 @@ export default function CategoriesScreen() {
             <MaterialCommunityIcons
               name="arrow-right"
               size={16}
-              color="#43A52F"
+              color={theme.colors.primary}
             />
           </View>
         </Card.Content>
@@ -244,7 +247,10 @@ export default function CategoriesScreen() {
   if (loading && categories.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#43A52F" />
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.primary}
+        />
 
         <Text style={styles.loadingText}>
           Loading categories...
@@ -259,7 +265,7 @@ export default function CategoriesScreen() {
         <MaterialCommunityIcons
           name="alert-circle-outline"
           size={54}
-          color="#43A52F"
+          color={theme.colors.primary}
         />
 
         <Text style={styles.errorText}>
@@ -298,7 +304,7 @@ export default function CategoriesScreen() {
           <MaterialCommunityIcons
             name="food-apple"
             size={17}
-            color="#2E7D32"
+            color={theme.colors.onPrimaryContainer}
           />
 
           <Text style={styles.headerBadgeText}>
@@ -322,8 +328,8 @@ export default function CategoriesScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={loadCategories}
-            colors={['#43A52F']}
-            tintColor="#43A52F"
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
           />
         }
         ListEmptyComponent={

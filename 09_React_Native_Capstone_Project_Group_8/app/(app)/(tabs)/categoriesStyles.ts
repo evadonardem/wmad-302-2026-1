@@ -1,196 +1,201 @@
 
 /**
  * Categories Screen Styles
- * Green and White Cookbook Theme
+ * Supports Light Mode, Dark Mode, and System Default.
  */
 
 import { StyleSheet } from 'react-native';
+import type { MD3Theme } from 'react-native-paper';
 
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5FAF3',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
+export function createCategoriesStyles(theme: MD3Theme) {
+  const colors = theme.colors;
 
-  header: {
-    marginBottom: 20,
-  },
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingHorizontal: 16,
+      paddingTop: 20,
+      paddingBottom: 100,
+    },
 
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1B5E20',
-    marginBottom: 4,
-  },
+    header: {
+      marginBottom: 20,
+    },
 
-  pageSubtitle: {
-    fontSize: 15,
-    color: '#668064',
-    marginBottom: 14,
-  },
+    pageTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.onBackground,
+      marginBottom: 4,
+    },
 
-  headerBadge: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
-  },
+    pageSubtitle: {
+      fontSize: 15,
+      color: colors.onSurfaceVariant,
+      marginBottom: 14,
+    },
 
-  headerBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#2E7D32',
-  },
+    headerBadge: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.primaryContainer,
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 6,
+    },
 
-  gridWrapper: {
-    justifyContent: 'space-between',
-  },
+    headerBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.onPrimaryContainer,
+    },
 
-  gridContent: {
-    paddingBottom: 24,
-  },
+    gridWrapper: {
+      justifyContent: 'space-between',
+    },
 
-  categoryCard: {
-    width: '48%',
-    marginBottom: 12,
-  },
+    gridContent: {
+      paddingBottom: 24,
+    },
 
-  card: {
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    height: '100%',
-    overflow: 'hidden',
-  },
+    categoryCard: {
+      width: '48%',
+      marginBottom: 12,
+    },
 
-  cardContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
+    card: {
+      borderRadius: 18,
+      backgroundColor: colors.surface,
+      height: '100%',
+      overflow: 'hidden',
+    },
 
-  iconContainer: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
+    cardContent: {
+      paddingHorizontal: 12,
+      paddingVertical: 20,
+      alignItems: 'center',
+    },
 
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1B5E20',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
+    iconContainer: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: colors.primaryContainer,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
 
-  categoryCount: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#668064',
-    marginBottom: 12,
-  },
+    categoryName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.onSurface,
+      textAlign: 'center',
+      marginBottom: 4,
+    },
 
-  exploreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    backgroundColor: '#F1F8EE',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
+    categoryCount: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.onSurfaceVariant,
+      marginBottom: 12,
+    },
 
-  exploreText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2E7D32',
-  },
+    exploreContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      backgroundColor: colors.surfaceVariant,
+      borderRadius: 20,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+    },
 
-  separator: {
-    height: 4,
-    width: '100%',
-  },
+    exploreText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primary,
+    },
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FAF3',
-  },
+    separator: {
+      height: 4,
+      width: '100%',
+    },
 
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#668064',
-  },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
 
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: '#F5FAF3',
-  },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: colors.onSurfaceVariant,
+    },
 
-  errorText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1B5E20',
-    textAlign: 'center',
-    marginTop: 12,
-  },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      backgroundColor: colors.background,
+    },
 
-  errorSubtext: {
-    fontSize: 13,
-    color: '#668064',
-    textAlign: 'center',
-    marginTop: 8,
-  },
+    errorText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.onSurface,
+      textAlign: 'center',
+      marginTop: 12,
+    },
 
-  retryButton: {
-    backgroundColor: '#43A52F',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 18,
-  },
+    errorSubtext: {
+      fontSize: 13,
+      color: colors.onSurfaceVariant,
+      textAlign: 'center',
+      marginTop: 8,
+    },
 
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+    retryButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 12,
+      marginTop: 18,
+    },
 
-  guideContainer: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#E8F5E9',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#C8DFC2',
-  },
+    retryButtonText: {
+      color: colors.onPrimary,
+      fontSize: 14,
+      fontWeight: '700',
+    },
 
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1B5E20',
-    marginBottom: 8,
-  },
+    guideContainer: {
+      marginTop: 24,
+      padding: 16,
+      backgroundColor: colors.primaryContainer,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
 
-  guideText: {
-    fontSize: 13,
-    color: '#426B40',
-    lineHeight: 20,
-  },
-});
+    guideTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.onPrimaryContainer,
+      marginBottom: 8,
+    },
+
+    guideText: {
+      fontSize: 13,
+      color: colors.onSurfaceVariant,
+      lineHeight: 20,
+    },
+  });
+}
