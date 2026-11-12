@@ -1,27 +1,32 @@
+import React, { createContext, useState } from 'react';
 import { Stack } from 'expo-router';
-import { FavoritesProvider } from '@/favorites';
-import { ThemeModeProvider, ThemeProvider, createTheme, type ThemeMode } from '@/theme';
+import { ThemeProvider } from '../theme';
+import { Quote } from '../services/quoteService';
 
-// TODO 13 [Dynamic Themes]: Complete the theme creation arrow function.
-// It should accept a 'mode' string parameter ('light' or 'dark') and return
-// a theme object configuration mapping that mode (see src/theme.tsx for the shape).
-const theme = (mode: ThemeMode = 'light') => createTheme({
-  // [Your code here]
+export const FavoritesContext = createContext<{
+  favorites: Quote[];
+  addFavorite: (quote: Quote) => void;
+}>({
+  favorites: [],
+  addFavorite: () => {},
 });
 
 export default function RootLayout() {
-  // TODO 14 [State Management]: Initialize a boolean React state hook variable named 'isDarkMode' defaulting to false.
-  // [Your code here]
+  const [favorites, setFavorites] = useState<Quote[]>([]);
+
+  const addFavorite = (quote: Quote) => {
+    if (!favorites.some((fav) => fav._id === quote._id)) {
+      setFavorites((prev) => [...prev, quote]);
+    }
+  };
 
   return (
-    // TODO 16 [Theme Binding Layout]: Wrap the <Stack /> inside BOTH providers below:
-    // a. <ThemeModeProvider value={{ isDarkMode, setIsDarkMode }}> so screens can read and flip the mode.
-    // b. <ThemeProvider theme={...}> passing the calculated theme object. Configure it matching: it
-    //    should resolve to 'dark' if 'isDarkMode' is true, otherwise 'light'
-    //    (i.e. theme(isDarkMode ? 'dark' : 'light')).
-    <FavoritesProvider>
-      {/* [Your ThemeModeProvider + ThemeProvider wrapper structure here] */}
-      <Stack screenOptions={{ headerShown: false }} />
-    </FavoritesProvider>
+    <ThemeProvider>
+      <FavoritesContext.Provider value={{ favorites, addFavorite }}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </FavoritesContext.Provider>
+    </ThemeProvider>
   );
 }

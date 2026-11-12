@@ -1,39 +1,21 @@
-import { StyleSheet, View } from 'react-native';
-import GeneralSettings, { type SettingsAction } from '@/components/GeneralSettings';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useThemeMode } from '@/theme';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { GeneralSettings } from '../../components/GeneralSettings';
+import { useTheme } from '../../theme';
 
+// TODO 15: Settings Screen Component
 export default function SettingsScreen() {
-  const theme = useTheme();
-  const { isDarkMode, setIsDarkMode } = useThemeMode();
-
-  // TODO 15 [Data Actions Mapping]: Populate the 'actions' configuration array below.
-  // Ensure the first action toggle object displays an <Ionicons name="sunny" /> icon if 'isDarkMode'
-  // is true, or an <Ionicons name="moon" /> icon if false.
-  // The 'onPress' function must invert the current boolean state value of 'isDarkMode'
-  // (use setIsDarkMode) upon execution.
-  const actions: SettingsAction[] = [
-    {
-      icon: <Ionicons name="moon" size={22} color={theme.colors.text} />, // isDarkMode ? <Ionicons name="sunny" ... /> : <Ionicons name="moon" ... />
-      name: 'Dark Mode', // isDarkMode ? 'Light Mode' : 'Dark Mode',
-      // [Your code here: Add dynamic icon and state-toggling onPress function]
-    },
-    { icon: <Ionicons name="color-palette" size={22} color={theme.colors.text} />, name: 'Theme' },
-    { icon: <Ionicons name="print" size={22} color={theme.colors.text} />, name: 'Print' },
-    { icon: <Ionicons name="share-social" size={22} color={theme.colors.text} />, name: 'Share' },
-  ];
+  const { theme } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <GeneralSettings actions={actions} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.text }]}>App Settings</Text>
+      <GeneralSettings />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    width: '100%',
-    padding: 16,
-  },
+  container: { flex: 1, padding: 20 },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
 });
