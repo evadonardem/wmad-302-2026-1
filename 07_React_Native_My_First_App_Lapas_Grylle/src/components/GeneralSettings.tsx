@@ -1,27 +1,62 @@
-import React from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
-import { useTheme } from '../theme';
+import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '@/theme';
 
-// TODO 12: Settings Row with System-wide Theme Toggle
-export const GeneralSettings: React.FC = () => {
-  const { isDarkMode, toggleTheme, theme } = useTheme();
-
-  return (
-    <View style={[styles.settingRow, { backgroundColor: theme.cardBg }]}>
-      <Text style={[styles.label, { color: theme.text }]}>Dark Theme</Text>
-      <Switch value={isDarkMode} onValueChange={toggleTheme} />
-    </View>
-  );
+export type SettingsAction = {
+  icon: ReactNode;
+  name: string;
+  onPress?: () => void;
 };
 
+export default function GeneralSettings({ actions }: { actions: SettingsAction[] }) {
+  const theme = useTheme();
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      {actions.map((action, index) => (
+        <Pressable
+          key={action.name}
+          style={({ pressed }) => [
+            styles.actionRow,
+            { backgroundColor: pressed ? `${theme.colors.primary}10` : 'transparent' },
+            index !== actions.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.colors.border }
+          ]}
+          onPress={action.onPress ?? (() => {})}
+        >
+          <View style={[styles.iconWrapper, { backgroundColor: `${theme.colors.primary}10` }]}>
+            {action.icon}
+          </View>
+          <Text style={[styles.actionName, { color: theme.colors.text }]}>{action.name}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginVertical: 8,
+  card: {
+    width: '100%',
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden', // Ensures row borders don't poke out
   },
-  label: { fontSize: 16, fontWeight: '500' },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    minHeight: 64,
+  },
+  iconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });

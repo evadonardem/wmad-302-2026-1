@@ -1,9 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { Quote } from '@/services/quoteService';
 
-// Pre-built favorites infrastructure (not part of the assignment).
-// The provider is mounted in src/app/_layout.tsx — screens consume it
-// with useFavorites() (see TODO 24 and TODO 23). This file does not need editing.
 type FavoritesValue = {
   favorites: Quote[];
   isFavorite: (quote: Quote) => boolean;

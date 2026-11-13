@@ -1,46 +1,44 @@
-import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 
 export default function TabsLayout() {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
-    <Tabs
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.cardBg },
-        headerTitleStyle: { color: theme.text },
-        tabBarStyle: { backgroundColor: theme.cardBg },
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.subtext,
-      }}
-    >
+    <Tabs screenOptions={{
+      tabBarActiveTintColor: theme.colors.primary,
+      tabBarInactiveTintColor: theme.colors.textSecondary,
+      // Hide the default header across all tabs since we have custom headings
+      headerShown: false, 
+      tabBarStyle: {
+        backgroundColor: theme.colors.surface,
+        borderTopColor: theme.colors.border,
+        height: 72,
+        paddingTop: 8,
+        paddingBottom: 10,
+      },
+      tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
+    }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={String(color)} size={size} />,
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
           title: 'Favorites',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="heart-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="heart" color={String(color)} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={String(color)} size={size} />,
         }}
       />
     </Tabs>

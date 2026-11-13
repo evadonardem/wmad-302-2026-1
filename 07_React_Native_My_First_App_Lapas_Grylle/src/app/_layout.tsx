@@ -1,32 +1,22 @@
-import React, { createContext, useState } from 'react';
 import { Stack } from 'expo-router';
-import { ThemeProvider } from '../theme';
-import { Quote } from '../services/quoteService';
+import { useState } from 'react';
+import { FavoritesProvider } from '@/favorites';
+import { ThemeModeProvider, ThemeProvider, createTheme, type ThemeMode } from '@/theme';
 
-export const FavoritesContext = createContext<{
-  favorites: Quote[];
-  addFavorite: (quote: Quote) => void;
-}>({
-  favorites: [],
-  addFavorite: () => {},
+const theme = (mode: ThemeMode = 'light') => createTheme({
+  palette: { mode },
 });
 
 export default function RootLayout() {
-  const [favorites, setFavorites] = useState<Quote[]>([]);
-
-  const addFavorite = (quote: Quote) => {
-    if (!favorites.some((fav) => fav._id === quote._id)) {
-      setFavorites((prev) => [...prev, quote]);
-    }
-  };
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   return (
-    <ThemeProvider>
-      <FavoritesContext.Provider value={{ favorites, addFavorite }}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-      </FavoritesContext.Provider>
-    </ThemeProvider>
+    <FavoritesProvider>
+      <ThemeModeProvider value={{ isDarkMode, setIsDarkMode }}>
+        <ThemeProvider theme={theme(isDarkMode ? 'dark' : 'light')}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </ThemeProvider>
+      </ThemeModeProvider>
+    </FavoritesProvider>
   );
 }

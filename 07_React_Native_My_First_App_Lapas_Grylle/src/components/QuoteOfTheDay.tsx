@@ -1,149 +1,257 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
-import { fetchRandomQuote, fetchQuoteTags, Quote, Tag } from '../services/quoteService';
-import { useTheme } from '../theme'; // Import Theme Context
-import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { getRandomQuote, getTags } from '@/services/quoteService';
+import { useFavorites } from '@/favorites';
+import { useTheme } from '@/theme';
 
-interface QuoteOfTheDayProps {
-  onSaveFavorite?: (quote: Quote) => void;
-}
+export default function QuoteOfTheDay() {
+  const [quote, setQuote] = useState({ text: '', author: '', tags: [] as string[] });
+  const [tags, setTags] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-export const QuoteOfTheDay: React.FC<QuoteOfTheDayProps> = ({ onSaveFavorite }) => {
-  // TODO 1: State management hooks
-  const [quote, setQuote] = useState<Quote | null>(null);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [selectedTag, setSelectedTag] = useState<string>('');
+  const selectTagRef = useRef<string | null>(null);
+  const theme = useTheme();
+  const { toggleFavorite, isFavorite } = useFavorites();
 
-  // TODO 2: Mutable reference (useRef) to track selected tag without triggering extra re-renders
-  const activeTagRef = useRef<string>('');
-  
-  const { theme } = useTheme();
-  const router = useRouter();
+  const loadRandomQuote = async () => {
+    const tag = selectTagRef.current ?? null;
+    const nextQuote = await getRandomQuote(tag);
+    setQuote(nextQuote);
+    setSelectedTag(tag);
+  };
 
-  // TODO 3 & 4: Concurrent initial load on component mount using useEffect
+  const loadTags = async () => {
+    const availableTags = await getTags();
+    setTags(availableTags);
+  };
+
   useEffect(() => {
-    loadInitialData();
+    const timer = setTimeout(() => {
+      void Promise.all([loadRandomQuote(), loadTags()]);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  const loadInitialData = async () => {
-    setLoading(true);
-    const [initialQuote, availableTags] = await Promise.all([
-      fetchRandomQuote(),
-      fetchQuoteTags(),
-    ]);
-    setQuote(initialQuote);
-    setTags(availableTags);
-    setLoading(false);
-  };
-
-  // TODO 5 & 6: Fetch quote based on active tag ref
-  const handleFetchQuote = async (tag?: string) => {
-    setLoading(true);
-    const currentTag = tag !== undefined ? tag : activeTagRef.current;
-    const newQuote = await fetchRandomQuote(currentTag);
-    setQuote(newQuote);
-    setLoading(false);
-  };
-
-  // TODO 7: Handle category filter chip selection
-  const handleSelectTag = (tagName: string) => {
-    const nextTag = activeTagRef.current === tagName ? '' : tagName;
-    activeTagRef.current = nextTag;
-    setSelectedTag(nextTag);
-    handleFetchQuote(nextTag);
-  };
-
-  // TODO 24: Save favorite & optionally navigate
-  const handleSaveFavorite = () => {
-    if (quote && onSaveFavorite) {
-      onSaveFavorite(quote);
-    }
-  };
-
-  if (loading && !quote) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-      </View>
-    );
-  }
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* TODO 8: Render Tag Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
-        {tags.map((t) => {
-          const isSelected = selectedTag === t.name;
-          return (
-            <TouchableOpacity
-              key={t._id}
-              onPress={() => handleSelectTag(t.name)}
-              style={[
-                styles.chip,
-                { backgroundColor: isSelected ? theme.primary : theme.cardBg },
-              ]}
-            >
-              <Text style={{ color: isSelected ? '#FFFFFF' : theme.text }}>
-                {t.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+    <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.quoteIcon, { backgroundColor: `${theme.colors.primary}15` }]}>
+          <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
+        </View>
+        <View>
+          <Text style={[styles.overline, { color: theme.colors.primary }]}>Daily note</Text>
+          <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Quote of the Day</Text>
+        </View>
+      </View>
+
+      <View style={styles.tagRow}>
+        {quote.tags.map((t) => (
+          <View
+            key={t}
+            style={[
+              styles.chip,
+              { backgroundColor: selectedTag === t ? theme.colors.primary : `${theme.colors.primary}15` },
+            ]}
+          >
+            <Text style={[styles.chipText, { color: selectedTag === t ? '#ffffff' : theme.colors.primary }]}>
+              {t}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <Text style={[styles.quoteText, { color: theme.colors.text }]}>
+        &quot;{quote.text}&quot;
+      </Text>
+
+      <Text style={[styles.author, { color: theme.colors.textSecondary }]}>
+        — {quote.author}
+      </Text>
+
+      <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+      {/* Filter Row */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        <Pressable
+          style={[
+            styles.filterChip,
+            {
+              backgroundColor: selectedTag === null ? theme.colors.primary : 'transparent',
+              borderColor: selectedTag === null ? theme.colors.primary : theme.colors.border,
+            },
+          ]}
+          onPress={() => {
+            selectTagRef.current = null;
+            setSelectedTag(null);
+            loadRandomQuote();
+          }}
+        >
+          <Text style={[styles.filterChipText, { color: selectedTag === null ? '#ffffff' : theme.colors.textSecondary }]}>
+            any
+          </Text>
+        </Pressable>
+        {tags.map((t) => (
+          <Pressable
+            key={t}
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: selectedTag === t ? theme.colors.primary : 'transparent',
+                borderColor: selectedTag === t ? theme.colors.primary : theme.colors.border,
+              },
+            ]}
+            onPress={() => {
+              selectTagRef.current = t;
+              setSelectedTag(t);
+              loadRandomQuote();
+            }}
+          >
+            <Text style={[styles.filterChipText, { color: selectedTag === t ? '#ffffff' : theme.colors.textSecondary }]}>
+              {t}
+            </Text>
+          </Pressable>
+        ))}
       </ScrollView>
 
-      {/* TODO 9 & 10: Display Quote Text & Author */}
-      {quote && (
-        <View style={[styles.quoteCard, { backgroundColor: theme.cardBg }]}>
-          <Text style={[styles.quoteContent, { color: theme.text }]}>
-            "{quote.content}"
-          </Text>
-          <Text style={[styles.quoteAuthor, { color: theme.subtext }]}>
-            - {quote.author}
-          </Text>
-
-          {/* TODO 11: Render Tag Chips on Card */}
-          <View style={styles.tagRow}>
-            {quote.tags?.map((tagItem, idx) => (
-              <View key={idx} style={[styles.smallChip, { backgroundColor: theme.chipBg }]}>
-                <Text style={[styles.smallChipText, { color: theme.text }]}>#{tagItem}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
       {/* Action Buttons */}
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.primary }]}
-          onPress={() => handleFetchQuote()}
+      <View style={styles.actionsRow}>
+        <Pressable
+          style={[styles.refreshButton, { backgroundColor: theme.colors.primary }]}
+          onPress={loadRandomQuote}
         >
-          <Text style={styles.buttonText}>New Quote</Text>
-        </TouchableOpacity>
+          <Ionicons name="refresh" size={18} color="#ffffff" />
+          <Text style={styles.refreshButtonText}>Next Quote</Text>
+        </Pressable>
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#E91E63' }]}
-          onPress={handleSaveFavorite}
+        <Pressable
+          style={[styles.favoriteButton, { backgroundColor: `${theme.colors.accent}15` }]}
+          onPress={() => {
+            toggleFavorite(quote);
+            router.navigate('/favorites');
+          }}
         >
-          <Text style={styles.buttonText}>❤️ Favorite</Text>
-        </TouchableOpacity>
+          <Ionicons
+            name={isFavorite(quote) ? 'heart' : 'heart-outline'}
+            size={22}
+            color={theme.colors.accent}
+          />
+        </Pressable>
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, justifyContent: 'center' },
-  chipContainer: { maxHeight: 50, marginBottom: 20 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
-  quoteCard: { padding: 24, borderRadius: 16, marginBottom: 20, elevation: 3 },
-  quoteContent: { fontSize: 18, fontStyle: 'italic', marginBottom: 12, textAlign: 'center' },
-  quoteAuthor: { fontSize: 14, fontWeight: 'bold', textAlign: 'right', marginBottom: 12 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  smallChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  smallChipText: { fontSize: 11 },
-  buttonRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  button: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
-  buttonText: { color: '#FFF', fontWeight: '600' },
+  card: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 20,
+  },
+  quoteIcon: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+  },
+  overline: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 16,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  quoteText: {
+    fontSize: 24,
+    fontWeight: '700',
+    fontStyle: 'italic',
+    lineHeight: 34,
+    textAlign: 'center',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  author: {
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+    marginBottom: 20,
+  },
+  filterRow: {
+    gap: 8,
+    paddingBottom: 20,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  refreshButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  refreshButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  favoriteButton: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+  },
 });
