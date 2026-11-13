@@ -1,3 +1,4 @@
+
 /**
  * Home Screen - Cookbook Discover Tab
  * Supports Light Mode, Dark Mode, and System Default.
@@ -536,6 +537,8 @@ export default function HomeScreen() {
                 item.difficulty === 'Medium' && styles.medium,
                 item.difficulty === 'Hard' && styles.hard,
               ]}
+              textStyle={styles.difficultyText}
+              compact
             >
               {item.difficulty}
             </Chip>

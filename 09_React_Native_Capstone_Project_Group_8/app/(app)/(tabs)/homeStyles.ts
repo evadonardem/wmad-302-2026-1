@@ -248,13 +248,15 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
       flexDirection: 'row-reverse',
     },
 
-    // Featured Recipes
+    // Featured, Popular, Recommended and Recently Viewed Recipes
     recipeCard: {
       width: 280,
+      height: 360,
       marginBottom: 8,
     },
 
     card: {
+      height: 360,
       borderRadius: 16,
       overflow: 'hidden',
       backgroundColor: colors.surface,
@@ -263,6 +265,7 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
     imageContainer: {
       position: 'relative',
       height: 160,
+      backgroundColor: colors.surfaceVariant,
     },
 
     recipeImage: {
@@ -286,6 +289,12 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
       borderRadius: 12,
     },
 
+    difficultyText: {
+      color: '#263238',
+      fontWeight: '700',
+      fontSize: 12,
+    },
+
     easy: {
       backgroundColor: '#C8E6C9',
     },
@@ -299,7 +308,9 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
     },
 
     cardContent: {
+      flex: 1,
       padding: 14,
+      justifyContent: 'space-between',
     },
 
     recipeTitle: {
@@ -336,9 +347,14 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
       fontWeight: '500',
     },
 
+    // Recipe cuisine and meal type chips
+    // Allows multiple rows without cutting off the chips.
     cuisineRow: {
+      minHeight: 76,
       flexDirection: 'row',
       flexWrap: 'wrap',
+      alignContent: 'flex-start',
+      alignItems: 'flex-start',
       gap: 6,
       marginBottom: 8,
     },
