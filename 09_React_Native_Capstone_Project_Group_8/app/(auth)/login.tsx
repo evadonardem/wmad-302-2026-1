@@ -26,7 +26,6 @@ import {
   Card,
   Button,
   TextInput as PaperTextInput,
-  Divider,
   useTheme,
   MD3Theme,
 } from 'react-native-paper';
@@ -58,20 +57,6 @@ export default function LoginScreen() {
       await login(username.trim(), password.trim());
 
       // Redirect to intended page or home.
-      router.replace(redirect || '/(app)/(tabs)/home');
-    } catch {
-      // Error handled in context.
-    }
-  };
-
-  // Login using the DummyJSON demo account.
-  const handleDemoLogin = async () => {
-    setUsername('emilys');
-    setPassword('emilyspass');
-
-    try {
-      await login('emilys', 'emilyspass');
-
       router.replace(redirect || '/(app)/(tabs)/home');
     } catch {
       // Error handled in context.
@@ -247,32 +232,6 @@ export default function LoginScreen() {
               )}
             </Button>
 
-            {/* Demo Login */}
-            <View style={styles.demoContainer}>
-              <Divider
-                style={[
-                  styles.divider,
-                  { backgroundColor: colors.outlineVariant },
-                ]}
-              />
-
-              <TouchableOpacity
-                onPress={handleDemoLogin}
-                disabled={isLoading}
-                style={styles.demoButton}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.demoButtonText,
-                    { color: colors.primary },
-                  ]}
-                >
-                  Try Demo Account (emilys / emilyspass)
-                </Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Register Link */}
             <View style={styles.registerContainer}>
               <Text
@@ -298,7 +257,7 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-          </Card.Content>
+          </Card.Content> 
         </Card>
 
         {/* Footer */}
