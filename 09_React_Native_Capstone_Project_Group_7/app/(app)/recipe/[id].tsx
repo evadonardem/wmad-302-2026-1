@@ -1,21 +1,18 @@
 /**
- * Recipe Detail Screen
- * Full recipe: image, metadata, nutrition, checkable ingredients, instructions, tags, reviews, and favorite toggle
+ * Recipe Detail Screen - Cookbook
+ * Full-bleed hero food photography, servings scaler, ingredients, instructions, and favorite toggle
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Image,
-  StyleSheet,
   ActivityIndicator,
-  TouchableOpacity,
-  Share,
+  StyleSheet,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { Card, Title, Chip, Button, Divider, Checkbox, IconButton } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Card, Title, Chip, Button, IconButton } from 'react-native-paper';
 import { recipeApi } from '@/services/recipeApi';
 import { favoritesStorage } from '@/utils/storage';
 import { Recipe } from '@/types/recipe';
@@ -23,416 +20,273 @@ import { Recipe } from '@/types/recipe';
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const recipeId = Number(id);
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [checkedIngredients, setCheckedIngredients] = useState<Record<number, boolean>>({});
-
-  const recipeId = Number(id);
-
-  const loadRecipe = useCallback(async () => {
-    if (!recipeId || Number.isNaN(recipeId)) {
-      setError('Invalid recipe ID');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const [data, favIds] = await Promise.all([
-        recipeApi.getRecipeById(recipeId),
-        favoritesStorage.getIds(),
-      ]);
-      setRecipe(data);
-      setIsFavorite(Array.isArray(favIds) && favIds.includes(recipeId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load recipe details');
-    } finally {
-      setLoading(false);
-    }
-  }, [recipeId]);
+  const [servings, setServings] = useState(1);
 
   useEffect(() => {
-    loadRecipe();
-  }, [loadRecipe]);
-
-  const handleToggleFavorite = async () => {
-    if (!recipe) return;
-    const nextState = await favoritesStorage.toggleId(recipe.id);
-    setIsFavorite(nextState);
-  };
-
-  const handleShare = async () => {
-    if (!recipe) return;
-    try {
-      await Share.share({
-        title: recipe.name,
-        message: `Check out this ${recipe.cuisine} recipe: ${recipe.name} (${recipe.prepTimeMinutes + recipe.cookTimeMinutes} mins, ${recipe.caloriesPerServing} cal/serving)!`,
-      });
-    } catch {
-      // User dismissed share sheet
+    let active = true;
+    async function load() {
+      try {
+        setLoading(true);
+        const [data, favIds] = await Promise.all([
+          recipeApi.getRecipeById(recipeId),
+          favoritesStorage.getIds(),
+        ]);
+        if (!active) return;
+        setRecipe(data);
+        setServings(data.servings || 1);
+        setIsFavorite(favIds.includes(recipeId));
+      } catch (err) {
+        console.error('Failed to load recipe detail:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
     }
+    if (recipeId) load();
+    return () => {
+      active = false;
+    };
+  }, [recipeId]);
+
+  const toggleFavorite = async () => {
+    const next = await favoritesStorage.toggleId(recipeId);
+    setIsFavorite(next);
   };
 
-  const toggleIngredient = (index: number) => {
-    setCheckedIngredients((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
+  const scaleIngredient = (line: string): string => {
+    if (!recipe || !recipe.servings || servings === recipe.servings) return line;
+    const ratio = servings / recipe.servings;
+    return line.replace(/^(\d+(?:\.\d+)?)/, (match) => {
+      const val = parseFloat(match) * ratio;
+      return Number.isInteger(val) ? String(val) : val.toFixed(1);
+    });
   };
 
-  if (loading) {
+  if (loading || !recipe) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={ui.centerBox}>
         <ActivityIndicator size="large" color="#E85D04" />
-        <Text style={styles.loadingText}>Loading recipe...</Text>
+        <Text style={ui.statusText}>Loading recipe...</Text>
       </View>
     );
   }
-
-  if (error || !recipe) {
-    return (
-      <View style={styles.centerContainer}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#D32F2F" />
-        <Text style={styles.errorText}>{error || 'Recipe not found'}</Text>
-        <Button mode="contained" onPress={loadRecipe} style={{ marginTop: 12, backgroundColor: '#E85D04' }}>
-          Retry
-        </Button>
-        <Button mode="text" onPress={() => router.back()} style={{ marginTop: 8 }}>
-          Go Back
-        </Button>
-      </View>
-    );
-  }
-
-  const totalTime = recipe.prepTimeMinutes + recipe.cookTimeMinutes;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: recipe.name,
-          headerStyle: { backgroundColor: '#FFFDF8' },
-          headerTintColor: '#3E2723',
-          headerRight: () => (
-            <View style={{ flexDirection: 'row' }}>
+    <ScrollView style={ui.screen} contentContainerStyle={ui.container}>
+      <View style={ui.topBar}>
+        <Button icon="arrow-left" mode="text" textColor="#3E2723" onPress={() => router.back()}>
+          Back
+        </Button>
+        <IconButton
+          icon={isFavorite ? 'heart' : 'heart-outline'}
+          iconColor={isFavorite ? '#C62828' : '#3E2723'}
+          size={26}
+          onPress={toggleFavorite}
+        />
+      </View>
+
+      <View style={ui.heroWrapper}>
+        <Image source={{ uri: recipe.image }} style={ui.heroImage} resizeMode="cover" />
+        <View style={ui.heroBadgeRow}>
+          <Chip style={ui.badgeChip}>{recipe.cuisine}</Chip>
+          <Chip style={ui.badgeChip}>{recipe.difficulty}</Chip>
+          <Chip style={ui.badgeChip}>⭐ {recipe.rating.toFixed(1)}</Chip>
+        </View>
+      </View>
+
+      <Title style={ui.title}>{recipe.name}</Title>
+
+      <View style={ui.statsGrid}>
+        <View style={ui.statCard}>
+          <Text style={ui.statLabel}>Prep</Text>
+          <Text style={ui.statValue}>{recipe.prepTimeMinutes}m</Text>
+        </View>
+        <View style={ui.statCard}>
+          <Text style={ui.statLabel}>Cook</Text>
+          <Text style={ui.statValue}>{recipe.cookTimeMinutes}m</Text>
+        </View>
+        <View style={ui.statCard}>
+          <Text style={ui.statLabel}>Calories</Text>
+          <Text style={ui.statValue}>{recipe.caloriesPerServing}</Text>
+        </View>
+        <View style={ui.statCard}>
+          <Text style={ui.statLabel}>Reviews</Text>
+          <Text style={ui.statValue}>{recipe.reviewCount}</Text>
+        </View>
+      </View>
+
+      <Card style={ui.sectionCard}>
+        <Card.Content>
+          <View style={ui.servingsHeader}>
+            <Title style={ui.sectionTitle}>Ingredients</Title>
+            <View style={ui.stepper}>
               <IconButton
-                icon={isFavorite ? 'heart' : 'heart-outline'}
-                iconColor={isFavorite ? '#E53935' : '#3E2723'}
-                onPress={handleToggleFavorite}
+                icon="minus"
+                size={18}
+                onPress={() => setServings((s) => Math.max(1, s - 1))}
               />
-              <IconButton icon="share-variant" iconColor="#3E2723" onPress={handleShare} />
+              <Text style={ui.servingsText}>{servings} servings</Text>
+              <IconButton icon="plus" size={18} onPress={() => setServings((s) => s + 1)} />
             </View>
-          ),
-        }}
-      />
-
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.heroContainer}>
-          <Image source={{ uri: recipe.image }} style={styles.heroImage} resizeMode="cover" />
-          <TouchableOpacity
-            style={styles.fabFavorite}
-            onPress={handleToggleFavorite}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={26}
-              color={isFavorite ? '#E53935' : '#3E2723'}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.headerSection}>
-          <Title style={styles.title}>{recipe.name}</Title>
-          <View style={styles.badgeRow}>
-            <Chip style={styles.cuisineChip}>{recipe.cuisine}</Chip>
-            <Chip style={styles.difficultyChip}>{recipe.difficulty}</Chip>
-            {recipe.mealType.map((m) => (
-              <Chip key={m} style={styles.mealChip}>
-                {m}
-              </Chip>
-            ))}
           </View>
+          {recipe.ingredients.map((ing, idx) => (
+            <View key={idx} style={ui.ingredientRow}>
+              <Text style={ui.bullet}>•</Text>
+              <Text style={ui.ingredientText}>{scaleIngredient(ing)}</Text>
+            </View>
+          ))}
+        </Card.Content>
+      </Card>
 
-          <View style={styles.ratingBox}>
-            <MaterialCommunityIcons name="star" size={20} color="#FFB300" />
-            <Text style={styles.ratingScore}>{recipe.rating.toFixed(1)}</Text>
-            <Text style={styles.reviewCount}>({recipe.reviewCount} verified reviews)</Text>
-          </View>
-        </View>
-
-        <Card style={styles.statsCard} elevation={1}>
-          <Card.Content style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="clock-outline" size={22} color="#E85D04" />
-              <Text style={styles.statValue}>{recipe.prepTimeMinutes}m</Text>
-              <Text style={styles.statLabel}>Prep</Text>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="fire" size={22} color="#E85D04" />
-              <Text style={styles.statValue}>{recipe.cookTimeMinutes}m</Text>
-              <Text style={styles.statLabel}>Cook</Text>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="timer-sand" size={22} color="#E85D04" />
-              <Text style={styles.statValue}>{totalTime}m</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="account-group-outline" size={22} color="#E85D04" />
-              <Text style={styles.statValue}>{recipe.servings}</Text>
-              <Text style={styles.statLabel}>Servings</Text>
-            </View>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="lightning-bolt-outline" size={22} color="#E85D04" />
-              <Text style={styles.statValue}>{recipe.caloriesPerServing}</Text>
-              <Text style={styles.statLabel}>Cal/Serv</Text>
-            </View>
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.sectionCard} elevation={1}>
-          <Card.Content>
-            <Title style={styles.sectionTitle}>
-              Ingredients ({recipe.ingredients.length})
-            </Title>
-            <Text style={styles.helperSubtext}>Tap an ingredient to check it off</Text>
-            <Divider style={styles.divider} />
-            {recipe.ingredients.map((ingredient, index) => {
-              const checked = Boolean(checkedIngredients[index]);
-              return (
-                <TouchableOpacity
-                  key={`${ingredient}-${index}`}
-                  style={styles.ingredientRow}
-                  onPress={() => toggleIngredient(index)}
-                  activeOpacity={0.7}
-                >
-                  <Checkbox
-                    status={checked ? 'checked' : 'unchecked'}
-                    onPress={() => toggleIngredient(index)}
-                    color="#E85D04"
-                  />
-                  <Text
-                    style={[
-                      styles.ingredientText,
-                      checked && styles.ingredientChecked,
-                    ]}
-                  >
-                    {ingredient}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.sectionCard} elevation={1}>
-          <Card.Content>
-            <Title style={styles.sectionTitle}>
-              Instructions ({recipe.instructions.length} steps)
-            </Title>
-            <Divider style={styles.divider} />
-            {recipe.instructions.map((step, index) => (
-              <View key={`step-${index}`} style={styles.stepRow}>
-                <View style={styles.stepBadge}>
-                  <Text style={styles.stepNumber}>{index + 1}</Text>
-                </View>
-                <Text style={styles.stepText}>{step}</Text>
+      <Card style={ui.sectionCard}>
+        <Card.Content>
+          <Title style={ui.sectionTitle}>Instructions</Title>
+          {recipe.instructions.map((step, idx) => (
+            <View key={idx} style={ui.stepRow}>
+              <View style={ui.stepNumber}>
+                <Text style={ui.stepNumberText}>{idx + 1}</Text>
               </View>
-            ))}
-          </Card.Content>
-        </Card>
-
-        {recipe.tags.length > 0 && (
-          <View style={styles.tagsSection}>
-            <Title style={styles.sectionTitle}>Tags</Title>
-            <View style={styles.tagsWrap}>
-              {recipe.tags.map((tag) => (
-                <Chip
-                  key={tag}
-                  style={styles.tagChip}
-                  onPress={() => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(tag)}`)}
-                >
-                  #{tag}
-                </Chip>
-              ))}
+              <Text style={ui.stepText}>{step}</Text>
             </View>
-          </View>
-        )}
-      </ScrollView>
-    </>
+          ))}
+        </Card.Content>
+      </Card>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const ui = StyleSheet.create({
+  screen: {
     flex: 1,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#FAF6F0',
   },
-  content: {
+  container: {
+    width: '100%',
+    maxWidth: 820,
+    alignSelf: 'center',
+    padding: 16,
     paddingBottom: 40,
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#FFFDF8',
+    marginBottom: 8,
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: '#8D6E63',
-  },
-  errorText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#D32F2F',
-    textAlign: 'center',
-  },
-  heroContainer: {
+  heroWrapper: {
     position: 'relative',
     width: '100%',
-    height: 260,
+    height: 310,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#EFE6DD',
+    marginBottom: 16,
   },
   heroImage: {
     width: '100%',
     height: '100%',
   },
-  fabFavorite: {
+  heroBadgeRow: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
-    backgroundColor: '#FFFFFF',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    bottom: 12,
+    left: 12,
+    flexDirection: 'row',
+    gap: 8,
   },
-  headerSection: {
-    padding: 16,
+  badgeChip: {
+    backgroundColor: 'rgba(255, 253, 248, 0.94)',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginBottom: 10,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  cuisineChip: {
-    backgroundColor: '#E8F5E9',
-  },
-  difficultyChip: {
-    backgroundColor: '#FFF3E0',
-  },
-  mealChip: {
-    backgroundColor: '#F3E5F5',
-  },
-  ratingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  ratingScore: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#3E2723',
-  },
-  reviewCount: {
-    fontSize: 14,
-    color: '#8D6E63',
-  },
-  statsCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#2D1B14',
+    marginBottom: 14,
   },
   statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    gap: 10,
+    marginBottom: 16,
   },
-  statItem: {
-    alignItems: 'center',
+  statCard: {
     flex: 1,
-  },
-  statValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginTop: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 12,
+    alignItems: 'center',
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#8D6E63',
+    fontWeight: '600',
+  },
+  statValue: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#E85D04',
     marginTop: 2,
   },
   sectionCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     backgroundColor: '#FFFFFF',
+    marginBottom: 16,
+  },
+  servingsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#2D1B14',
+  },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAF6F0',
+    borderRadius: 12,
+  },
+  servingsText: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#3E2723',
   },
-  helperSubtext: {
-    fontSize: 12,
-    color: '#8D6E63',
-    marginTop: 2,
-  },
-  divider: {
-    marginVertical: 10,
-  },
   ingredientRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+    gap: 8,
+  },
+  bullet: {
+    color: '#E85D04',
+    fontSize: 16,
+    fontWeight: '700',
   },
   ingredientText: {
+    flex: 1,
     fontSize: 15,
     color: '#3E2723',
-    flex: 1,
-  },
-  ingredientChecked: {
-    textDecorationLine: 'line-through',
-    color: '#9E9E9E',
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 14,
     gap: 12,
+    marginTop: 12,
   },
-  stepBadge: {
+  stepNumber: {
     width: 28,
     height: 28,
     borderRadius: 14,
     backgroundColor: '#E85D04',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
   },
-  stepNumber: {
+  stepNumberText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
@@ -443,16 +297,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#3E2723',
   },
-  tagsSection: {
-    paddingHorizontal: 16,
+  centerBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAF6F0',
   },
-  tagsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  tagChip: {
-    backgroundColor: '#FFF3E0',
+  statusText: {
+    marginTop: 10,
+    color: '#7A6258',
   },
 });

@@ -1,129 +1,109 @@
-/**
- * Favorites Screen Styles - Cookbook
- */
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#FAF6F0',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FAF6F0',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#8D6E63',
+    marginTop: 12,
+    fontSize: 15,
+    color: '#7A6258',
+  },
+  listContent: {
+    width: '100%',
+    maxWidth: 820,
+    alignSelf: 'center',
+    padding: 16,
+    paddingBottom: 32,
+  },
+  header: {
+    marginBottom: 14,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#2D1B14',
+  },
+  favoriteCard: {
+    borderRadius: 18,
+  },
+  card: {
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  cardContent: {
+    flexDirection: 'row',
+    padding: 12,
+    alignItems: 'center',
+    gap: 14,
+  },
+  recipeImage: {
+    width: 105,
+    height: 105,
+    borderRadius: 14,
+    backgroundColor: '#EFE6DD',
+  },
+  info: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#2D1B14',
+    marginBottom: 6,
+  },
+  meta: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 6,
+  },
+  difficultyChip: {
+    backgroundColor: '#E8F5E9',
+  },
+  cuisineChip: {
+    backgroundColor: '#FFF3E0',
+  },
+  details: {
+    fontSize: 13,
+    color: '#7A6258',
+  },
+  separator: {
+    height: 12,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    padding: 32,
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginTop: 20,
+    fontWeight: '800',
+    color: '#2D1B14',
+    marginTop: 16,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#8D6E63',
-    marginTop: 8,
+    fontSize: 14,
+    color: '#7A6258',
     textAlign: 'center',
+    marginTop: 8,
+    maxWidth: 320,
   },
   browseButton: {
-    marginTop: 24,
+    marginTop: 20,
+    backgroundColor: '#E85D04',
     borderRadius: 12,
-    height: 52,
   },
   buttonContent: {
-    paddingHorizontal: 32,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  listContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 120,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#3E2723',
-  },
-  favoriteCard: {
-    marginBottom: 8,
-  },
-  card: {
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  cardContent: {
-    flexDirection: 'row',
-    padding: 12,
-  },
-  recipeImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  info: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#3E2723',
-    marginBottom: 4,
-  },
-  meta: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 4,
-  },
-  difficultyChip: {
-    backgroundColor: '#FFF3E0',
-  },
-  cuisineChip: {
-    backgroundColor: '#E8F5E9',
-  },
-  details: {
-    fontSize: 12,
-    color: '#8D6E63',
-  },
-  separator: {
-    height: 8,
-  },
-  guideContainer: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFCC80',
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#E85D04',
-    marginBottom: 8,
-  },
-  guideText: {
-    fontSize: 13,
-    color: '#5D4037',
-    lineHeight: 20,
+    paddingVertical: 4,
   },
 });

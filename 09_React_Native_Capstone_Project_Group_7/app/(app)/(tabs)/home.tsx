@@ -1,123 +1,105 @@
 /**
- * Home Screen - Cookbook Discover Tab
- * Recipe discovery with pagination, categories, and pull-to-refresh
+ * Discover / Home Screen - Cookbook
+ * Responsive multi-column grid (boxes) showcasing food photography
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   FlatList,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   RefreshControl,
+  Image,
+  StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
+import { Card, Title, Chip, Button } from 'react-native-paper';
 import { recipeApi } from '@/services/recipeApi';
 import { Recipe } from '@/types/recipe';
-import { Card, Title, Chip, Avatar, Button } from 'react-native-paper';
-import { styles } from './homeStyles';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { width } = useWindowDimensions();
+  const numColumns = width >= 960 ? 3 : width >= 600 ? 2 : 1;
+
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecipes = useCallback(async (isRefresh = false) => {
+  const fetchRecipes = useCallback(async (skip = 0, append = false) => {
     try {
-      if (!isRefresh) setLoading(true);
       setError(null);
-
-      const data = await recipeApi.getRecipes({ limit: PAGE_SIZE, skip: 0 });
-      setRecipes(data.recipes);
+      const data = await recipeApi.getRecipes({ limit: PAGE_SIZE, skip });
       setTotal(data.total);
+      setRecipes((prev) => (append ? [...prev, ...data.recipes] : data.recipes));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load recipes');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchRecipes();
+    fetchRecipes(0, false);
   }, [fetchRecipes]);
 
-  const onRefresh = () => {
+  const handleRefresh = () => {
     setRefreshing(true);
-    fetchRecipes(true);
+    fetchRecipes(0, false);
   };
 
-  const handleLoadMore = async () => {
-    if (loadingMore || recipes.length >= total) return;
-    try {
-      setLoadingMore(true);
-      const data = await recipeApi.getRecipes({ limit: PAGE_SIZE, skip: recipes.length });
-      setRecipes((prev) => [...prev, ...data.recipes]);
-      setTotal(data.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more recipes');
-    } finally {
-      setLoadingMore(false);
-    }
+  const handleLoadMore = () => {
+    if (loadingMore || loading || recipes.length >= total) return;
+    setLoadingMore(true);
+    fetchRecipes(recipes.length, true);
   };
 
   const renderRecipe = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
-      style={styles.recipeCard}
+      style={ui.gridItem}
       onPress={() => router.push(`/(app)/recipe/${item.id}`)}
-      activeOpacity={0.8}
+      activeOpacity={0.88}
     >
-      <Card style={styles.card} elevation={2}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: item.image }}
-            style={styles.recipeImage}
-            resizeMode="cover"
-          />
-          <View style={styles.difficultyBadge}>
+      <Card style={ui.card} elevation={2}>
+        <View style={ui.imageBox}>
+          <Image source={{ uri: item.image }} style={ui.heroImage} resizeMode="cover" />
+          <View style={ui.topOverlay}>
             <Chip
               style={[
-                styles.difficultyChip,
-                item.difficulty === 'Easy' && styles.easy,
-                item.difficulty === 'Medium' && styles.medium,
-                item.difficulty === 'Hard' && styles.hard,
+                ui.difficultyBadge,
+                item.difficulty === 'Easy' && ui.easyBg,
+                item.difficulty === 'Medium' && ui.medBg,
+                item.difficulty === 'Hard' && ui.hardBg,
               ]}
+              textStyle={ui.badgeText}
             >
               {item.difficulty}
             </Chip>
+            <View style={ui.ratingPill}>
+              <Text style={ui.ratingPillText}>⭐ {item.rating.toFixed(1)}</Text>
+            </View>
           </View>
         </View>
-        <Card.Content style={styles.cardContent}>
-          <Title style={styles.recipeTitle} numberOfLines={1}>
+
+        <Card.Content style={ui.cardBody}>
+          <Text style={ui.cuisineLabel}>{item.cuisine.toUpperCase()}</Text>
+          <Title style={ui.recipeTitle} numberOfLines={2}>
             {item.name}
           </Title>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
-            </Text>
-            <Text style={styles.metaText}>👥 {item.servings} servings</Text>
-            <Text style={styles.metaText}>🔥 {item.caloriesPerServing} cal</Text>
-          </View>
-          <View style={styles.cuisineRow}>
-            <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
-            {item.mealType.slice(0, 2).map((meal) => (
-              <Chip key={meal} style={styles.mealChip}>{meal}</Chip>
-            ))}
-          </View>
-          <View style={styles.ratingRow}>
-            <Text style={styles.ratingText}>
-              ⭐ {item.rating.toFixed(1)} ({item.reviewCount} reviews)
-            </Text>
+
+          <View style={ui.metaRow}>
+            <Text style={ui.metaItem}>⏱️ {item.prepTimeMinutes + item.cookTimeMinutes}m</Text>
+            <Text style={ui.metaItem}>👥 {item.servings}</Text>
+            <Text style={ui.metaItem}>🔥 {item.caloriesPerServing} cal</Text>
           </View>
         </Card.Content>
       </Card>
@@ -126,18 +108,19 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={ui.centerBox}>
         <ActivityIndicator size="large" color="#E85D04" />
-        <Text style={styles.loadingText}>Loading recipes...</Text>
+        <Text style={ui.statusText}>Preparing delicious recipes...</Text>
       </View>
     );
   }
 
-  if (error) {
+  if (error && recipes.length === 0) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={() => fetchRecipes()} style={styles.retryButton}>
+      <View style={ui.centerBox}>
+        <Text style={ui.errorTitle}>Unable to load recipes</Text>
+        <Text style={ui.statusText}>{error}</Text>
+        <Button mode="contained" onPress={() => fetchRecipes(0, false)} style={ui.retryBtn}>
           Retry
         </Button>
       </View>
@@ -145,84 +128,178 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.scrollView}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E85D04']} />
-      }
-      contentContainerStyle={styles.scrollContent}
-    >
-      <View style={styles.welcomeContainer}>
-        <View style={styles.welcomeTextContainer}>
-          <Text style={styles.welcomeGreeting}>
-            {user ? `Welcome back, ${user.firstName}!` : 'Welcome to Cookbook!'}
-          </Text>
-          <Text style={styles.welcomeSubtitle}>Discover delicious recipes</Text>
-        </View>
-        <Avatar.Icon size={56} icon="chef-hat" style={styles.welcomeAvatar} />
-      </View>
-
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Categories</Title>
-          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/categories')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>All Categories</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={[
-            'Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Dessert', 'Breakfast', 'Dinner',
-          ]}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.categoryChip, { backgroundColor: '#FFF3E0' }]}
-              onPress={() => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(item)}`)}
-            >
-              <Text style={styles.categoryChipText}>{item}</Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item}
-        />
-      </View>
-
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>
-            Featured Recipes ({recipes.length}/{total})
-          </Title>
-          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/search')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>Search & Filter</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={recipes}
-          renderItem={renderRecipe}
-          keyExtractor={(item) => item.id.toString()}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={styles.cardSeparator} />}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No recipes found</Text>
-            </View>
-          }
-        />
-
-        {recipes.length < total && (
-          <Button
-            mode="outlined"
-            onPress={handleLoadMore}
-            loading={loadingMore}
-            disabled={loadingMore}
-            style={{ marginTop: 16, borderColor: '#E85D04' }}
-            textColor="#E85D04"
-          >
-            {loadingMore ? 'Loading more...' : `Load More (${total - recipes.length} remaining)`}
-          </Button>
-        )}
-      </View>
-    </ScrollView>
+    <View style={ui.screen}>
+      <FlatList
+        key={`grid-${numColumns}`}
+        data={recipes}
+        renderItem={renderRecipe}
+        numColumns={numColumns}
+        keyExtractor={(item) => item.id.toString()}
+        columnWrapperStyle={numColumns > 1 ? ui.columnRow : undefined}
+        contentContainerStyle={ui.listContainer}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.4}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E85D04" />
+        }
+        ListHeaderComponent={
+          <View style={ui.header}>
+            <Text style={ui.kicker}>COOKBOOK COLLECTION</Text>
+            <Title style={ui.headerTitle}>Discover Recipes</Title>
+            <Text style={ui.headerSubtitle}>
+              Showing {recipes.length} of {total} curated dishes
+            </Text>
+          </View>
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator size="small" color="#E85D04" style={{ marginVertical: 20 }} />
+          ) : null
+        }
+      />
+    </View>
   );
 }
+
+const ui = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#FAF6F0',
+  },
+  listContainer: {
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 32,
+  },
+  columnRow: {
+    gap: 16,
+    marginBottom: 16,
+  },
+  gridItem: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  header: {
+    marginBottom: 18,
+  },
+  kicker: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: '#E85D04',
+    marginBottom: 4,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#2D1B14',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#7A6258',
+    marginTop: 2,
+  },
+  card: {
+    flex: 1,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  imageBox: {
+    position: 'relative',
+    width: '100%',
+    height: 210,
+    backgroundColor: '#EFE6DD',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  topOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  difficultyBadge: {
+    borderRadius: 10,
+  },
+  easyBg: { backgroundColor: '#E8F5E9' },
+  medBg: { backgroundColor: '#FFF3E0' },
+  hardBg: { backgroundColor: '#FFEBEE' },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#3E2723',
+  },
+  ratingPill: {
+    backgroundColor: 'rgba(33, 21, 16, 0.78)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ratingPillText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cardBody: {
+    padding: 14,
+  },
+  cuisineLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: '#E85D04',
+    marginBottom: 4,
+  },
+  recipeTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
+    color: '#2D1B14',
+    marginBottom: 10,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3ECE4',
+  },
+  metaItem: {
+    fontSize: 12,
+    color: '#6D564C',
+    fontWeight: '600',
+  },
+  centerBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAF6F0',
+    padding: 24,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2D1B14',
+    marginBottom: 6,
+  },
+  statusText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#7A6258',
+  },
+  retryBtn: {
+    marginTop: 16,
+    backgroundColor: '#E85D04',
+    borderRadius: 10,
+  },
+});
