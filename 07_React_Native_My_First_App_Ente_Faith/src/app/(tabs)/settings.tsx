@@ -1,0 +1,39 @@
+import GeneralSettings, { type SettingsAction } from '@/components/GeneralSettings';
+import { useTheme, useThemeMode } from '@/theme';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+
+export default function SettingsScreen() {
+  const theme = useTheme();
+  const { isDarkMode, setIsDarkMode } = useThemeMode();
+
+
+  const actions: SettingsAction[] = [
+    {
+      
+      icon: <Ionicons name={isDarkMode ? "sunny" : "moon"} size={22} color={theme.colors.text} />,
+     
+      name: isDarkMode ? 'Light Mode' : 'Dark Mode', 
+      
+      onPress: () => setIsDarkMode(!isDarkMode),
+    },
+    { icon: <Ionicons name="color-palette" size={22} color={theme.colors.text} />, name: 'Theme' },
+    { icon: <Ionicons name="print" size={22} color={theme.colors.text} />, name: 'Print' },
+    { icon: <Ionicons name="share-social" size={22} color={theme.colors.text} />, name: 'Share' },
+  ];
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <GeneralSettings actions={actions} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    width: '100%',
+    padding: 16,
+  },
+});
