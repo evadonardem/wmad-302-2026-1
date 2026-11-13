@@ -60,6 +60,25 @@ interface RecipesResponse {
   limit: number;
 }
 
+const MEAL_TYPES = [
+  {
+    label: 'Breakfast',
+    icon: 'weather-sunny' as const,
+  },
+  {
+    label: 'Lunch',
+    icon: 'food-apple' as const,
+  },
+  {
+    label: 'Dinner',
+    icon: 'weather-night' as const,
+  },
+  {
+    label: 'Snacks',
+    icon: 'cookie' as const,
+  },
+];
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -119,6 +138,13 @@ export default function HomeScreen() {
   // Open the existing Search screen
   const openSearch = () => {
     router.push('/(app)/(tabs)/search');
+  };
+
+  // Open Search with a selected meal type
+  const openMealType = (mealType: string) => {
+    router.push(
+      `/(app)/(tabs)/search?query=${encodeURIComponent(mealType)}`
+    );
   };
 
   // Select one recipe for the current day.
@@ -345,6 +371,74 @@ export default function HomeScreen() {
           )}
           keyExtractor={(item) => item}
         />
+      </View>
+
+      {/* Browse by Meal Type */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.sectionHeader}>
+          <Title style={styles.sectionTitle}>
+            Browse by Meal Type
+          </Title>
+        </View>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            rowGap: 10,
+          }}
+        >
+          {MEAL_TYPES.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              style={{
+                width: '48%',
+                minHeight: 82,
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 12,
+                borderRadius: 15,
+                borderWidth: 1,
+                borderColor: colors.outlineVariant,
+                backgroundColor: colors.surface,
+              }}
+              activeOpacity={0.8}
+              onPress={() => openMealType(item.label)}
+              accessibilityRole="button"
+              accessibilityLabel={`Browse ${item.label} recipes`}
+            >
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 21,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.primaryContainer,
+                  marginRight: 10,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name={item.icon}
+                  size={23}
+                  color={colors.onPrimaryContainer}
+                />
+              </View>
+
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  fontWeight: '700',
+                  color: colors.onSurface,
+                }}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* Recipe of the Day */}

@@ -1,3 +1,4 @@
+
 /**
  * Search Screen - Cookbook
  * Searches and filters the complete DummyJSON recipe catalog.
@@ -166,7 +167,13 @@ function getFilteredRecipes(
   }
 
   if (searchQuery.trim()) {
-    const searchTerm = searchQuery.trim().toLowerCase();
+    const originalSearchTerm = searchQuery.trim().toLowerCase();
+
+    // DummyJSON may use "Snack" instead of "Snacks".
+    const searchTerm =
+      originalSearchTerm === 'snacks'
+        ? 'snack'
+        : originalSearchTerm;
 
     filteredRecipes = filteredRecipes.filter((recipe) => {
       const searchableText = [
@@ -195,9 +202,13 @@ export default function SearchScreen() {
   const colors = theme.colors;
   const styles = createStyles(colors);
 
-  // Read a category passed from the Categories Screen.
-  const { category: categoryParam } = useLocalSearchParams<{
+  // Read category and search query passed from other screens.
+  const {
+    category: categoryParam,
+    query: queryParam,
+  } = useLocalSearchParams<{
     category?: string;
+    query?: string;
   }>();
 
   const incomingCategory =
@@ -206,7 +217,10 @@ export default function SearchScreen() {
       ? categoryParam
       : null;
 
-  const [query, setQuery] = useState('');
+  const incomingQuery =
+    typeof queryParam === 'string' ? queryParam : '';
+
+  const [query, setQuery] = useState(incomingQuery);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [results, setResults] = useState<Recipe[]>([]);
 
@@ -355,16 +369,17 @@ export default function SearchScreen() {
     setHasSearched(false);
   };
 
-  // Automatically load a category sent by the Categories Screen.
+  // Automatically load a category or meal type sent from Home.
   useEffect(() => {
-    if (!incomingCategory) {
+    if (!incomingCategory && !incomingQuery.trim()) {
       return;
     }
 
     let cancelled = false;
 
-    const loadSelectedCategory = async () => {
+    const loadSelectedFilter = async () => {
       setSelectedCategory(incomingCategory);
+      setQuery(incomingQuery);
       setLoading(true);
 
       try {
@@ -381,7 +396,7 @@ export default function SearchScreen() {
 
         const filteredRecipes = getFilteredRecipes(
           recipes,
-          '',
+          incomingQuery,
           incomingCategory
         );
 
@@ -393,11 +408,11 @@ export default function SearchScreen() {
         setHasSearched(true);
       } catch (error) {
         if (!cancelled) {
-          console.error('Category loading error:', error);
+          console.error('Filter loading error:', error);
 
           Alert.alert(
             'Search Error',
-            'Unable to load this category. Please try again.'
+            'Unable to load recipes. Please try again.'
           );
 
           setResults([]);
@@ -411,12 +426,12 @@ export default function SearchScreen() {
       }
     };
 
-    void loadSelectedCategory();
+    void loadSelectedFilter();
 
     return () => {
       cancelled = true;
     };
-  }, [incomingCategory]);
+  }, [incomingCategory, incomingQuery]);
 
   // Display a recipe card.
   const renderResult = ({ item }: { item: Recipe }) => (
