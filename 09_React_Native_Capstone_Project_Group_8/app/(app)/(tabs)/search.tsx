@@ -3,6 +3,7 @@
  * Search Screen - Cookbook
  * Searches and filters the complete DummyJSON recipe catalog.
  * Supports Light Mode and Dark Mode.
+ * Preserves the Meal Planner selected date when opening recipes.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -202,13 +203,15 @@ export default function SearchScreen() {
   const colors = theme.colors;
   const styles = createStyles(colors);
 
-  // Read category and search query passed from other screens.
+  // Read category, search query, and selected date from other screens.
   const {
     category: categoryParam,
     query: queryParam,
+    selectedDate: selectedDateParam,
   } = useLocalSearchParams<{
     category?: string;
     query?: string;
+    selectedDate?: string;
   }>();
 
   const incomingCategory =
@@ -438,7 +441,17 @@ export default function SearchScreen() {
     <TouchableOpacity
       style={styles.resultCard}
       activeOpacity={0.8}
-      onPress={() => router.push(`/(app)/recipe/${item.id}`)}
+      onPress={() =>
+        router.push({
+          pathname: '/(app)/recipe/[id]',
+          params: {
+            id: String(item.id),
+            ...(typeof selectedDateParam === 'string'
+              ? { selectedDate: selectedDateParam }
+              : {}),
+          },
+        })
+      }
     >
       <Card style={styles.card} elevation={1}>
         <View style={styles.resultContent}>

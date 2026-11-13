@@ -3,6 +3,7 @@
  * Meal Planner Screen - Cookbook App
  * Supports Light Mode, Dark Mode, and System Default.
  * Manages daily meal plans using local storage.
+ * Passes the selected date to Search and Recipe Details.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -164,6 +165,16 @@ export default function MealPlannerScreen() {
     date.setDate(date.getDate() + days);
 
     setSelectedDate(getDateKey(date));
+  };
+
+  // Open Search while preserving the selected Meal Planner date.
+  const openSearch = () => {
+    router.push({
+      pathname: '/(app)/(tabs)/search',
+      params: {
+        selectedDate,
+      },
+    });
   };
 
   // Remove the recipe from storage and update the screen.
@@ -378,9 +389,7 @@ export default function MealPlannerScreen() {
                       </Text>
 
                       <TouchableOpacity
-                        onPress={() =>
-                          router.push('/(app)/(tabs)/search')
-                        }
+                        onPress={openSearch}
                       >
                         <Text style={styles.addRecipeText}>
                           + Browse recipes
@@ -399,7 +408,13 @@ export default function MealPlannerScreen() {
                             style={styles.recipeDetailsButton}
                             activeOpacity={0.85}
                             onPress={() =>
-                              router.push(`/(app)/recipe/${recipe.id}`)
+                              router.push({
+                                pathname: '/(app)/recipe/[id]',
+                                params: {
+                                  id: String(recipe.id),
+                                  selectedDate,
+                                },
+                              })
                             }
                           >
                             <Image
@@ -463,9 +478,7 @@ export default function MealPlannerScreen() {
               icon="plus"
               style={styles.browseButton}
               contentStyle={styles.browseButtonContent}
-              onPress={() =>
-                router.push('/(app)/(tabs)/search')
-              }
+              onPress={openSearch}
             >
               Browse Recipes
             </Button>

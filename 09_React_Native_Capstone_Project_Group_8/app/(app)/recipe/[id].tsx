@@ -1,7 +1,9 @@
+
 /**
  * Recipe Details Screen - Cookbook
  * Supports Light Mode and Dark Mode.
  * Manages Favorites, Meal Planning, and Recently Viewed Recipes.
+ * Uses the selected Meal Planner date when adding a recipe.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -54,9 +56,64 @@ interface Recipe {
   mealType: string[];
 }
 
+// Validate the selected date.
+// If no valid date is provided, use today's date.
+function getValidMealPlanDate(selectedDate?: string): string {
+  if (!selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  const [year, month, day] = selectedDate.split('-').map(Number);
+
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    const today = new Date();
+
+    const currentYear = today.getFullYear();
+    const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+    const currentDay = String(today.getDate()).padStart(2, '0');
+
+    return `${currentYear}-${currentMonth}-${currentDay}`;
+  }
+
+  return selectedDate;
+}
+
+// Convert YYYY-MM-DD into a readable date.
+function formatMealPlanDate(dateKey: string): string {
+  const [year, month, day] = dateKey.split('-').map(Number);
+
+  return new Date(year, month - 1, day).toLocaleDateString(
+    'en-US',
+    {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }
+  );
+}
+
 export default function RecipeDetailsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const {
+    id,
+    selectedDate: selectedDateParam,
+  } = useLocalSearchParams<{
+    id: string;
+    selectedDate?: string;
+  }>();
 
   const theme = useTheme<MD3Theme>();
   const styles = createStyles(theme);
@@ -165,27 +222,29 @@ export default function RecipeDetailsScreen() {
     try {
       setSavingMeal(true);
 
-      const now = new Date();
-
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-
-      const today = `${year}-${month}-${day}`;
+      // Use the date selected in Meal Planner.
+      // If no date was passed, use today's date.
+      const mealPlanDate = getValidMealPlanDate(
+        typeof selectedDateParam === 'string'
+          ? selectedDateParam
+          : undefined
+      );
 
       const wasAdded = await mealPlanStorage.addEntry(
-        today,
+        mealPlanDate,
         mealType,
         recipe.id
       );
 
       setShowMealOptions(false);
 
+      const formattedDate = formatMealPlanDate(mealPlanDate);
+
       Alert.alert(
         wasAdded ? 'Meal Planned!' : 'Already Planned',
         wasAdded
-          ? `${recipe.name} has been added to your ${mealType} plan for today.`
-          : `${recipe.name} is already in your ${mealType} plan for today.`
+          ? `${recipe.name} has been added to your ${mealType} plan for ${formattedDate}.`
+          : `${recipe.name} is already in your ${mealType} plan for ${formattedDate}.`
       );
     } catch (error) {
       console.error('Failed to add recipe to meal plan:', error);
