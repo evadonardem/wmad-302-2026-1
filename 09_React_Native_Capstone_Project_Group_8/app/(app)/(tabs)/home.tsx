@@ -16,8 +16,10 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+
 import {
   Card,
   Title,
@@ -26,10 +28,12 @@ import {
   Button,
   useTheme,
 } from 'react-native-paper';
+
 import type { MD3Theme } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { createHomeStyles } from './homeStyles';
 
-// Types for DummyJSON Recipes API
 interface Recipe {
   id: number;
   name: string;
@@ -111,6 +115,37 @@ export default function HomeScreen() {
   const onRefresh = () => {
     fetchRecipes(true);
   };
+
+  // Open the existing Search screen
+  const openSearch = () => {
+    router.push('/(app)/(tabs)/search');
+  };
+
+  // Select one recipe for the current day.
+  // The selection changes each calendar day.
+  const today = new Date();
+  const startOfYear = new Date(today.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor(
+    (today.getTime() - startOfYear.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  const recipeOfDay =
+    recipes.length > 0
+      ? recipes[dayOfYear % recipes.length]
+      : null;
+
+  // Popular Recipes: highest rating first.
+  // Review count is used when two recipes have the same rating.
+  const popularRecipes = [...recipes]
+    .sort((a, b) => {
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating;
+      }
+
+      return b.reviewCount - a.reviewCount;
+    })
+    .slice(0, 6);
 
   // Render individual recipe card
   const renderRecipe = ({ item }: { item: Recipe }) => (
@@ -247,6 +282,33 @@ export default function HomeScreen() {
         />
       </View>
 
+      {/* Home Search Bar */}
+      <View style={styles.searchBarContainer}>
+        <TouchableOpacity
+          style={styles.searchBar}
+          onPress={openSearch}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Search recipes or ingredients"
+        >
+          <MaterialCommunityIcons
+            name="magnify"
+            size={24}
+            color={colors.primary}
+          />
+
+          <Text style={styles.searchPlaceholder}>
+            Search recipes or ingredients...
+          </Text>
+
+          <MaterialCommunityIcons
+            name="tune-variant"
+            size={21}
+            color={colors.onSurfaceVariant}
+          />
+        </TouchableOpacity>
+      </View>
+
       {/* Categories */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
@@ -285,6 +347,160 @@ export default function HomeScreen() {
         />
       </View>
 
+      {/* Recipe of the Day */}
+      {recipeOfDay && (
+        <View style={styles.dailyRecipeSection}>
+          <View style={styles.sectionHeader}>
+            <Title style={styles.sectionTitle}>
+              Recipe of the Day
+            </Title>
+
+            <MaterialCommunityIcons
+              name="star-circle"
+              size={24}
+              color={colors.primary}
+            />
+          </View>
+
+          <Card style={styles.dailyRecipeCard} elevation={3}>
+            <View style={styles.dailyImageContainer}>
+              <Image
+                source={{ uri: recipeOfDay.image }}
+                style={styles.dailyRecipeImage}
+                resizeMode="cover"
+              />
+
+              <View style={styles.dailyBadge}>
+                <MaterialCommunityIcons
+                  name="star"
+                  size={14}
+                  color="#FFFFFF"
+                />
+
+                <Text style={styles.dailyBadgeText}>
+                  TODAY'S PICK
+                </Text>
+              </View>
+            </View>
+
+            <Card.Content style={styles.dailyContent}>
+              <Text style={styles.dailyCuisine}>
+                {recipeOfDay.cuisine.toUpperCase()}
+              </Text>
+
+              <Title style={styles.dailyTitle}>
+                {recipeOfDay.name}
+              </Title>
+
+              <View style={styles.dailyMetaRow}>
+                <View style={styles.dailyMetaItem}>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={17}
+                    color={colors.primary}
+                  />
+
+                  <Text style={styles.dailyMetaText}>
+                    {recipeOfDay.prepTimeMinutes +
+                      recipeOfDay.cookTimeMinutes} min
+                  </Text>
+                </View>
+
+                <View style={styles.dailyMetaItem}>
+                  <MaterialCommunityIcons
+                    name="chef-hat"
+                    size={17}
+                    color={colors.primary}
+                  />
+
+                  <Text style={styles.dailyMetaText}>
+                    {recipeOfDay.difficulty}
+                  </Text>
+                </View>
+
+                <View style={styles.dailyMetaItem}>
+                  <MaterialCommunityIcons
+                    name="star"
+                    size={17}
+                    color="#F9A825"
+                  />
+
+                  <Text style={styles.dailyMetaText}>
+                    {recipeOfDay.rating.toFixed(1)}
+                  </Text>
+                </View>
+              </View>
+
+              <Button
+                mode="contained"
+                onPress={() =>
+                  router.push(`/(app)/recipe/${recipeOfDay.id}`)
+                }
+                style={styles.dailyButton}
+                contentStyle={styles.dailyButtonContent}
+                buttonColor={colors.primary}
+                textColor={colors.onPrimary}
+                icon="arrow-right"
+                accessibilityLabel={`View ${recipeOfDay.name} recipe`}
+              >
+                View Recipe
+              </Button>
+            </Card.Content>
+          </Card>
+        </View>
+      )}
+
+      {/* Popular Recipes */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Title style={styles.sectionTitle}>
+              Popular Recipes
+            </Title>
+
+            <Text
+              style={{
+                fontSize: 12,
+                color: colors.onSurfaceVariant,
+                marginTop: 3,
+              }}
+            >
+              Top-rated recipes you might enjoy
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={openSearch}
+            style={styles.seeAll}
+            accessibilityRole="button"
+            accessibilityLabel="See all recipes"
+          >
+            <Text style={styles.seeAllText}>
+              See All
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.featuredList}
+          data={popularRecipes}
+          renderItem={renderRecipe}
+          keyExtractor={(item) => item.id.toString()}
+          ItemSeparatorComponent={() => (
+            <View style={styles.cardSeparator} />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No popular recipes available
+              </Text>
+            </View>
+          }
+        />
+      </View>
+
       {/* Featured Recipes */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
@@ -293,7 +509,7 @@ export default function HomeScreen() {
           </Title>
 
           <TouchableOpacity
-            onPress={() => router.push('/(app)/(tabs)/search')}
+            onPress={openSearch}
             style={styles.seeAll}
           >
             <Text style={styles.seeAllText}>

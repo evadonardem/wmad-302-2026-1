@@ -82,6 +82,32 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
       backgroundColor: colors.primaryContainer,
     },
 
+    // Home Search Bar
+    searchBarContainer: {
+      paddingHorizontal: 16,
+      marginTop: 2,
+      marginBottom: 24,
+    },
+
+    searchBar: {
+      height: 54,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+      gap: 12,
+      elevation: 1,
+    },
+
+    searchPlaceholder: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+    },
+
     sectionContainer: {
       paddingHorizontal: 16,
       marginBottom: 24,
@@ -130,6 +156,99 @@ export const createHomeStyles = (colors: MD3Theme['colors']) =>
       color: colors.onPrimaryContainer,
     },
 
+    // Recipe of the Day
+    dailyRecipeSection: {
+      paddingHorizontal: 16,
+      marginBottom: 26,
+    },
+
+    dailyRecipeCard: {
+      borderRadius: 18,
+      overflow: 'hidden',
+      backgroundColor: colors.surface,
+    },
+
+    dailyImageContainer: {
+      height: 210,
+      position: 'relative',
+      backgroundColor: colors.surfaceVariant,
+    },
+
+    dailyRecipeImage: {
+      width: '100%',
+      height: '100%',
+    },
+
+    dailyBadge: {
+      position: 'absolute',
+      top: 14,
+      left: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: colors.primary,
+    },
+
+    dailyBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      color: colors.onPrimary,
+    },
+
+    dailyContent: {
+      padding: 16,
+    },
+
+    dailyCuisine: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.2,
+      color: colors.primary,
+      marginBottom: 5,
+    },
+
+    dailyTitle: {
+      fontSize: 21,
+      lineHeight: 28,
+      fontWeight: '700',
+      color: colors.onSurface,
+      marginBottom: 12,
+    },
+
+    dailyMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 18,
+      marginBottom: 16,
+    },
+
+    dailyMetaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+
+    dailyMetaText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.onSurfaceVariant,
+    },
+
+    dailyButton: {
+      borderRadius: 12,
+    },
+
+    dailyButtonContent: {
+      height: 46,
+      flexDirection: 'row-reverse',
+    },
+
+    // Featured Recipes
     recipeCard: {
       width: 280,
       marginBottom: 8,
