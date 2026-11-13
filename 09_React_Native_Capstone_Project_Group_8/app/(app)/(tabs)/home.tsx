@@ -19,6 +19,7 @@ import {
 
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { useSettings } from '@/context/SettingsContext';
 
 import {
   Card,
@@ -79,9 +80,171 @@ const MEAL_TYPES = [
   },
 ];
 
+// Checks whether any ingredient contains one of the specified words.
+const hasIngredientKeyword = (
+  ingredients: string[],
+  keywords: string[]
+): boolean => {
+  const ingredientText = ingredients.join(' ').toLowerCase();
+
+  return keywords.some((keyword) =>
+    ingredientText.includes(keyword)
+  );
+};
+
+// Ingredient-based dietary filtering.
+// This is a basic recommendation helper, not a food-safety guarantee.
+const isCompatibleWithDiet = (
+  recipe: Recipe,
+  dietaryPreferences: string[]
+): boolean => {
+  const ingredients = recipe.ingredients;
+
+  const meatKeywords = [
+    'chicken',
+    'beef',
+    'pork',
+    'lamb',
+    'turkey',
+    'bacon',
+    'ham',
+    'sausage',
+    'meat',
+    'duck',
+    'goat',
+    'veal',
+  ];
+
+  const seafoodKeywords = [
+    'fish',
+    'salmon',
+    'tuna',
+    'shrimp',
+    'prawn',
+    'crab',
+    'lobster',
+    'squid',
+    'anchovy',
+    'seafood',
+    'oyster',
+    'clam',
+    'mussel',
+    'sardine',
+  ];
+
+  const dairyKeywords = [
+    'milk',
+    'cheese',
+    'butter',
+    'cream',
+    'yogurt',
+    'yoghurt',
+    'whey',
+  ];
+
+  const animalProductKeywords = [
+    'egg',
+    'honey',
+    ...dairyKeywords,
+  ];
+
+  const glutenKeywords = [
+    'wheat',
+    'flour',
+    'bread',
+    'pasta',
+    'barley',
+    'rye',
+    'couscous',
+    'breadcrumbs',
+    'soy sauce',
+  ];
+
+  const lowCarbKeywords = [
+    'rice',
+    'pasta',
+    'bread',
+    'potato',
+    'sugar',
+    'flour',
+    'noodles',
+    'corn',
+    'couscous',
+  ];
+
+  for (const preference of dietaryPreferences) {
+    switch (preference.toLowerCase()) {
+      case 'vegetarian':
+        if (
+          hasIngredientKeyword(ingredients, [
+            ...meatKeywords,
+            ...seafoodKeywords,
+          ])
+        ) {
+          return false;
+        }
+        break;
+
+      case 'vegan':
+        if (
+          hasIngredientKeyword(ingredients, [
+            ...meatKeywords,
+            ...seafoodKeywords,
+            ...animalProductKeywords,
+          ])
+        ) {
+          return false;
+        }
+        break;
+
+      case 'pescatarian':
+        if (
+          hasIngredientKeyword(ingredients, meatKeywords)
+        ) {
+          return false;
+        }
+        break;
+
+      case 'gluten-free':
+        if (
+          hasIngredientKeyword(ingredients, glutenKeywords)
+        ) {
+          return false;
+        }
+        break;
+
+      case 'dairy-free':
+        if (
+          hasIngredientKeyword(ingredients, dairyKeywords)
+        ) {
+          return false;
+        }
+        break;
+
+      case 'low-carb':
+        if (
+          hasIngredientKeyword(ingredients, lowCarbKeywords)
+        ) {
+          return false;
+        }
+        break;
+
+      // Halal status cannot be reliably determined from
+      // the DummyJSON recipe ingredients.
+      case 'halal':
+      default:
+        break;
+    }
+  }
+
+  return true;
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+
+  const { settings, isSettingsLoaded } = useSettings();
 
   const theme = useTheme<MD3Theme>();
   const colors = theme.colors;
@@ -147,6 +310,11 @@ export default function HomeScreen() {
     );
   };
 
+  // Open Settings to update recommendation preferences
+  const openSettings = () => {
+    router.push('/(app)/settings');
+  };
+
   // Select one recipe for the current day.
   // The selection changes each calendar day.
   const today = new Date();
@@ -172,6 +340,94 @@ export default function HomeScreen() {
       return b.reviewCount - a.reviewCount;
     })
     .slice(0, 6);
+
+  // Recommended for You:
+  // Use the saved dietary preferences, preferred cuisines,
+  // and cooking difficulty from SettingsContext.
+  const dietaryPreferences = settings.dietaryPreferences;
+  const preferredCuisines = settings.preferredCuisines;
+  const cookingDifficulty = settings.cookingDifficulty;
+
+  const hasPreferences =
+    dietaryPreferences.length > 0 ||
+    preferredCuisines.length > 0 ||
+    cookingDifficulty !== 'Any';
+
+  // Filter recipes using ingredient-based dietary preferences.
+  const dietaryFilteredRecipes = recipes.filter((recipe) =>
+    isCompatibleWithDiet(recipe, dietaryPreferences)
+  );
+
+  // If no recipes match the dietary filters, show general
+  // recommendations instead of leaving the section empty.
+  const hasDietaryMatches = dietaryFilteredRecipes.length > 0;
+
+  const recommendationSource =
+    hasDietaryMatches
+      ? dietaryFilteredRecipes
+      : recipes;
+
+  // Score recipes based on the user's saved preferences.
+  const recommendedRecipes = [...recommendationSource]
+    .map((recipe) => {
+      let score = 0;
+
+      const normalizedCuisine = recipe.cuisine.toLowerCase();
+
+      const cuisineMatches = preferredCuisines.some(
+        (cuisine) =>
+          cuisine.toLowerCase() === normalizedCuisine
+      );
+
+      if (cuisineMatches) {
+        score += 3;
+      }
+
+      if (
+        cookingDifficulty !== 'Any' &&
+        recipe.difficulty === cookingDifficulty
+      ) {
+        score += 2;
+      }
+
+      // Prefer recipes whose tags mention selected dietary preferences.
+      const normalizedTags = recipe.tags.map((tag) =>
+        tag.toLowerCase()
+      );
+
+      dietaryPreferences.forEach((preference) => {
+        if (normalizedTags.includes(preference.toLowerCase())) {
+          score += 1;
+        }
+      });
+
+      return {
+        recipe,
+        score,
+      };
+    })
+    .sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+
+      if (b.recipe.rating !== a.recipe.rating) {
+        return b.recipe.rating - a.recipe.rating;
+      }
+
+      return b.recipe.reviewCount - a.recipe.reviewCount;
+    })
+    .slice(0, 6)
+    .map((item) => item.recipe);
+
+  const hasHalalPreference = dietaryPreferences.some(
+    (preference) => preference.toLowerCase() === 'halal'
+  );
+
+  const hasDietaryFilterPreference = dietaryPreferences.some(
+    (preference) =>
+      preference.toLowerCase() !== 'halal'
+  );
 
   // Render individual recipe card
   const renderRecipe = ({ item }: { item: Recipe }) => (
@@ -594,6 +850,196 @@ export default function HomeScreen() {
           }
         />
       </View>
+
+      {/* Recommended for You */}
+      {isSettingsLoaded && (
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View style={{ flex: 1 }}>
+              <Title style={styles.sectionTitle}>
+                Recommended for You
+              </Title>
+
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.onSurfaceVariant,
+                  marginTop: 3,
+                }}
+              >
+                {hasPreferences
+                  ? 'Suggestions based on your saved preferences'
+                  : 'Popular picks to help you discover recipes'}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={openSettings}
+              style={styles.seeAll}
+              accessibilityRole="button"
+              accessibilityLabel="Update recommendation preferences"
+            >
+              <MaterialCommunityIcons
+                name="tune-variant"
+                size={19}
+                color={colors.primary}
+              />
+
+              <Text style={styles.seeAllText}>
+                Customize
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Show selected preferences */}
+          {hasPreferences && (
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                marginBottom: 10,
+                gap: 6,
+              }}
+            >
+              {preferredCuisines.map((cuisine) => (
+                <Chip
+                  key={`cuisine-${cuisine}`}
+                  compact
+                  style={{
+                    backgroundColor: colors.primaryContainer,
+                  }}
+                  textStyle={{
+                    color: colors.onPrimaryContainer,
+                  }}
+                >
+                  {cuisine}
+                </Chip>
+              ))}
+
+              {dietaryPreferences.map((preference) => (
+                <Chip
+                  key={`diet-${preference}`}
+                  compact
+                  style={{
+                    backgroundColor: colors.secondaryContainer,
+                  }}
+                  textStyle={{
+                    color: colors.onSecondaryContainer,
+                  }}
+                >
+                  {preference}
+                </Chip>
+              ))}
+
+              {cookingDifficulty !== 'Any' && (
+                <Chip
+                  compact
+                  style={{
+                    backgroundColor: colors.tertiaryContainer,
+                  }}
+                  textStyle={{
+                    color: colors.onTertiaryContainer,
+                  }}
+                >
+                  {cookingDifficulty}
+                </Chip>
+              )}
+            </View>
+          )}
+
+          {/* Explain when dietary filtering has no matches */}
+          {hasDietaryFilterPreference &&
+            !hasDietaryMatches && (
+              <Text
+                style={{
+                  color: colors.onSurfaceVariant,
+                  fontSize: 12,
+                  marginBottom: 10,
+                  lineHeight: 18,
+                }}
+              >
+                No recipes matched the selected dietary filters
+                in the currently loaded recipes. Showing general
+                recommendations instead.
+              </Text>
+            )}
+
+          {/* Halal information notice */}
+          {hasHalalPreference && (
+            <Text
+              style={{
+                color: colors.onSurfaceVariant,
+                fontSize: 12,
+                marginBottom: 10,
+                lineHeight: 18,
+              }}
+            >
+              Halal status cannot be verified from this recipe
+              catalog. Please check ingredients and certification
+              independently.
+            </Text>
+          )}
+
+          {!hasPreferences && (
+            <TouchableOpacity
+              onPress={openSettings}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 12,
+                marginBottom: 10,
+                borderRadius: 12,
+                backgroundColor: colors.primaryContainer,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="lightbulb-outline"
+                size={21}
+                color={colors.onPrimaryContainer}
+              />
+
+              <Text
+                style={{
+                  flex: 1,
+                  marginLeft: 9,
+                  fontSize: 12,
+                  lineHeight: 18,
+                  color: colors.onPrimaryContainer,
+                }}
+              >
+                Set your favorite cuisines, dietary preferences,
+                and cooking difficulty to personalize these recipes.
+              </Text>
+
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.onPrimaryContainer}
+              />
+            </TouchableOpacity>
+          )}
+
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredList}
+            data={recommendedRecipes}
+            renderItem={renderRecipe}
+            keyExtractor={(item) => item.id.toString()}
+            ItemSeparatorComponent={() => (
+              <View style={styles.cardSeparator} />
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  No recommendations available yet
+                </Text>
+              </View>
+            }
+          />
+        </View>
+      )}
 
       {/* Featured Recipes */}
       <View style={styles.sectionContainer}>
