@@ -1,18 +1,31 @@
 /**
- * AsyncStorage Utilities
- * Wrapper for @react-native-async-storage/async-storage with TypeScript
+ * Storage Utilities
+ * - AsyncStorage wrapper (favorites, settings, profile) with TypeScript
+ * - Secure storage (expo-secure-store: Keychain / Keystore) for auth tokens.
+ *   Done: tokens are no longer kept in plain AsyncStorage. On web, where
+ *   SecureStore does not exist, they fall back to AsyncStorage.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import type { AuthUser } from '@/types/auth';
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   AUTH_USER: 'auth_user',
+  AUTH_TOKENS: 'auth_tokens',
   FAVORITES: 'favorite_recipe_ids',
-  CART: 'cart_items',
   SETTINGS: 'user_settings',
 } as const;
 
-export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
+export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
+export interface AppSettings {
+  notifications: boolean;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  notifications: true,
+};
 
 /**
  * Get item from storage with type safety
@@ -20,7 +33,7 @@ export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
 export async function getStorageItem<T>(key: StorageKey): Promise<T | null> {
   try {
     const value = await AsyncStorage.getItem(key);
-    return value ? JSON.parse(value) : null;
+    return value ? (JSON.parse(value) as T) : null;
   } catch (error) {
     console.error(`Failed to get storage item ${key}:`, error);
     return null;
@@ -56,6 +69,7 @@ export async function removeStorageItem(key: StorageKey): Promise<void> {
 export async function clearAllStorage(): Promise<void> {
   try {
     await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+    await authStorage.clearUser();
   } catch (error) {
     console.error('Failed to clear storage:', error);
   }
@@ -64,30 +78,29 @@ export async function clearAllStorage(): Promise<void> {
 /**
  * Get multiple items at once
  */
-export async function getMultipleStorageItems<T extends Record<string, unknown>>(
+export async function getMultipleStorageItems(
   keys: StorageKey[]
-): Promise<T> {
+): Promise<Partial<Record<StorageKey, unknown>>> {
+  const result: Partial<Record<StorageKey, unknown>> = {};
   try {
     const pairs = await AsyncStorage.multiGet(keys);
-    const result = {} as T;
     pairs.forEach(([key, value]) => {
-      (result as Record<string, unknown>)[key] = value ? JSON.parse(value) : null;
+      result[key as StorageKey] = value ? JSON.parse(value) : null;
     });
-    return result;
   } catch (error) {
     console.error('Failed to get multiple storage items:', error);
-    return {} as T;
   }
+  return result;
 }
 
 /**
  * Set multiple items at once
  */
 export async function setMultipleStorageItems(
-  items: Array<{ key: StorageKey; value: unknown }>
+  items: { key: StorageKey; value: unknown }[]
 ): Promise<void> {
   try {
-    const pairs = items.map(({ key, value }) => [key, JSON.stringify(value)]);
+    const pairs = items.map(({ key, value }): [string, string] => [key, JSON.stringify(value)]);
     await AsyncStorage.multiSet(pairs);
   } catch (error) {
     console.error('Failed to set multiple storage items:', error);
@@ -97,76 +110,111 @@ export async function setMultipleStorageItems(
 
 // Specific helpers for common use cases
 
+// ---- Secure token storage -------------------------------------------------
+
+type Tokens = { token: string; refreshToken: string };
+
+async function secureAvailable(): Promise<boolean> {
+  try {
+    return await SecureStore.isAvailableAsync();
+  } catch {
+    return false;
+  }
+}
+
+async function setTokens(tokens: Tokens): Promise<void> {
+  const value = JSON.stringify(tokens);
+  if (await secureAvailable()) {
+    await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKENS, value);
+  } else {
+    await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKENS, value);
+  }
+}
+
+async function getTokens(): Promise<Tokens | null> {
+  try {
+    const value = (await secureAvailable())
+      ? await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKENS)
+      : await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKENS);
+    return value ? (JSON.parse(value) as Tokens) : null;
+  } catch (error) {
+    console.error('Failed to read tokens:', error);
+    return null;
+  }
+}
+
+async function clearTokens(): Promise<void> {
+  try {
+    if (await secureAvailable()) await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKENS);
+    await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKENS);
+  } catch (error) {
+    console.error('Failed to clear tokens:', error);
+  }
+}
+
+// Saving or clearing a login takes several async steps, so run them one after another.
+// Otherwise a late "clear" from a logout could wipe tokens saved by a quick login.
+let authQueue: Promise<unknown> = Promise.resolve();
+function inOrder<T>(task: () => Promise<T>): Promise<T> {
+  const result = authQueue.then(task, task);
+  authQueue = result.catch(() => undefined);
+  return result;
+}
+
+/** The profile goes to AsyncStorage; the tokens go to secure storage. */
 export const authStorage = {
-  getUser: () => getStorageItem<{
-    id: number;
-    username: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    token: string;
-    refreshToken: string;
-  }>(STORAGE_KEYS.AUTH_USER),
-  setUser: (user: unknown) => setStorageItem(STORAGE_KEYS.AUTH_USER, user),
-  clearUser: () => removeStorageItem(STORAGE_KEYS.AUTH_USER),
+  getUser: (): Promise<AuthUser | null> =>
+    inOrder(async () => {
+      const profile = await getStorageItem<Omit<AuthUser, 'token' | 'refreshToken'> & Partial<Tokens>>(
+        STORAGE_KEYS.AUTH_USER
+      );
+      if (!profile) return null;
+      const tokens = await getTokens();
+      // Sessions saved by an older build kept the tokens inside the profile.
+      const token = tokens?.token ?? profile.token ?? '';
+      const refreshToken = tokens?.refreshToken ?? profile.refreshToken ?? '';
+      return { ...profile, token, refreshToken };
+    }),
+  setUser: (user: AuthUser): Promise<void> =>
+    inOrder(async () => {
+      const { token, refreshToken, ...profile } = user;
+      await setTokens({ token, refreshToken });
+      await setStorageItem(STORAGE_KEYS.AUTH_USER, profile);
+    }),
+  clearUser: (): Promise<void> =>
+    inOrder(async () => {
+      await removeStorageItem(STORAGE_KEYS.AUTH_USER);
+      await clearTokens();
+    }),
 };
 
 export const favoritesStorage = {
-  getIds: () => getStorageItem<number[]>(STORAGE_KEYS.FAVORITES) || Promise.resolve([]),
+  getIds: async (): Promise<number[]> => (await getStorageItem<number[]>(STORAGE_KEYS.FAVORITES)) ?? [],
   setIds: (ids: number[]) => setStorageItem(STORAGE_KEYS.FAVORITES, ids),
-  addId: async (id: number) => {
+  addId: async (id: number): Promise<void> => {
     const ids = await favoritesStorage.getIds();
-    if (!ids.includes(id)) {
-      await favoritesStorage.setIds([...ids, id]);
-    }
+    if (!ids.includes(id)) await favoritesStorage.setIds([...ids, id]);
   },
-  removeId: async (id: number) => {
+  removeId: async (id: number): Promise<void> => {
     const ids = await favoritesStorage.getIds();
     await favoritesStorage.setIds(ids.filter((i) => i !== id));
   },
-  toggleId: async (id: number) => {
+  /** Returns true if the recipe is now a favorite, false if it was removed. */
+  toggleId: async (id: number): Promise<boolean> => {
     const ids = await favoritesStorage.getIds();
     if (ids.includes(id)) {
       await favoritesStorage.removeId(id);
       return false;
-    } else {
-      await favoritesStorage.addId(id);
-      return true;
     }
+    await favoritesStorage.addId(id);
+    return true;
   },
 };
 
-export const cartStorage = {
-  getCart: () => getStorageItem<CartItem[]>(STORAGE_KEYS.CART) || Promise.resolve([]),
-  setCart: (items: CartItem[]) => setStorageItem(STORAGE_KEYS.CART, items),
-  addItem: async (item: CartItem) => {
-    const items = await cartStorage.getCart();
-    const existingIndex = items.findIndex((i) => i.productId === item.productId);
-    if (existingIndex >= 0) {
-      items[existingIndex].quantity += item.quantity;
-    } else {
-      items.push(item);
-    }
-    await cartStorage.setCart(items);
-  },
-  updateQuantity: async (productId: number, quantity: number) => {
-    const items = await cartStorage.getCart();
-    const index = items.findIndex((i) => i.productId === productId);
-    if (index >= 0) {
-      if (quantity <= 0) {
-        items.splice(index, 1);
-      } else {
-        items[index].quantity = quantity;
-      }
-      await cartStorage.setCart(items);
-    }
-  },
-  removeItem: async (productId: number) => {
-    const items = await cartStorage.getCart();
-    await cartStorage.setCart(items.filter((i) => i.productId !== productId));
-  },
-  clear: () => removeStorageItem(STORAGE_KEYS.CART),
+export const settingsStorage = {
+  get: async (): Promise<AppSettings> => ({
+    ...DEFAULT_SETTINGS,
+    ...((await getStorageItem<Partial<AppSettings>>(STORAGE_KEYS.SETTINGS)) ?? {}),
+  }),
+  set: (settings: AppSettings) => setStorageItem(STORAGE_KEYS.SETTINGS, settings),
 };
-
-// Import CartItem type for cartStorage
-import type { CartItem } from '@/types/product';

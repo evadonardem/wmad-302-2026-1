@@ -2,45 +2,18 @@
  * Categories Screen Styles
  */
 import { StyleSheet } from 'react-native';
+import { createStyles } from '@/context/ThemeContext';
 
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFDF8',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    fontSize: 16,
-    color: '#8D6E63',
-    marginBottom: 20,
-  },
-  gridWrapper: {
-    justifyContent: 'space-between',
-  },
-  gridContent: {
-    paddingBottom: 20,
-  },
-  categoryCard: {
-    width: '48%',
-    marginBottom: 16,
-  },
-  card: {
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    height: '100%',
-  },
-  cardContent: {
-    padding: 20,
-    alignItems: 'center',
-  },
+export const styles = createStyles({
+  container: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
+  pageTitle: { fontSize: 28, fontWeight: '700', color: '#3E2723', marginBottom: 4 },
+  pageSubtitle: { fontSize: 16, color: '#8D6E63', marginBottom: 16 },
+  tabs: { marginBottom: 16 },
+  gridWrapper: { gap: 12 },
+  gridContent: { paddingBottom: 100 },
+  categoryCard: { flex: 1, marginBottom: 12 },
+  card: { borderRadius: 16, backgroundColor: '#FFFFFF' },
+  cardContent: { padding: 20, alignItems: 'center' },
   iconContainer: {
     width: 64,
     height: 64,
@@ -50,59 +23,38 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#3E2723',
-    textAlign: 'center',
-    marginBottom: 4,
+  categoryName: { fontSize: 16, fontWeight: '700', color: '#3E2723', textAlign: 'center', marginBottom: 4 },
+  categoryCount: { fontSize: 12, color: '#8D6E63' },
+  tile: {
+    height: 176,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#5D4037',
+    justifyContent: 'space-between',
+    padding: 14,
+    shadowColor: '#3E1A00',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  categoryCount: {
-    fontSize: 12,
-    color: '#8D6E63',
-  },
-  separator: {
-    height: 8,
-    width: '100%',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  tileShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(20,10,5,0.45)' },
+  tileIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#8D6E63',
-  },
-  errorContainer: {
-    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
   },
-  errorText: {
-    fontSize: 16,
-    color: '#C62828',
-    textAlign: 'center',
+  tileName: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowRadius: 6,
+    textShadowOffset: { width: 0, height: 1 },
   },
-  guideContainer: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFCC80',
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#E85D04',
-    marginBottom: 8,
-  },
-  guideText: {
-    fontSize: 13,
-    color: '#5D4037',
-    lineHeight: 20,
-  },
+  tileCount: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.92)', marginTop: 2 },
+  loadingBox: { paddingVertical: 60, alignItems: 'center' },
 });

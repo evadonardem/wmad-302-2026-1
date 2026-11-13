@@ -1,9 +1,9 @@
 /**
  * Shared Styles for Auth Screens
  */
-import { StyleSheet } from 'react-native';
+import { createStyles } from '@/context/ThemeContext';
 
-export const styles = StyleSheet.create({
+export const styles = createStyles({
   container: {
     flex: 1,
     backgroundColor: '#FFFDF8',
@@ -13,6 +13,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
     justifyContent: 'center',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
   logoContainer: {
     alignItems: 'center',
@@ -128,5 +131,81 @@ export const styles = StyleSheet.create({
     color: '#8D6E63',
     textAlign: 'center',
     lineHeight: 18,
+  },
+
+  /* ---- Register screen ---- */
+  nameRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  optionalRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  halfInput: {
+    flex: 1,
+  },
+  genderSelector: {
+    marginBottom: 16,
+  },
+  genderLabel: {
+    fontSize: 12,
+    color: '#8D6E63',
+    marginBottom: 6,
+  },
+  genderOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  genderOption: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BCAAA4',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  genderOptionSelected: {
+    backgroundColor: '#E85D04',
+    borderColor: '#E85D04',
+  },
+  genderOptionText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#5D4037',
+  },
+  genderOptionTextSelected: {
+    color: '#FFFFFF',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkbox: {
+    marginRight: 4,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#5D4037',
+    lineHeight: 18,
+  },
+  registerButton: {
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 12,
+    height: 52,
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  loginText: {
+    fontSize: 14,
+    color: '#8D6E63',
   },
 });

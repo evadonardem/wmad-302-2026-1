@@ -1,218 +1,88 @@
 /**
  * Search Screen Styles - Shared base
  */
-import { StyleSheet } from 'react-native';
+import { createStyles } from '@/context/ThemeContext';
 
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFDF8',
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  searchBarContainer: {
-    marginBottom: 16,
-  },
-  searchInput: {
-    height: 52,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#3E2723',
-  },
-  clearButton: {
-    padding: 8,
-  },
-  searchButton: {
-    backgroundColor: '#E85D04',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 4,
-  },
-  filterSection: {
-    marginBottom: 20,
-  },
-  sortSection: {
-    marginBottom: 20,
-  },
-  filterTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3E2723',
+export const styles = createStyles({
+  wideLayout: { flex: 1, flexDirection: 'row', width: '100%', maxWidth: 1500, alignSelf: 'center' },
+  sidebar: {
+    width: 300,
+    flexGrow: 0,
+    flexShrink: 0,
+    margin: 12,
     marginBottom: 12,
-  },
-  filterList: {
-    paddingHorizontal: 4,
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    overflow: 'hidden',
     backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#EBDDCC',
+    shadowColor: '#5D2E00',
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  filterChipSelected: {
-    backgroundColor: '#E85D04',
-    borderColor: '#E85D04',
+  sidebarTop: { padding: 16, paddingBottom: 4 },
+  sidebarScroll: { flex: 1 },
+  sidebarContent: { paddingHorizontal: 16, paddingBottom: 16 },
+  sidebarFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#EFE3D6',
+    backgroundColor: '#FFFBF5',
   },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#E85D04',
-  },
-  filterChipTextSelected: {
-    color: '#FFFFFF',
-  },
-  sortOptions: {
+  sidebarCount: { fontSize: 14, fontWeight: '700', color: '#2B2320' },
+  pane: { flex: 1 },
+  results: { flex: 1 },
+  narrowTop: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  narrowFilters: { padding: 16, paddingBottom: 100 },
+  showResults: { marginTop: 20, height: 52, borderRadius: 26, backgroundColor: '#2B2320', alignItems: 'center', justifyContent: 'center' },
+  showResultsText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  listContent: { paddingHorizontal: 16, paddingBottom: 100, paddingTop: 8 },
+  gridRow: { marginHorizontal: -8 },
+  gridCell: { padding: 8 },
+  banner: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-  },
-  sortChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
-  },
-  sortChipSelected: {
-    backgroundColor: '#E85D04',
-    borderColor: '#E85D04',
-  },
-  sortChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#E85D04',
-  },
-  sortChipTextSelected: {
-    color: '#FFFFFF',
-  },
-  resultsSection: {
-    marginTop: 8,
-  },
-  resultsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginBottom: 16,
-  },
-  resultsList: {
-    paddingBottom: 20,
-  },
-  resultCard: {
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#FFB74D',
+    borderRadius: 28,
+    padding: 24,
     marginBottom: 8,
   },
-  card: {
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  resultContent: {
-    flexDirection: 'row',
-    padding: 12,
-  },
-  resultImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  resultInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  resultCategory: {
-    fontSize: 11,
-    color: '#1A73E8',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  resultTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#3E2723',
-    marginBottom: 4,
-  },
-  resultPrice: {
+  bannerText: { flex: 1, minWidth: 260 },
+  bannerTitle: { fontSize: 28, fontWeight: '800', color: '#2B2320', lineHeight: 34 },
+  bannerSub: { fontSize: 14, color: '#4E342E', marginTop: 6 },
+  bannerTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  bannerTag: { backgroundColor: 'rgba(255,255,255,0.45)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5 },
+  bannerTagText: { fontSize: 13, fontWeight: '600', color: '#2B2320' },
+  bannerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 26,
+    paddingHorizontal: 20,
+    height: 50,
   },
-  currentPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1A73E8',
-  },
-  originalPrice: {
-    fontSize: 13,
-    color: '#9E9E9E',
-    textDecorationLine: 'line-through',
-  },
-  resultMeta: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 4,
-  },
-  difficultyChip: {
-    backgroundColor: '#FFF3E0',
-  },
-  cuisineChip: {
-    backgroundColor: '#E8F5E9',
-  },
-  resultDetails: {
-    fontSize: 12,
-    color: '#8D6E63',
-  },
-  loadingCenter: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyState: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#3E2723',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#8D6E63',
-    marginTop: 4,
-  },
-  separator: {
-    height: 8,
-  },
-  guideContainer: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFCC80',
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#E85D04',
-    marginBottom: 8,
-  },
-  guideText: {
-    fontSize: 13,
-    color: '#5D4037',
-    lineHeight: 20,
-  },
+  bannerButtonText: { fontSize: 15, fontWeight: '700', color: '#2B2320' },
+  rowScroll: { gap: 16, paddingVertical: 8, paddingRight: 8 },
+  rowCard: { width: 290 },
+  skeletonRow: { flexDirection: 'row', gap: 16, marginTop: 24, overflow: 'hidden' },
+  resultsMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 },
+  resultsCount: { fontSize: 13, color: '#8D6E63', marginRight: 4 },
+  activeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFE082', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 },
+  activeChipText: { fontSize: 13, fontWeight: '700', color: '#2B2320' },
+  clearText: { fontSize: 13, fontWeight: '700', color: '#E85D04', marginLeft: 4 },
+  footer: { paddingVertical: 24, alignItems: 'center', gap: 12 },
+  loadMoreInfo: { fontSize: 13, color: '#8D6E63' },
+  loadMoreBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 28, borderRadius: 24, backgroundColor: '#E85D04', shadowColor: '#E85D04', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  loadMorePressed: { opacity: 0.8 },
+  loadMoreText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  loadingBox: { paddingVertical: 40, alignItems: 'center' },
 });

@@ -15,6 +15,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "types": [
+      "jest"
+    ],
     "baseUrl": ".",
     "paths": {
       "@/*": [

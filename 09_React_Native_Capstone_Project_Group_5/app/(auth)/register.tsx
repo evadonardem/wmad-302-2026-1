@@ -1,15 +1,15 @@
 /**
- * Register Screen - SKELETON WITH TODOs
+ * Register Screen
  * Students complete this screen to learn auth flow
- * 
- * TODO LIST:
+ *
+ * Done:
  * 1. Wire form validation
- * 2. Call authApi.register() in handleRegister
- * 3. On success, call context.login() or navigate to login
+ * 2. Call authApi.register() in handleRegister (through AuthContext)
+ * 3. On success, auto-login and go to home
  * 4. Add password confirmation field
  * 5. Add terms checkbox
  * 6. Handle loading/error states properly
- * 7. Test with DummyJSON /auth/register endpoint
+ * 7. Test with DummyJSON (it has no /auth/register, so POST /users/add is used; see authApi.register)
  */
 import React, { useState } from 'react';
 import {
@@ -18,20 +18,35 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, TextInput as PaperTextInput, Checkbox } from 'react-native-paper';
+import { RegisterErrors, validateRegister } from '@/utils/validation';
+import { routes } from '@/utils/routes';
 import { styles } from './styles';
+import { useAppTheme } from '@/context/ThemeContext';
+
+interface FormData {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  age: string;
+  gender: 'male' | 'female';
+}
 
 export default function RegisterScreen() {
+  useAppTheme();
   const router = useRouter();
   const { register, isLoading, error, clearError } = useAuth();
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     username: '',
@@ -39,91 +54,56 @@ export default function RegisterScreen() {
     password: '',
     confirmPassword: '',
     age: '',
-    gender: 'male' as 'male' | 'female',
+    gender: 'male',
   });
-
+  const [errors, setErrors] = useState<RegisterErrors>({});
+  const [termsError, setTermsError] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Validation helpers
-  const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) return 'First name is required';
-    if (!formData.lastName.trim()) return 'Last name is required';
-    if (!formData.username.trim()) return 'Username is required';
-    if (formData.username.length < 3) return 'Username must be at least 3 characters';
-    if (!formData.email.trim()) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Invalid email format';
-    if (!formData.password) return 'Password is required';
-    if (formData.password.length < 6) return 'Password must be at least 6 characters';
-    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
-    if (formData.age && (parseInt(formData.age) < 13 || parseInt(formData.age) > 120)) {
-      return 'Age must be between 13 and 120';
-    }
-    if (!agreedToTerms) return 'You must agree to the Terms of Service';
-    return null;
-  };
+  // Inline message (Alert.alert does nothing on web, so errors are shown on screen)
+  const firstError =
+    Object.values(errors).find((m) => !!m) ?? (termsError ? 'You must agree to the Terms of Service' : null);
+  const message = firstError ?? error;
 
-  const handleRegister = async () => {
-    const validationError = validateForm();
-    if (validationError) {
-      Alert.alert('Validation Error', validationError);
-      return;
-    }
-
-    // TODO: Student Implementation
-    // 1. Call authApi.register() with formData
-    //    - Import authApi from '@/services/authApi'
-    //    - Pass: firstName, lastName, username, password, email, age, gender
-    // 2. On success:
-    //    - Option A: Auto-login by calling context.login(username, password)
-    //    - Option B: Show success alert and navigate to login screen
-    // 3. On failure: Error is handled by context (shows in error state)
-
-    try {
-      // TODO: Replace with actual implementation
-      // const user = await authApi.register({
-      //   firstName: formData.firstName.trim(),
-      //   lastName: formData.lastName.trim(),
-      //   username: formData.username.trim(),
-      //   password: formData.password,
-      //   email: formData.email.trim(),
-      //   age: formData.age ? parseInt(formData.age) : undefined,
-      //   gender: formData.gender,
-      // });
-      // 
-      // // Auto-login after registration
-      // await login(formData.username.trim(), formData.password);
-      // router.replace('/(app)/(tabs)/home');
-
-      Alert.alert(
-        'TODO: Implement Register',
-        'Complete the register function by:\n1. Calling authApi.register()\n2. Auto-login or redirect to login\n3. Handle errors',
-        [{ text: 'OK' }]
-      );
-    } catch (err) {
-      // Error handled by context
-      console.error('Registration error:', err);
-    }
-  };
-
-  const handleFieldChange = (field: string, value: string) => {
+  const handleFieldChange = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field in errors) setErrors((prev) => ({ ...prev, [field]: undefined }));
     if (error) clearError();
   };
 
-  React.useEffect(() => {
-    if (error) {
-      Alert.alert('Registration Failed', error, [{ text: 'OK', onPress: clearError }]);
+  const handleRegister = async () => {
+    const found = validateRegister(formData);
+    setErrors(found);
+    setTermsError(!agreedToTerms);
+    if (Object.keys(found).length > 0 || !agreedToTerms) return;
+
+    try {
+      await register({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        username: formData.username.trim(),
+        password: formData.password,
+        email: formData.email.trim(),
+        age: formData.age.trim() ? parseInt(formData.age, 10) : undefined,
+        gender: formData.gender,
+      });
+      // Registered and logged in
+      router.replace(routes.home);
+    } catch {
+      // Error message is stored in the auth context and shown above the button
     }
-  }, [error, clearError]);
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Logo/Brand */}
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>🍳</Text>
@@ -146,9 +126,10 @@ export default function RegisterScreen() {
                 onChangeText={(v) => handleFieldChange('firstName', v)}
                 style={[styles.input, styles.halfInput]}
                 autoCapitalize="words"
-                autoCompleteType="given-name"
+                autoComplete="name-given"
                 returnKeyType="next"
                 disabled={isLoading}
+                error={!!errors.firstName}
               />
               <PaperTextInput
                 label="Last Name"
@@ -157,9 +138,10 @@ export default function RegisterScreen() {
                 onChangeText={(v) => handleFieldChange('lastName', v)}
                 style={[styles.input, styles.halfInput]}
                 autoCapitalize="words"
-                autoCompleteType="family-name"
+                autoComplete="name-family"
                 returnKeyType="next"
                 disabled={isLoading}
+                error={!!errors.lastName}
               />
             </View>
 
@@ -171,9 +153,11 @@ export default function RegisterScreen() {
               onChangeText={(v) => handleFieldChange('username', v)}
               style={styles.input}
               autoCapitalize="none"
-              autoCompleteType="username"
+              autoCorrect={false}
+              autoComplete="username"
               returnKeyType="next"
               disabled={isLoading}
+              error={!!errors.username}
             />
 
             {/* Email */}
@@ -185,9 +169,10 @@ export default function RegisterScreen() {
               style={styles.input}
               autoCapitalize="none"
               keyboardType="email-address"
-              autoCompleteType="email"
+              autoComplete="email"
               returnKeyType="next"
               disabled={isLoading}
+              error={!!errors.email}
             />
 
             {/* Password */}
@@ -198,15 +183,16 @@ export default function RegisterScreen() {
               onChangeText={(v) => handleFieldChange('password', v)}
               style={styles.input}
               secureTextEntry={!showPassword}
-              autoCompleteType="new-password"
+              autoCapitalize="none"
+              autoComplete="password-new"
               returnKeyType="next"
               disabled={isLoading}
+              error={!!errors.password}
               right={
-                <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowPassword(!showPassword)} style={styles.eyeText}>
-                    {showPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
+                <PaperTextInput.Icon
+                  icon={showPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowPassword(!showPassword)}
+                />
               }
             />
 
@@ -218,15 +204,16 @@ export default function RegisterScreen() {
               onChangeText={(v) => handleFieldChange('confirmPassword', v)}
               style={styles.input}
               secureTextEntry={!showConfirmPassword}
-              autoCompleteType="new-password"
+              autoCapitalize="none"
+              autoComplete="password-new"
               returnKeyType="next"
               disabled={isLoading}
+              error={!!errors.confirmPassword}
               right={
-                <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeText}>
-                    {showConfirmPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
+                <PaperTextInput.Icon
+                  icon={showConfirmPassword ? 'eye-off' : 'eye'}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                />
               }
             />
 
@@ -239,36 +226,28 @@ export default function RegisterScreen() {
                 onChangeText={(v) => handleFieldChange('age', v)}
                 style={[styles.input, styles.halfInput]}
                 keyboardType="numeric"
-                returnKeyType="next"
+                returnKeyType="done"
                 disabled={isLoading}
+                error={!!errors.age}
               />
               <View style={[styles.halfInput, styles.genderSelector]}>
                 <Text style={styles.genderLabel}>Gender</Text>
                 <View style={styles.genderOptions}>
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'male')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'male' && styles.genderOptionSelected,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'male' && styles.genderOptionTextSelected,
-                    ]}>♂ Male</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'female')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'female' && styles.genderOptionSelected,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'female' && styles.genderOptionTextSelected,
-                    ]}>♀ Female</Text>
-                  </TouchableOpacity>
+                  {(['male', 'female'] as const).map((g) => (
+                    <TouchableOpacity
+                      key={g}
+                      onPress={() => handleFieldChange('gender', g)}
+                      style={[styles.genderOption, formData.gender === g && styles.genderOptionSelected]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: formData.gender === g }}
+                    >
+                      <Text
+                        style={[styles.genderOptionText, formData.gender === g && styles.genderOptionTextSelected]}
+                      >
+                        {g === 'male' ? '♂ Male' : '♀ Female'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
             </View>
@@ -277,16 +256,23 @@ export default function RegisterScreen() {
             <View style={styles.termsContainer}>
               <Checkbox
                 status={agreedToTerms ? 'checked' : 'unchecked'}
-                onPress={() => setAgreedToTerms(!agreedToTerms)}
-                style={styles.checkbox}
+                onPress={() => {
+                  setAgreedToTerms(!agreedToTerms);
+                  setTermsError(false);
+                }}
               />
               <Text style={styles.termsText}>
-                I agree to the{' '}
-                <Text style={styles.linkText}>Terms of Service</Text>{' '}
-                and{' '}
+                I agree to the <Text style={styles.linkText}>Terms of Service</Text> and{' '}
                 <Text style={styles.linkText}>Privacy Policy</Text>
               </Text>
             </View>
+
+            {/* Error Display */}
+            {message ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{message}</Text>
+              </View>
+            ) : null}
 
             {/* Register Button */}
             <Button
@@ -297,7 +283,9 @@ export default function RegisterScreen() {
               disabled={isLoading}
               contentStyle={styles.buttonContent}
             >
-              {isLoading ? <ActivityIndicator color="white" size="small" /> : (
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
                 <Text style={styles.buttonText}>Create Account</Text>
               )}
             </Button>
@@ -305,27 +293,13 @@ export default function RegisterScreen() {
             {/* Login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.replace('/(auth)/login')} style={styles.link}>
+              <TouchableOpacity onPress={() => router.replace(routes.login)} style={styles.link}>
                 <Text style={styles.linkText}>Sign In</Text>
               </TouchableOpacity>
             </View>
           </Card.Content>
         </Card>
-
-        {/* Student Guide */}
-        <View style={styles.guideContainer}>
-          <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-          <Text style={styles.guideText}>
-            Complete the handleRegister function to:\n
-            1. Call authApi.register() with form data\n
-            2. Auto-login or redirect to login\n
-            3. Handle success/error states
-          </Text>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-// Need to import TouchableOpacity for gender options
-import { TouchableOpacity } from 'react-native';

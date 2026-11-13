@@ -1,5 +1,5 @@
 /**
- * Auth Types - Shared between both capstone projects
+ * Auth Types
  * Based on DummyJSON Auth API: https://dummyjson.com/docs/auth
  */
 
@@ -32,18 +32,16 @@ export interface RegisterData {
   image?: string;
 }
 
-export interface AuthResponse extends AuthUser {
-  // DummyJSON returns the user object with tokens on login/register
-}
+/** Fields the user may change from the Edit Profile screen */
+export type ProfileUpdate = Partial<Pick<AuthUser, 'firstName' | 'lastName' | 'email' | 'image'>>;
+
+/** DummyJSON returns `accessToken` (newer) or `token` (older) on login */
+export type RawAuthResponse = Omit<AuthUser, 'token'> & {
+  token?: string;
+  accessToken?: string;
+};
 
 export interface RefreshTokenResponse {
-  id: number;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  gender: 'male' | 'female';
-  image: string;
   accessToken: string;
   refreshToken: string;
 }

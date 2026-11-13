@@ -3,6 +3,8 @@
  * Docs: https://dummyjson.com/docs/recipes
  */
 
+export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+
 export interface Recipe {
   id: number;
   name: string;
@@ -11,7 +13,7 @@ export interface Recipe {
   prepTimeMinutes: number;
   cookTimeMinutes: number;
   servings: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: Difficulty;
   cuisine: string;
   caloriesPerServing: number;
   tags: string[];
@@ -31,13 +33,34 @@ export interface RecipesResponse {
 
 export interface RecipeSearchParams {
   q?: string;
-  category?: string;
-  tag?: string;
   limit?: number;
   skip?: number;
   select?: string;
+  sortBy?: string;
+  order?: 'asc' | 'desc';
 }
 
-export interface CategoryResponse {
-  [key: string]: string[];
+export type SortOption = 'relevance' | 'rating' | 'time' | 'calories';
+
+export interface RecipeFilters {
+  category?: string | null;
+  cuisine?: string | null;
+  difficulty?: Difficulty | null;
+  tag?: string | null;
+}
+
+export interface RecipeQuery extends RecipeFilters {
+  q?: string;
+  sort?: SortOption;
+}
+
+export interface Category {
+  name: string;
+  count: number;
+}
+
+export interface PagedRecipes {
+  data: Recipe[];
+  total: number;
+  hasMore: boolean;
 }

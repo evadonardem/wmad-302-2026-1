@@ -1,185 +1,211 @@
 /**
  * Profile Screen - Cookbook
- * TODO: Students implement
+ * Students implement:
  * - Display user info from auth context
  * - Edit profile (PUT /users/{id})
- * - View order history / saved recipes
- * - Settings (notifications, theme, etc.)
+ * - View saved recipes / my recipes
+ * - Settings (notifications, etc.)
  * - Logout
+ *
+ * Done: user info, live stats, menu (My Recipes, Favorites, Edit Profile, Settings) and logout.
  */
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Button, List, Avatar, Divider } from 'react-native-paper';
+import { Avatar, Button, Card, Dialog, Divider, List, Portal } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import { useFavorites } from '@/context/FavoritesContext';
+import { recipeApi } from '@/services/recipeApi';
+import { routes } from '@/utils/routes';
+import { IconName, Screen, Skeleton, useScrollToTopOnNav } from '@/components';
 import { styles } from './profileStyles';
+import { tc, useAppTheme } from '@/context/ThemeContext';
+
+function MenuItem({
+  title,
+  description,
+  icon,
+  onPress,
+}: {
+  title: string;
+  description: string;
+  icon: IconName;
+  onPress: () => void;
+}) {
+  useAppTheme();
+  return (
+    <List.Item
+      title={title}
+      description={description}
+      left={() => <MaterialCommunityIcons name={icon} size={24} color="#E85D04" style={styles.menuIcon} />}
+      right={() => <MaterialCommunityIcons name="chevron-right" size={24} color={tc('#8D6E63')} style={styles.menuIcon} />}
+      onPress={onPress}
+    />
+  );
+}
 
 export default function ProfileScreen() {
+  useAppTheme();
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTopOnNav(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
   const router = useRouter();
   const { user, logout, isAuthenticated } = useAuth();
+  const { ids } = useFavorites();
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [myRecipeCount, setMyRecipeCount] = useState(0);
+  const [statsReady, setStatsReady] = useState(false);
+  const [favoriteCuisines, setFavoriteCuisines] = useState(0);
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: logout },
-    ]);
-  };
+  const userId = user?.id;
+  const idsKey = ids.join(',');
 
-  const handleEditProfile = () => {
-    // TODO: Navigate to edit profile screen
-    Alert.alert('TODO', 'Implement edit profile: PUT /users/{id}');
-  };
+  useEffect(() => {
+    if (userId === undefined) return;
+    recipeApi
+      .getAllRecipes()
+      .then((all) => {
+        setMyRecipeCount(all.filter((r) => r.userId === userId).length);
+        setStatsReady(true);
+        setFavoriteCuisines(new Set(all.filter((r) => ids.includes(r.id)).map((r) => r.cuisine)).size);
+      })
+      .catch(() => setStatsReady(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, idsKey]);
 
-  const handleSettings = () => {
-    // TODO: Navigate to settings
-    Alert.alert('TODO', 'Implement settings screen');
-  };
-
-  const handleMyRecipes = () => {
-    // TODO: Navigate to user's created recipes
-    Alert.alert('TODO', 'Implement my recipes screen');
-  };
-
-  const handleCookbook = () => {
-    // TODO: Navigate to personal cookbook/collections
-    Alert.alert('TODO', 'Implement personal cookbook');
-  };
-
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.notLoggedIn}>Please log in to view profile</Text>
-      </View>
+      <Screen decor>
+        <View style={styles.centerContainer}>
+          <Text style={styles.notLoggedIn}>Please log in to view profile</Text>
+        </View>
+      </Screen>
     );
   }
 
+  const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '?';
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile Header */}
-      <View style={styles.header}>
-        <Avatar.Image
-          size={88}
-          source={{ uri: user?.image || 'https://via.placeholder.com/150' }}
-          style={styles.avatar}
-        />
-        <View style={styles.nameContainer}>
-          <Text style={styles.name}>
-            {user?.firstName} {user?.lastName}
-          </Text>
-          <Text style={styles.username}>@{user?.username}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+    <Screen decor>
+      <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
+        {/* Profile Header */}
+        <View style={styles.header}>
+          {user.image ? (
+            <Avatar.Image size={88} source={{ uri: user.image }} style={styles.avatar} />
+          ) : (
+            <Avatar.Text size={88} label={initials} style={styles.avatar} />
+          )}
+          <View style={styles.nameContainer}>
+            <Text style={styles.name}>
+              {user.firstName} {user.lastName}
+            </Text>
+            <Text style={styles.username}>@{user.username}</Text>
+            <Text style={styles.email}>{user.email}</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Recipes</Text>
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            {statsReady ? <Text style={styles.statValue}>{myRecipeCount}</Text> : <Skeleton width={34} height={28} />}
+            <Text style={styles.statLabel}>Recipes</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{ids.length}</Text>
+            <Text style={styles.statLabel}>Favorites</Text>
+          </View>
+          <View style={styles.statItem}>
+            {statsReady ? <Text style={styles.statValue}>{favoriteCuisines}</Text> : <Skeleton width={34} height={28} />}
+            <Text style={styles.statLabel}>Cuisines</Text>
+          </View>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Favorites</Text>
+
+        {/* Menu Sections */}
+        <View style={styles.section}>
+          <Card style={styles.menuCard} elevation={1}>
+            <List.Section>
+              <MenuItem
+                title="My Recipes"
+                description="Recipes you've created"
+                icon="book-edit"
+                onPress={() => router.push(routes.myRecipes)}
+              />
+              <Divider style={styles.divider} />
+              <MenuItem
+                title="Favorites"
+                description="Your saved recipes"
+                icon="heart"
+                onPress={() => router.push(routes.favorites)}
+              />
+              <Divider style={styles.divider} />
+              <MenuItem
+                title="Categories"
+                description="Browse by meal type"
+                icon="shape-outline"
+                onPress={() => router.push(routes.categories)}
+              />
+            </List.Section>
+          </Card>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Collections</Text>
+
+        <View style={styles.section}>
+          <Card style={styles.menuCard} elevation={1}>
+            <List.Section>
+              <MenuItem
+                title="Edit Profile"
+                description="Update your information"
+                icon="account-edit"
+                onPress={() => router.push(routes.editProfile)}
+              />
+              <Divider style={styles.divider} />
+              <MenuItem
+                title="Settings"
+                description="Notifications and data"
+                icon="cog"
+                onPress={() => router.push(routes.settings)}
+              />
+            </List.Section>
+          </Card>
         </View>
-      </View>
 
-      {/* Menu Sections */}
-      <View style={styles.section}>
-        <Card style={styles.menuCard} elevation={1}>
-          <List.Section>
-            <List.Item
-              title="My Recipes"
-              description="Recipes you've created"
-              left={(props) => (
-                <MaterialCommunityIcons name="book-edit" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={handleMyRecipes}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="My Cookbook"
-              description="Personal collections & meal plans"
-              left={(props) => (
-                <MaterialCommunityIcons name="book-heart" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={handleCookbook}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Favorites"
-              description="Your saved recipes"
-              left={(props) => (
-                <MaterialCommunityIcons name="heart" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={() => router.push('/(app)/(tabs)/favorites')}
-            />
-          </List.Section>
-        </Card>
-      </View>
+        {/* Logout Button */}
+        <View style={styles.logoutContainer}>
+          <Button
+            mode="outlined"
+            onPress={() => setConfirmLogout(true)}
+            style={styles.logoutButton}
+            textColor={tc('#C62828')}
+            icon="logout"
+          >
+            Logout
+          </Button>
+        </View>
 
-      <View style={styles.section}>
-        <Card style={styles.menuCard} elevation={1}>
-          <List.Section>
-            <List.Item
-              title="Edit Profile"
-              description="Update your information"
-              left={(props) => (
-                <MaterialCommunityIcons name="account-edit" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={handleEditProfile}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Settings"
-              description="Notifications, theme, privacy"
-              left={(props) => (
-                <MaterialCommunityIcons name="cog" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={handleSettings}
-            />
-          </List.Section>
-        </Card>
-      </View>
+        <View style={styles.version}>
+          <Text style={styles.versionText}>Cookbook v1.0.0</Text>
+        </View>
+      </ScrollView>
 
-      {/* Logout Button */}
-      <View style={styles.logoutContainer}>
-        <Button
-          mode="outlined"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          contentStyle={styles.logoutButtonContent}
-          icon="logout"
-        >
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </Button>
-      </View>
-
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Complete the profile functionality:\n
-          1. Edit profile: PUT /users/{id}\n
-          2. Fetch user stats (recipes, favorites)\n
-          3. Settings: theme, notifications, privacy\n
-          4. My Recipes: filter by userId\n
-          5. Cookbook: create collections/folders
-        </Text>
-      </View>
-
-      <View style={styles.version}>
-        <Text style={styles.versionText}>Cookbook v1.0.0</Text>
-      </View>
-    </ScrollView>
+      <Portal>
+        <Dialog visible={confirmLogout} onDismiss={() => setConfirmLogout(false)}>
+          <Dialog.Title>Logout</Dialog.Title>
+          <Dialog.Content>
+            <Text style={{ color: tc('#3E2723') }}>Are you sure you want to logout?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmLogout(false)}>Cancel</Button>
+            <Button
+              textColor={tc('#C62828')}
+              onPress={() => {
+                setConfirmLogout(false);
+                logout();
+              }}
+            >
+              Logout
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </Screen>
   );
 }

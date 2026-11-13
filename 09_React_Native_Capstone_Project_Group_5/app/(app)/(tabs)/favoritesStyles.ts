@@ -1,129 +1,51 @@
 /**
  * Favorites Screen Styles - Cookbook
  */
-import { StyleSheet } from 'react-native';
+import { createStyles } from '@/context/ThemeContext';
 
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFDF8',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#8D6E63',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginTop: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#8D6E63',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  browseButton: {
-    marginTop: 24,
-    borderRadius: 12,
-    height: 52,
-  },
-  buttonContent: {
-    paddingHorizontal: 32,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 120,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#3E2723',
-  },
-  favoriteCard: {
-    marginBottom: 8,
-  },
-  card: {
-    borderRadius: 12,
+export const styles = createStyles({
+  root: { flex: 1, position: 'relative', overflow: 'hidden' },
+  list: { flex: 1 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 110, width: '100%', maxWidth: 1280, alignSelf: 'center' },
+  gridRow: { marginHorizontal: -8 },
+  cell: { padding: 8 },
+  titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 20, paddingBottom: 8 },
+  titleLeft: { flexDirection: 'row', alignItems: 'baseline', gap: 14, flexShrink: 1 },
+  title: { fontSize: 30, fontWeight: '800', color: '#2B2320' },
+  count: { fontSize: 18, fontWeight: '700', color: '#D4500A' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sortButton: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingHorizontal: 16, borderRadius: 23, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#F0E3D4' },
+  sortText: { fontSize: 14, fontWeight: '600', color: '#3E2723' },
+  shareButton: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingHorizontal: 20, borderRadius: 23, backgroundColor: '#3B1D12' },
+  shareText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  skeletonCats: { flexDirection: 'row', gap: 24, paddingVertical: 16 },
+  cats: { gap: 8, paddingVertical: 16 },
+  cat: { alignItems: 'center', width: 92, gap: 8 },
+  catIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
-  },
-  cardContent: {
-    flexDirection: 'row',
-    padding: 12,
-  },
-  recipeImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  info: {
-    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E6D6C4',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#3E2723',
-    marginBottom: 4,
-  },
-  meta: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 4,
-  },
-  difficultyChip: {
-    backgroundColor: '#FFF3E0',
-  },
-  cuisineChip: {
-    backgroundColor: '#E8F5E9',
-  },
-  details: {
-    fontSize: 12,
-    color: '#8D6E63',
-  },
-  separator: {
-    height: 8,
-  },
-  guideContainer: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FFCC80',
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#E85D04',
-    marginBottom: 8,
-  },
-  guideText: {
-    fontSize: 13,
-    color: '#5D4037',
-    lineHeight: 20,
-  },
+  catIconActive: { backgroundColor: '#FFF1E3', borderColor: '#E85D04', borderWidth: 2 },
+  catCount: { position: 'absolute', top: -6, right: -6, minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 5, backgroundColor: '#F3E9DE', alignItems: 'center', justifyContent: 'center' },
+  catCountActive: { backgroundColor: '#E85D04' },
+  catCountText: { fontSize: 11, fontWeight: '800', color: '#6D4C41' },
+  catCountTextActive: { color: '#FFFFFF' },
+  catLabel: { fontSize: 13, fontWeight: '600', color: '#5D4037', textAlign: 'center' },
+  catLabelActive: { color: '#E85D04', fontWeight: '800' },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#8D6E63' },
+  noneText: { textAlign: 'center', color: '#8D6E63', paddingVertical: 40, fontSize: 15 },
+  viewToggle: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 22, padding: 3, borderWidth: 1, borderColor: '#EBDDCC' },
+  viewBtn: { width: 38, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  viewBtnActive: { backgroundColor: '#E85D04' },
+  arcCounter: { backgroundColor: '#FFF3E0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 3, marginBottom: 10 },
+  arcCounterText: { fontSize: 12, fontWeight: '800', color: '#E65100' },
+  arcRemove: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 12, paddingVertical: 4 },
+  arcRemoveText: { fontSize: 12.5, fontWeight: '700', color: '#C62828' },
 });

@@ -1,154 +1,73 @@
 /**
- * Auth Context with useReducer - Complete scaffold
- * Students complete: register, token refresh integration, persistence hydration
+ * Auth Context with useReducer
  */
 
 import React, {
   createContext,
-  useContext,
-  useReducer,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
   ReactNode,
 } from 'react';
-import { AuthState, AuthAction, AuthUser } from '@/types/auth';
+import { isAxiosError } from 'axios';
+import { AuthUser, ProfileUpdate, RegisterData } from '@/types/auth';
 import { authApi } from '@/services/authApi';
+import { userApi } from '@/services/userApi';
+import { authReducer, initialAuthState } from '@/context/authReducer';
+import type { AuthState } from '@/types/auth';
 
-// Initial state
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: true, // Start with true for hydration
-  error: null,
-};
-
-// Reducer
-function authReducer(state: AuthState, action: AuthAction): AuthState {
-  switch (action.type) {
-    case 'AUTH_START':
-      return {
-        ...state,
-        isLoading: true,
-        error: null,
-      };
-
-    case 'AUTH_SUCCESS':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      };
-
-    case 'AUTH_FAILURE':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: action.payload,
-      };
-
-    case 'AUTH_LOGOUT':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      };
-
-    case 'AUTH_HYDRATE':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: !!action.payload,
-        isLoading: false,
-      };
-
-    case 'AUTH_UPDATE_USER':
-      return {
-        ...state,
-        user: state.user ? { ...state.user, ...action.payload } : null,
-      };
-
-    case 'AUTH_CLEAR_ERROR':
-      return {
-        ...state,
-        error: null,
-      };
-
-    default:
-      return state;
-  }
-}
-
-// Context
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
-  register: (data: {
-    firstName: string;
-    lastName: string;
-    username: string;
-    password: string;
-    email: string;
-    age?: number;
-    gender?: 'male' | 'female';
-  }) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: ProfileUpdate) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [state, dispatch] = useReducer(authReducer, initialAuthState);
+
+  // If a token refresh fails anywhere, drop back to the login screen
+  useEffect(() => {
+    authApi.setUnauthorizedHandler(() => dispatch({ type: 'AUTH_LOGOUT' }));
+    return () => authApi.setUnauthorizedHandler(null);
+  }, []);
 
   // Hydrate from storage on mount
   useEffect(() => {
     const hydrateAuth = async () => {
       try {
-        const storedUser = authApi.getStoredUser();
-        if (storedUser?.token && storedUser?.refreshToken) {
-          // Verify token still works by fetching user profile
-          try {
-            const freshUser = await authApi.getMe();
-            // Merge stored tokens with fresh user data
-            const mergedUser = {
-              ...freshUser,
-              token: storedUser.token,
-              refreshToken: storedUser.refreshToken,
-            };
-            authApi.setTokens(mergedUser); // Update with fresh data
-            dispatch({ type: 'AUTH_HYDRATE', payload: mergedUser });
-          } catch {
-            // Token expired, try refresh
-            try {
-              await authApi.refreshAccessToken();
-              const freshUser = await authApi.getMe();
-              const storedAgain = authApi.getStoredUser();
-              if (storedAgain) {
-                dispatch({ type: 'AUTH_HYDRATE', payload: storedAgain });
-              } else {
-                dispatch({ type: 'AUTH_HYDRATE', payload: null });
-              }
-            } catch {
-              // Refresh failed, clear storage
-              authApi.logout();
-              dispatch({ type: 'AUTH_HYDRATE', payload: null });
-            }
-          }
-        } else {
+        const stored = await authApi.hydrate();
+        if (!stored?.token || !stored.refreshToken) {
           dispatch({ type: 'AUTH_HYDRATE', payload: null });
+          return;
+        }
+        try {
+          // Verifies the token (the interceptor refreshes it once on 401)
+          const fresh = await authApi.getMe();
+          const latest = authApi.getStoredUser() ?? stored;
+          // Stored profile wins: DummyJSON does not persist edits or new accounts
+          const merged: AuthUser = { ...fresh, ...latest };
+          authApi.setTokens(merged);
+          dispatch({ type: 'AUTH_HYDRATE', payload: merged });
+        } catch (error) {
+          if (isAxiosError(error) && !error.response) {
+            // Offline: keep the saved session instead of logging the person out
+            dispatch({ type: 'AUTH_HYDRATE', payload: stored });
+          } else {
+            authApi.logout();
+            dispatch({ type: 'AUTH_HYDRATE', payload: null });
+          }
         }
       } catch {
         dispatch({ type: 'AUTH_HYDRATE', payload: null });
       }
     };
-
     hydrateAuth();
   }, []);
 
@@ -158,83 +77,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = await authApi.login({ username, password });
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Login failed';
+      const message = getErrorMessage(error, 'Login failed');
       dispatch({ type: 'AUTH_FAILURE', payload: message });
-      throw error;
+      throw new Error(message);
     }
   }, []);
 
-  const register = useCallback(
-    async (data: {
-      firstName: string;
-      lastName: string;
-      username: string;
-      password: string;
-      email: string;
-      age?: number;
-      gender?: 'male' | 'female';
-    }) => {
-      dispatch({ type: 'AUTH_START' });
-      try {
-        // TODO: Student implementation
-        // 1. Call authApi.register(data) - implement in services/authApi.ts
-        // 2. On success, dispatch AUTH_SUCCESS
-        // 3. On failure, dispatch AUTH_FAILURE
-        throw new Error('TODO: Implement register in AuthContext - call authApi.register');
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Registration failed';
-        dispatch({ type: 'AUTH_FAILURE', payload: message });
-        throw error;
-      }
-    },
-    []
-  );
+  const register = useCallback(async (data: RegisterData) => {
+    dispatch({ type: 'AUTH_START' });
+    try {
+      const user = await authApi.register(data);
+      dispatch({ type: 'AUTH_SUCCESS', payload: user });
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'Registration failed');
+      dispatch({ type: 'AUTH_FAILURE', payload: message });
+      throw new Error(message);
+    }
+  }, []);
 
   const logout = useCallback(() => {
     authApi.logout();
     dispatch({ type: 'AUTH_LOGOUT' });
   }, []);
 
-  const clearError = useCallback(() => {
-    dispatch({ type: 'AUTH_CLEAR_ERROR' });
-  }, []);
+  const clearError = useCallback(() => dispatch({ type: 'AUTH_CLEAR_ERROR' }), []);
 
   const refreshUser = useCallback(async () => {
     if (!state.isAuthenticated) return;
     try {
-      const user = await authApi.getMe();
-      const storedUser = authApi.getStoredUser();
-      if (storedUser) {
-        const mergedUser = {
-          ...user,
-          token: storedUser.token,
-          refreshToken: storedUser.refreshToken,
-        };
-        authApi.setTokens(mergedUser);
-        dispatch({ type: 'AUTH_SUCCESS', payload: mergedUser });
+      const fresh = await authApi.getMe();
+      const stored = authApi.getStoredUser();
+      if (stored) {
+        const merged: AuthUser = { ...fresh, ...stored };
+        authApi.setTokens(merged);
+        dispatch({ type: 'AUTH_SUCCESS', payload: merged });
       }
     } catch {
-      // Silently fail - token refresh interceptor handles 401s
+      // Silently fail - the refresh interceptor handles 401s
     }
   }, [state.isAuthenticated]);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        login,
-        register,
-        logout,
-        clearError,
-        refreshUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const updateProfile = useCallback(
+    async (data: ProfileUpdate) => {
+      if (!state.user) return;
+      const applied = await userApi.updateUser(state.user.id, data);
+      const merged: AuthUser = { ...state.user, ...applied };
+      authApi.setTokens(merged);
+      dispatch({ type: 'AUTH_UPDATE_USER', payload: applied });
+    },
+    [state.user]
   );
+
+  const value = useMemo(
+    () => ({ ...state, login, register, logout, clearError, refreshUser, updateProfile }),
+    [state, login, register, logout, clearError, refreshUser, updateProfile]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (isAxiosError(error)) {
+    const serverMessage = (error.response?.data as { message?: string } | undefined)?.message;
+    if (serverMessage) return serverMessage;
+    if (!error.response) return 'Network error. Check your connection and try again.';
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
