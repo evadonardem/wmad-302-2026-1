@@ -1,111 +1,150 @@
 /**
  * Favorites Screen - Cookbook
- * TODO: Students implement
- * - Store favorite recipe IDs in AsyncStorage or context
- * - Fetch favorite recipes by IDs (GET /recipes/{id})
- * - Remove from favorites
- * - Add notes to favorites
- * - Create collections/folders
+ * Persists favorite recipe IDs & personal notes in AsyncStorage, fetches full recipe details
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Card, Title, Chip, Button, IconButton } from 'react-native-paper';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  Modal,
+  StyleSheet,
+} from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Card, Title, Chip, Button, IconButton, TextInput as PaperTextInput } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { favoritesStorage } from '@/utils/storage';
+import { recipeApi } from '@/services/recipeApi';
+import { Recipe } from '@/types/recipe';
 import { styles } from './favoritesStyles';
-
-interface Recipe {
-  id: number;
-  name: string;
-  image: string;
-  difficulty: string;
-  cuisine: string;
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  servings: number;
-  rating: number;
-}
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const [favorites, setFavorites] = useState<Recipe[]>([]);
+  const [notes, setNotes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
 
-  // TODO: Student implementation
-  // 1. Load favorite IDs from AsyncStorage on mount
-  // 2. Fetch each recipe by ID (or batch if API supports)
-  // 3. Implement remove from favorites
-  // 4. Persist changes to AsyncStorage
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [noteInput, setNoteInput] = useState('');
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     try {
-      // TODO: Get favorite IDs from AsyncStorage
-      // const favoriteIds = await AsyncStorage.getItem('favoriteRecipeIds');
-      // const ids = favoriteIds ? JSON.parse(favoriteIds) : [];
-      //
-      // if (ids.length > 0) {
-      //   const recipes = await Promise.all(
-      //     ids.map((id: number) => fetch(`https://dummyjson.com/recipes/${id}`).then(r => r.json()))
-      //   );
-      //   setFavorites(recipes);
-      // }
+      setLoading(true);
+      const [ids, savedNotes] = await Promise.all([
+        favoritesStorage.getIds(),
+        favoritesStorage.getNotes(),
+      ]);
+      setNotes(savedNotes);
 
-      // Mock data for demo
-      setFavorites([]);
+      if (ids.length > 0) {
+        const recipes = await Promise.all(
+          ids.map((id) => recipeApi.getRecipeById(id).catch(() => null))
+        );
+        setFavorites(recipes.filter((r): r is Recipe => r !== null));
+      } else {
+        setFavorites([]);
+      }
     } catch (error) {
       console.error('Failed to load favorites:', error);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [loadFavorites])
+  );
+
+  const performRemove = async (recipeId: number) => {
+    await favoritesStorage.removeId(recipeId);
+    setFavorites((prev) => prev.filter((r) => r.id !== recipeId));
   };
 
   const removeFavorite = (recipeId: number) => {
-    Alert.alert(
-      'Remove from Favorites',
-      'Are you sure you want to remove this recipe?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Remove from AsyncStorage and update state
-            setFavorites((prev) => prev.filter((r) => r.id !== recipeId));
-          },
-        },
-      ]
-    );
+    if (Platform.OS === 'web') {
+      if (window.confirm('Remove this recipe from your favorites?')) {
+        performRemove(recipeId);
+      }
+      return;
+    }
+
+    Alert.alert('Remove from Favorites', 'Are you sure you want to remove this recipe?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => performRemove(recipeId),
+      },
+    ]);
+  };
+
+  const openNoteModal = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
+    setNoteInput(notes[recipe.id] || '');
+  };
+
+  const saveNote = async () => {
+    if (!editingRecipe) return;
+    await favoritesStorage.setNote(editingRecipe.id, noteInput);
+    const updatedNotes = await favoritesStorage.getNotes();
+    setNotes(updatedNotes);
+    setEditingRecipe(null);
   };
 
   const renderFavorite = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.favoriteCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      onPress={() => router.push(`/(app)/recipe/${item.id}`)}
+      activeOpacity={0.85}
     >
       <Card style={styles.card} elevation={1}>
         <View style={styles.cardContent}>
           <Image source={{ uri: item.image }} style={styles.recipeImage} resizeMode="cover" />
           <View style={styles.info}>
-            <Title style={styles.title} numberOfLines={1}>{item.name}</Title>
+            <Title style={styles.title} numberOfLines={1}>
+              {item.name}
+            </Title>
             <View style={styles.meta}>
-              <Chip style={styles.difficultyChip}>{item.difficulty}</Chip>
-              <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
+              <Chip style={styles.difficultyChip} textStyle={{ fontSize: 11 }}>
+                {item.difficulty}
+              </Chip>
+              <Chip style={styles.cuisineChip} textStyle={{ fontSize: 11 }}>
+                {item.cuisine}
+              </Chip>
             </View>
             <Text style={styles.details}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes}min · 👥 {item.servings} · ⭐ {item.rating}
+              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes}m · 👥 {item.servings} · ⭐{' '}
+              {item.rating.toFixed(1)}
             </Text>
+            {notes[item.id] ? (
+              <Text style={noteStyles.noteBadge} numberOfLines={2}>
+                📝 {notes[item.id]}
+              </Text>
+            ) : null}
           </View>
-          <IconButton
-            icon="heart"
-            size={24}
-            color="#C62828"
-            onPress={() => removeFavorite(item.id)}
-            accessibilityLabel="Remove from favorites"
-          />
+          <View style={{ justifyContent: 'center' }}>
+            <IconButton
+              icon="note-edit-outline"
+              size={20}
+              iconColor="#E85D04"
+              onPress={() => openNoteModal(item)}
+              accessibilityLabel="Edit recipe note"
+            />
+            <IconButton
+              icon="heart"
+              size={22}
+              iconColor="#C62828"
+              onPress={() => removeFavorite(item.id)}
+              accessibilityLabel="Remove from favorites"
+            />
+          </View>
         </View>
       </Card>
     </TouchableOpacity>
@@ -126,14 +165,16 @@ export default function FavoritesScreen() {
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="heart-outline" size={80} color="#BCAAA4" />
           <Text style={styles.emptyTitle}>No Favorites Yet</Text>
-          <Text style={styles.emptyText}>Recipes you love will appear here</Text>
+          <Text style={styles.emptyText}>
+            Tap the heart icon on any recipe to save it here for offline quick access
+          </Text>
           <Button
             mode="contained"
             onPress={() => router.push('/(app)/(tabs)/search')}
             style={styles.browseButton}
             contentStyle={styles.buttonContent}
           >
-            <Text style={styles.buttonText}>Browse Recipes</Text>
+            Browse Recipes
           </Button>
         </View>
       ) : (
@@ -151,20 +192,75 @@ export default function FavoritesScreen() {
         />
       )}
 
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Complete the favorites functionality:\n
-          1. Store favorite IDs in AsyncStorage\n
-          2. Fetch recipes by ID on load\n
-          3. Add/remove with persistence\n
-          4. Add "Add to Favorites" on recipe detail\n
-          5. Create collections (Breakfast, Dinner, etc.)
-        </Text>
-      </View>
+      <Modal
+        visible={Boolean(editingRecipe)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingRecipe(null)}
+      >
+        <View style={noteStyles.backdrop}>
+          <Card style={noteStyles.modalCard}>
+            <Card.Content>
+              <Title style={noteStyles.modalTitle}>Cooking Note</Title>
+              <Text style={noteStyles.modalSubtitle}>{editingRecipe?.name}</Text>
+              <PaperTextInput
+                label="Personal note (e.g. Less salt, extra garlic)"
+                mode="outlined"
+                value={noteInput}
+                onChangeText={setNoteInput}
+                multiline
+                numberOfLines={3}
+                style={{ backgroundColor: '#FFFFFF', marginBottom: 12 }}
+              />
+              <View style={noteStyles.modalActions}>
+                <Button mode="text" onPress={() => setEditingRecipe(null)}>
+                  Cancel
+                </Button>
+                <Button mode="contained" onPress={saveNote} style={{ backgroundColor: '#E85D04' }}>
+                  Save Note
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-import { Image } from 'react-native';
+const noteStyles = StyleSheet.create({
+  noteBadge: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#5D4037',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 14,
+    backgroundColor: '#FFFDF8',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3E2723',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#8D6E63',
+    marginBottom: 12,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+});

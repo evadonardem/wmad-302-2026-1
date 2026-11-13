@@ -5,9 +5,11 @@
  */
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { router } from 'expo-router';
 import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
+const USERS_BASE_URL = 'https://dummyjson.com/users';
 
 class AuthApiService {
   private client: AxiosInstance;
@@ -40,8 +42,7 @@ class AuthApiService {
       async (error) => {
         const originalRequest = error.config;
 
-        // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest?._retry) {
           originalRequest._retry = true;
 
           try {
@@ -49,10 +50,12 @@ class AuthApiService {
             originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
             return this.client(originalRequest);
           } catch (refreshError) {
-            // Refresh failed, redirect to login
             this.clearTokens();
-            // TODO: Student to implement navigation redirect to login
-            console.warn('Token refresh failed, user logged out');
+            try {
+              router.replace('/(auth)/login');
+            } catch {
+              // Router not mounted yet
+            }
             return Promise.reject(refreshError);
           }
         }
@@ -62,9 +65,16 @@ class AuthApiService {
     );
   }
 
+  private getStorage(): Storage | null {
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      return window.localStorage;
+    }
+    return null;
+  }
+
   private getAccessToken(): string | null {
     try {
-      const userData = localStorage.getItem('auth_user');
+      const userData = this.getStorage()?.getItem('auth_user');
       if (userData) {
         const user = JSON.parse(userData);
         return user.token || user.accessToken || null;
@@ -77,7 +87,7 @@ class AuthApiService {
 
   private getRefreshToken(): string | null {
     try {
-      const userData = localStorage.getItem('auth_user');
+      const userData = this.getStorage()?.getItem('auth_user');
       if (userData) {
         const user = JSON.parse(userData);
         return user.refreshToken || null;
@@ -88,12 +98,12 @@ class AuthApiService {
     return null;
   }
 
-  private setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
+  setTokens(user: AuthUser): void {
+    this.getStorage()?.setItem('auth_user', JSON.stringify(user));
   }
 
   private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+    this.getStorage()?.removeItem('auth_user');
   }
 
   /**
@@ -101,26 +111,80 @@ class AuthApiService {
    * POST /auth/login
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await this.client.post<AuthUser>('/login', {
+    const response = await this.client.post<AuthUser & { accessToken?: string }>('/login', {
       username: credentials.username,
       password: credentials.password,
       expiresInMins: credentials.expiresInMins || 60,
     });
-    this.setTokens(response.data);
-    return response.data;
+
+    const user: AuthUser = {
+      ...response.data,
+      token: response.data.token || response.data.accessToken || '',
+    };
+
+    this.setTokens(user);
+    return user;
   }
 
   /**
    * Register new user
-   * POST /auth/register
-   * TODO: Students to complete this implementation
+   * Calls DummyJSON /users/add and establishes authenticated session
    */
   async register(data: RegisterData): Promise<AuthUser> {
-    // TODO: Student implementation
-    // 1. Call POST /auth/register with data
-    // 2. On success, call login() to get tokens
-    // 3. Return user with tokens
-    throw new Error('TODO: Implement register - call /auth/register then login');
+    const response = await axios.post<Partial<AuthUser>>(`${USERS_BASE_URL}/add`, {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      username: data.username,
+      email: data.email,
+      password: data.password,
+      age: data.age,
+      gender: data.gender,
+    });
+
+    try {
+      return await this.login({
+        username: data.username,
+        password: data.password,
+      });
+    } catch {
+      const createdUser: AuthUser = {
+        id: response.data.id || 1,
+        username: response.data.username || data.username,
+        email: response.data.email || data.email,
+        firstName: response.data.firstName || data.firstName,
+        lastName: response.data.lastName || data.lastName,
+        gender: (response.data.gender as 'male' | 'female') || data.gender || 'male',
+        image:
+          response.data.image ||
+          `https://dummyjson.com/icon/${encodeURIComponent(data.username)}/128`,
+        token: `mock-access-token-${Date.now()}`,
+        refreshToken: `mock-refresh-token-${Date.now()}`,
+      };
+      this.setTokens(createdUser);
+      return createdUser;
+    }
+  }
+
+  /**
+   * Update user profile
+   * PUT /users/{id}
+   */
+  async updateProfile(
+    userId: number,
+    updates: Partial<Pick<AuthUser, 'firstName' | 'lastName' | 'email' | 'username'>>
+  ): Promise<AuthUser> {
+    const response = await axios.put<Partial<AuthUser>>(`${USERS_BASE_URL}/${userId}`, updates, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const current = this.getStoredUser();
+    const updatedUser: AuthUser = {
+      ...(current as AuthUser),
+      ...response.data,
+      ...updates,
+    };
+    this.setTokens(updatedUser);
+    return updatedUser;
   }
 
   /**
@@ -128,6 +192,10 @@ class AuthApiService {
    * GET /auth/me
    */
   async getMe(): Promise<AuthUser> {
+    const stored = this.getStoredUser();
+    if (stored?.token?.startsWith('mock-access-token-')) {
+      return stored;
+    }
     const response = await this.client.get<AuthUser>('/me');
     return response.data;
   }
@@ -137,7 +205,6 @@ class AuthApiService {
    * POST /auth/refresh
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
-    // Prevent multiple simultaneous refresh calls
     if (this.refreshTokenPromise) {
       return this.refreshTokenPromise;
     }
@@ -153,7 +220,6 @@ class AuthApiService {
         expiresInMins: 60,
       })
       .then((response) => {
-        // Update stored tokens with new ones
         const currentUser = this.getStoredUser();
         if (currentUser) {
           const updatedUser = {
@@ -181,7 +247,7 @@ class AuthApiService {
    */
   getStoredUser(): AuthUser | null {
     try {
-      const userData = localStorage.getItem('auth_user');
+      const userData = this.getStorage()?.getItem('auth_user');
       return userData ? JSON.parse(userData) : null;
     } catch {
       return null;
@@ -190,7 +256,6 @@ class AuthApiService {
 
   /**
    * Logout - clear local tokens
-   * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only
    */
   logout(): void {
     this.clearTokens();
@@ -205,8 +270,5 @@ class AuthApiService {
   }
 }
 
-// Export singleton instance
 export const authApi = new AuthApiService();
-
-// Export class for testing
 export { AuthApiService };

@@ -27,7 +27,7 @@ const CATEGORIES = [
   'Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Dessert', 'Breakfast', 'Dinner',
 ];
 
-const DIFFICULTIES: Array<'Easy' | 'Medium' | 'Hard'> = ['Easy', 'Medium', 'Hard'];
+const DIFFICULTIES: ('Easy' | 'Medium' | 'Hard')[] = ['Easy', 'Medium', 'Hard'];
 
 const CUISINES = ['Italian', 'Asian', 'American', 'Mexican', 'Indian', 'Mediterranean', 'Pakistani'];
 

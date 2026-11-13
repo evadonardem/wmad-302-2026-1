@@ -1,14 +1,26 @@
 /**
  * Tabs Layout - Cookbook App Navigation
- * Tabs: Home (Discover), Search, Favorites, Profile
+ * Tabs: Discover, Search, Categories, Favorites (with badge count), Profile
  */
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { Tabs, useFocusEffect } from 'expo-router';
+import React, { useState, useCallback } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { favoritesStorage } from '@/utils/storage';
 
 export default function TabsLayout() {
-  const { user } = useAuth();
+  const [favoriteCount, setFavoriteCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      favoritesStorage.getIds().then((ids) => {
+        if (active) setFavoriteCount(ids.length);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   return (
     <Tabs
@@ -39,7 +51,7 @@ export default function TabsLayout() {
           title: 'Discover',
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
-              name={focused ? 'stove' : 'stove-outline'}
+              name={focused ? 'silverware-fork-knife' : 'silverware'}
               size={24}
               color={color}
             />
@@ -50,9 +62,18 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: 'Search',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="magnify" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
+        options={{
+          title: 'Categories',
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
-              name={focused ? 'magnify' : 'magnify-outline'}
+              name={focused ? 'view-grid' : 'view-grid-outline'}
               size={24}
               color={color}
             />
@@ -63,6 +84,8 @@ export default function TabsLayout() {
         name="favorites"
         options={{
           title: 'Favorites',
+          tabBarBadge: favoriteCount > 0 ? favoriteCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#E85D04', color: '#FFFFFF', fontSize: 11 },
           tabBarIcon: ({ focused, color }) => (
             <MaterialCommunityIcons
               name={focused ? 'heart' : 'heart-outline'}

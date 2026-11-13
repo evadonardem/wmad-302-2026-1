@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
@@ -89,7 +88,7 @@ export default function LoginScreen() {
               onChangeText={setUsername}
               style={styles.input}
               autoCapitalize="none"
-              autoCompleteType="username"
+              autoComplete="username"
               textContentType="username"
               returnKeyType="next"
               disabled={isLoading}
@@ -103,7 +102,7 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               style={styles.input}
               secureTextEntry={!showPassword}
-              autoCompleteType="password"
+              autoComplete="password"
               textContentType="password"
               returnKeyType="go"
               onSubmitEditing={handleLogin}
@@ -146,7 +145,7 @@ export default function LoginScreen() {
 
             {/* Register Link */}
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
+              <Text style={styles.registerText}>Don&apos;t have an account? </Text>
               <TouchableOpacity
                 onPress={() => router.push('/(auth)/register')}
                 style={styles.link}
