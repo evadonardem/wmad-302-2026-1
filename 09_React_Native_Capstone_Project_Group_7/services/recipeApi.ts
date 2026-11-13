@@ -21,25 +21,16 @@ class RecipeApiService {
     });
   }
 
-  /**
-   * Get all recipes with pagination
-   */
   async getRecipes(params: RecipeSearchParams = {}): Promise<RecipesResponse> {
     const response = await this.client.get<RecipesResponse>('/', { params });
     return response.data;
   }
 
-  /**
-   * Get single recipe by ID
-   */
   async getRecipeById(id: number): Promise<Recipe> {
     const response = await this.client.get<Recipe>(`/${id}`);
     return response.data;
   }
 
-  /**
-   * Search recipes by query
-   */
   async searchRecipes(query: string, params: RecipeSearchParams = {}): Promise<RecipesResponse> {
     const response = await this.client.get<RecipesResponse>('/search', {
       params: { q: query, ...params },
@@ -47,19 +38,53 @@ class RecipeApiService {
     return response.data;
   }
 
-  /**
-   * Get recipes by category
-   */
   async getRecipesByCategory(category: string, params: RecipeSearchParams = {}): Promise<RecipesResponse> {
-    const response = await this.client.get<RecipesResponse>(`/category/${encodeURIComponent(category)}`, {
-      params,
-    });
-    return response.data;
+    const normalized = category.trim();
+    const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'appetizer', 'dessert', 'beverage', 'drink'];
+
+    try {
+      if (mealTypes.includes(normalized.toLowerCase())) {
+        const mealRes = await this.client.get<RecipesResponse>(
+          `/meal-type/${encodeURIComponent(normalized.toLowerCase())}`,
+          { params }
+        );
+        if (mealRes.data.recipes.length > 0) {
+          return mealRes.data;
+        }
+      }
+
+      const tagRes = await this.client.get<RecipesResponse>(
+        `/tag/${encodeURIComponent(normalized)}`,
+        { params }
+      );
+      if (tagRes.data.recipes.length > 0) {
+        return tagRes.data;
+      }
+    } catch {
+      // Fallback to client-side filtering across all recipes
+    }
+
+    const allRes = await this.getRecipes({ limit: 50, skip: 0 });
+    const term = normalized.toLowerCase();
+    const filtered = allRes.recipes.filter(
+      (r) =>
+        r.name.toLowerCase().includes(term) ||
+        r.cuisine.toLowerCase().includes(term) ||
+        r.tags.some((t) => t.toLowerCase().includes(term)) ||
+        r.mealType.some((m) => m.toLowerCase().includes(term)) ||
+        r.ingredients.some((ing) => ing.toLowerCase().includes(term))
+    );
+
+    const skip = params.skip ?? 0;
+    const limit = params.limit ?? 20;
+    return {
+      recipes: filtered.slice(skip, skip + limit),
+      total: filtered.length,
+      skip,
+      limit,
+    };
   }
 
-  /**
-   * Get recipes by tag/meal type
-   */
   async getRecipesByTag(tag: string, params: RecipeSearchParams = {}): Promise<RecipesResponse> {
     const response = await this.client.get<RecipesResponse>(`/tag/${encodeURIComponent(tag)}`, {
       params,
@@ -67,29 +92,18 @@ class RecipeApiService {
     return response.data;
   }
 
-  /**
-   * Get random recipe(s)
-   */
   async getRandomRecipes(count: number = 1): Promise<Recipe[]> {
     const response = await this.client.get<{ recipes: Recipe[] }>(`/random/${count}`);
     return response.data.recipes;
   }
 
-  /**
-   * Get all categories
-   */
   async getCategories(): Promise<string[]> {
-    // DummyJSON doesn't have a categories endpoint for recipes
-    // Return static list based on known categories
     return [
-      'Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Vegetarian',
-      'Breakfast', 'Appetizer', 'Side Dish', 'Main Course', 'Soup', 'Salad', 'Drink',
+      'Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Dessert',
+      'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Appetizer', 'Salad',
     ];
   }
 
-  /**
-   * Get all meal types/tags
-   */
   async getMealTypes(): Promise<string[]> {
     return [
       'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Appetizer', 'Dessert', 'Drink',

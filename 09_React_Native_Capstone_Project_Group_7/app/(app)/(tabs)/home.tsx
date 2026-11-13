@@ -1,9 +1,8 @@
 /**
  * Home Screen - Cookbook Discover Tab
- * Students implement: Recipe grid, categories, featured recipes
- * API: https://dummyjson.com/docs/recipes
+ * Recipe discovery with pagination, categories, and pull-to-refresh
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,72 +15,66 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Subtitle, Chip, Avatar, Button } from 'react-native-paper';
+import { recipeApi } from '@/services/recipeApi';
+import { Recipe } from '@/types/recipe';
+import { Card, Title, Chip, Avatar, Button } from 'react-native-paper';
 import { styles } from './homeStyles';
 
-// Types for DummyJSON Recipes API
-interface Recipe {
-  id: number;
-  name: string;
-  ingredients: string[];
-  instructions: string[];
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  servings: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  cuisine: string;
-  caloriesPerServing: number;
-  tags: string[];
-  userId: number;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  mealType: string[];
-}
-
-interface RecipesResponse {
-  recipes: Recipe[];
-  total: number;
-  skip: number;
-  limit: number;
-}
+const PAGE_SIZE = 10;
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecipes = async (isRefresh = false) => {
+  const fetchRecipes = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
       setError(null);
 
-      const response = await fetch('https://dummyjson.com/recipes?limit=20');
-      if (!response.ok) throw new Error('Failed to fetch recipes');
-
-      const data: RecipesResponse = await response.json();
+      const data = await recipeApi.getRecipes({ limit: PAGE_SIZE, skip: 0 });
       setRecipes(data.recipes);
+      setTotal(data.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load recipes');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRecipes();
-  }, []);
+  }, [fetchRecipes]);
 
-  const onRefresh = () => fetchRecipes(true);
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchRecipes(true);
+  };
+
+  const handleLoadMore = async () => {
+    if (loadingMore || recipes.length >= total) return;
+    try {
+      setLoadingMore(true);
+      const data = await recipeApi.getRecipes({ limit: PAGE_SIZE, skip: recipes.length });
+      setRecipes((prev) => [...prev, ...data.recipes]);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load more recipes');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const renderRecipe = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.recipeCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      onPress={() => router.push(`/(app)/recipe/${item.id}`)}
       activeOpacity={0.8}
     >
       <Card style={styles.card} elevation={2}>
@@ -144,7 +137,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={fetchRecipes} style={styles.retryButton}>
+        <Button mode="contained" onPress={() => fetchRecipes()} style={styles.retryButton}>
           Retry
         </Button>
       </View>
@@ -159,7 +152,6 @@ export default function HomeScreen() {
       }
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Welcome Header */}
       <View style={styles.welcomeContainer}>
         <View style={styles.welcomeTextContainer}>
           <Text style={styles.welcomeGreeting}>
@@ -170,14 +162,16 @@ export default function HomeScreen() {
         <Avatar.Icon size={56} icon="chef-hat" style={styles.welcomeAvatar} />
       </View>
 
-      {/* Categories */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Title style={styles.sectionTitle}>Categories</Title>
+          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/categories')} style={styles.seeAll}>
+            <Text style={styles.seeAllText}>All Categories</Text>
+          </TouchableOpacity>
         </View>
         <FlatList
           data={[
-            'Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Vegetarian',
+            'Chicken', 'Beef', 'Pasta', 'Seafood', 'Vegetarian', 'Dessert', 'Breakfast', 'Dinner',
           ]}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -185,7 +179,7 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.categoryChip, { backgroundColor: '#FFF3E0' }]}
-              onPress={() => router.push(`/(app)/(tabs)/search?category=${item}`)}
+              onPress={() => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(item)}`)}
             >
               <Text style={styles.categoryChipText}>{item}</Text>
             </TouchableOpacity>
@@ -194,18 +188,20 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Featured Recipes */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Featured Recipes</Title>
+          <Title style={styles.sectionTitle}>
+            Featured Recipes ({recipes.length}/{total})
+          </Title>
           <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/search')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>Search & Filter</Text>
           </TouchableOpacity>
         </View>
         <FlatList
-          data={recipes.slice(0, 10)}
+          data={recipes}
           renderItem={renderRecipe}
           keyExtractor={(item) => item.id.toString()}
+          scrollEnabled={false}
           ItemSeparatorComponent={() => <View style={styles.cardSeparator} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -213,6 +209,19 @@ export default function HomeScreen() {
             </View>
           }
         />
+
+        {recipes.length < total && (
+          <Button
+            mode="outlined"
+            onPress={handleLoadMore}
+            loading={loadingMore}
+            disabled={loadingMore}
+            style={{ marginTop: 16, borderColor: '#E85D04' }}
+            textColor="#E85D04"
+          >
+            {loadingMore ? 'Loading more...' : `Load More (${total - recipes.length} remaining)`}
+          </Button>
+        )}
       </View>
     </ScrollView>
   );
