@@ -3,7 +3,7 @@
  * Students implement: Recipe grid, categories, featured recipes
  * API: https://dummyjson.com/docs/recipes
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -78,10 +78,16 @@ export default function HomeScreen() {
 
   const onRefresh = () => fetchRecipes(true);
 
+  // Categories (meal types) found in the loaded recipes
+  const categories = useMemo(
+    () => Array.from(new Set(recipes.flatMap((recipe) => recipe.mealType))).sort(),
+    [recipes]
+  );
+
   const renderRecipe = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.recipeCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      onPress={() => router.push(`/recipe/${item.id}`)}
       activeOpacity={0.8}
     >
       <Card style={styles.card} elevation={2}>
@@ -174,18 +180,19 @@ export default function HomeScreen() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Title style={styles.sectionTitle}>Categories</Title>
+          <TouchableOpacity onPress={() => router.push('/categories')} style={styles.seeAll}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
         </View>
         <FlatList
-          data={[
-            'Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Vegetarian',
-          ]}
+          data={categories}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryList}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.categoryChip, { backgroundColor: '#FFF3E0' }]}
-              onPress={() => router.push(`/(app)/(tabs)/search?category=${item}`)}
+              onPress={() => router.push({ pathname: '/search', params: { category: item } })}
             >
               <Text style={styles.categoryChipText}>{item}</Text>
             </TouchableOpacity>

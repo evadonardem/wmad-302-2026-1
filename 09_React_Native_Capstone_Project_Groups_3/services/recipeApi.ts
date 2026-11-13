@@ -8,6 +8,11 @@ import { Recipe, RecipesResponse, RecipeSearchParams } from '@/types/recipe';
 
 const API_BASE_URL = 'https://dummyjson.com/recipes';
 
+export interface CategoryCount {
+  name: string;
+  count: number;
+}
+
 class RecipeApiService {
   private client: AxiosInstance;
 
@@ -48,12 +53,15 @@ class RecipeApiService {
   }
 
   /**
-   * Get recipes by category
+   * Get recipes by category (DummyJSON calls these "meal types":
+   * Breakfast, Lunch, Dinner, Snack, Dessert, ...)
+   * GET /recipes/meal-type/{type}
    */
   async getRecipesByCategory(category: string, params: RecipeSearchParams = {}): Promise<RecipesResponse> {
-    const response = await this.client.get<RecipesResponse>(`/category/${encodeURIComponent(category)}`, {
-      params,
-    });
+    const response = await this.client.get<RecipesResponse>(
+      `/meal-type/${encodeURIComponent(category.toLowerCase())}`,
+      { params }
+    );
     return response.data;
   }
 
@@ -68,32 +76,27 @@ class RecipeApiService {
   }
 
   /**
-   * Get random recipe(s)
+   * Get all categories with how many recipes each has.
+   * DummyJSON has no categories endpoint, so this loads every recipe's
+   * meal types in one request (limit=0, only the mealType field) and counts them.
    */
-  async getRandomRecipes(count: number = 1): Promise<Recipe[]> {
-    const response = await this.client.get<{ recipes: Recipe[] }>(`/random/${count}`);
-    return response.data.recipes;
+  async getCategories(): Promise<CategoryCount[]> {
+    const data = await this.getRecipes({ limit: 0, select: 'mealType' });
+    const counts = new Map<string, number>();
+    data.recipes.forEach((recipe) => {
+      recipe.mealType.forEach((type) => counts.set(type, (counts.get(type) ?? 0) + 1));
+    });
+    return Array.from(counts, ([name, count]) => ({ name, count })).sort(
+      (a, b) => b.count - a.count
+    );
   }
 
   /**
-   * Get all categories
-   */
-  async getCategories(): Promise<string[]> {
-    // DummyJSON doesn't have a categories endpoint for recipes
-    // Return static list based on known categories
-    return [
-      'Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Vegetarian',
-      'Breakfast', 'Appetizer', 'Side Dish', 'Main Course', 'Soup', 'Salad', 'Drink',
-    ];
-  }
-
-  /**
-   * Get all meal types/tags
+   * Get all meal type names (same list as getCategories, without counts)
    */
   async getMealTypes(): Promise<string[]> {
-    return [
-      'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Appetizer', 'Dessert', 'Drink',
-    ];
+    const categories = await this.getCategories();
+    return categories.map((category) => category.name);
   }
 }
 

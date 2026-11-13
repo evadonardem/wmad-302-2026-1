@@ -7,9 +7,9 @@
  * - Add notes to favorites
  * - Create collections/folders
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Card, Title, Chip, Button, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from './favoritesStyles';
@@ -39,9 +39,13 @@ export default function FavoritesScreen() {
   // 3. Implement remove from favorites
   // 4. Persist changes to AsyncStorage
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
+  // Reload every time this tab is opened, so hearts added on the
+  // Recipe Detail screen show up here straight away
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
 
   const loadFavorites = async () => {
     try {
@@ -94,7 +98,7 @@ export default function FavoritesScreen() {
   const renderFavorite = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.favoriteCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      onPress={() => router.push(`/recipe/${item.id}`)}
     >
       <Card style={styles.card} elevation={1}>
         <View style={styles.cardContent}>

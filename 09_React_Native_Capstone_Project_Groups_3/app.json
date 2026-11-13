@@ -9,9 +9,11 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FFFDF8"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.wmad302.cookbook"
@@ -19,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#E85D04"
       },
       "package": "com.wmad302.cookbook"
     },
@@ -37,9 +39,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "cookbook-capstone"
+        "projectId": "21e2915b-267c-4bf7-b33f-3687542e2eb8"
       }
     },
-    "owner": "wmad302"
+    "owner": "jonhelfabro"
   }
 }

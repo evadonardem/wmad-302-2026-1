@@ -1,72 +1,83 @@
 /**
  * Categories Screen - Cookbook
- * Browse recipes by category
+ * Browse recipes by category (DummyJSON meal types: Breakfast, Dinner, Snack, ...)
+ *
+ * - Grid layout (2 columns on phones, 3 on tablets)
+ * - Recipe count per category, loaded in a single request
+ * - Tapping a category opens Search filtered to that category
+ * - Pull to refresh
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { Card, Title } from 'react-native-paper';
+import { Button, Card, Title } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { recipeApi } from '@/services/recipeApi';
+import { recipeApi, CategoryCount } from '@/services/recipeApi';
 import { styles } from './categoriesStyles';
 
-interface Category {
-  name: string;
-  count?: number;
-}
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 export default function CategoriesScreen() {
   const router = useRouter();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { width } = useWindowDimensions();
+  const numColumns = width >= 700 ? 3 : 2;
+
+  const [categories, setCategories] = useState<CategoryCount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
-      const categoryNames = await recipeApi.getCategories();
-      // Get count for each category (optional - could be slow)
-      const categoriesWithCounts = await Promise.all(
-        categoryNames.slice(0, 12).map(async (name) => {
-          try {
-            const res = await recipeApi.getRecipesByCategory(name, { limit: 1 });
-            return { name, count: res.total };
-          } catch {
-            return { name, count: 0 };
-          }
-        })
-      );
-      setCategories(categoriesWithCounts);
+      if (!isRefresh) setLoading(true);
+      setError(null);
+      setCategories(await recipeApi.getCategories());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load categories');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadCategories(true);
   };
 
-  const renderCategory = ({ item }: { item: Category }) => (
+  const openCategory = (name: string) => {
+    router.push({ pathname: '/search', params: { category: name } });
+  };
+
+  const renderCategory = ({ item }: { item: CategoryCount }) => (
     <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={() => router.push(`/app/(tabs)/search?category=${encodeURIComponent(item.name)}`)}
+      style={[styles.categoryCard, { width: numColumns === 3 ? '31%' : '48%' }]}
+      onPress={() => openCategory(item.name)}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}, ${item.count} recipes`}
     >
       <Card style={styles.card} elevation={1}>
         <Card.Content style={styles.cardContent}>
           <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name={getCategoryIcon(item.name)}
-              size={32}
-              color="#E85D04"
-            />
+            <MaterialCommunityIcons name={getCategoryIcon(item.name)} size={32} color="#E85D04" />
           </View>
           <Title style={styles.categoryName}>{item.name}</Title>
-          {item.count !== undefined && (
-            <Text style={styles.categoryCount}>{item.count} recipes</Text>
-          )}
+          <Text style={styles.categoryCount}>
+            {item.count} recipe{item.count === 1 ? '' : 's'}
+          </Text>
         </Card.Content>
       </Card>
     </TouchableOpacity>
@@ -85,60 +96,52 @@ export default function CategoriesScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
+        <Button mode="contained" onPress={() => loadCategories()} style={styles.retryButton}>
+          Try Again
+        </Button>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Title style={styles.pageTitle}>Categories</Title>
-      <Text style={styles.pageSubtitle}>Browse recipes by category</Text>
-
       <FlatList
+        // FlatList needs a new key when the number of columns changes (phone <-> tablet)
+        key={`grid-${numColumns}`}
         data={categories}
         renderItem={renderCategory}
         keyExtractor={(item) => item.name}
-        numColumns={2}
+        numColumns={numColumns}
         columnWrapperStyle={styles.gridWrapper}
         contentContainerStyle={styles.gridContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E85D04']} />
+        }
+        ListHeaderComponent={
+          <View>
+            <Title style={styles.pageTitle}>Categories</Title>
+            <Text style={styles.pageSubtitle}>Browse recipes by category</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No categories found. Pull down to refresh.</Text>
+        }
       />
-
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Enhance the categories screen:\n
-          1. Add category images from assets\n
-          2. Show recipe count per category\n
-          3. Add sub-categories (e.g., Beef → Steaks, Roasts)\n
-          4. Add "Popular" and "Trending" sections\n
-          5. Implement pull-to-refresh
-        </Text>
-      </View>
     </View>
   );
 }
 
-type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
-
 function getCategoryIcon(category: string): IconName {
   const icons: Record<string, IconName> = {
-    Beef: 'cow',
-    Chicken: 'food-drumstick',
-    Dessert: 'cake',
-    Lamb: 'sheep',
-    Pasta: 'noodles',
-    Pork: 'pig',
-    Seafood: 'fish',
-    Vegetarian: 'leaf',
     Breakfast: 'egg-fried',
-    Appetizer: 'silverware-fork-knife',
+    Lunch: 'food',
+    Dinner: 'silverware-fork-knife',
+    Snack: 'cookie',
+    Snacks: 'cookie',
+    Dessert: 'cake',
+    Appetizer: 'leaf',
     'Side Dish': 'bowl',
-    'Main Course': 'food',
-    Soup: 'pot-steam',
-    Salad: 'leaf-circle',
-    Drink: 'glass-mug',
+    Beverage: 'glass-mug',
   };
   return icons[category] || 'food';
 }

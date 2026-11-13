@@ -22,6 +22,11 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      {/* Recipe detail opens above the tabs, with a back button */}
+      <Stack.Screen name="recipe/[id]" options={{ headerShown: true, title: 'Recipe' }} />
+      <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit Profile' }} />
+      <Stack.Screen name="my-recipes" options={{ headerShown: true, title: 'My Recipes' }} />
+      <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
       {/* Add other protected screens here */}
     </Stack>
   );

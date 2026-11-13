@@ -6,13 +6,21 @@
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { router } from 'expo-router';
+import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/storage';
 import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
+const AUTH_STORAGE_KEY = 'auth_user';
 
 class AuthApiService {
   private client: AxiosInstance;
   private refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
+  /**
+   * In-memory copy of the stored user. AsyncStorage is async, so we load it once
+   * with loadStoredUser() at app start and keep it in sync on every change.
+   * This lets the token getters stay synchronous (needed by the axios interceptor).
+   */
+  private currentUser: AuthUser | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -65,37 +73,23 @@ class AuthApiService {
   }
 
   private getAccessToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || user.accessToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+    return this.currentUser?.token || null;
   }
 
   private getRefreshToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.refreshToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+    return this.currentUser?.refreshToken || null;
   }
 
   setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
+    this.currentUser = user;
+    setStorageItem(AUTH_STORAGE_KEY, user).catch((err) =>
+      console.error('Failed to save auth user:', err)
+    );
   }
 
   private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+    this.currentUser = null;
+    removeStorageItem(AUTH_STORAGE_KEY);
   }
 
   /**
@@ -196,12 +190,16 @@ class AuthApiService {
    * Get stored user data
    */
   getStoredUser(): AuthUser | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
+    return this.currentUser;
+  }
+
+  /**
+   * Load the saved user from AsyncStorage into memory.
+   * Call once on app start (AuthContext hydration) before reading tokens.
+   */
+  async loadStoredUser(): Promise<AuthUser | null> {
+    this.currentUser = await getStorageItem<AuthUser>(AUTH_STORAGE_KEY);
+    return this.currentUser;
   }
 
   /**

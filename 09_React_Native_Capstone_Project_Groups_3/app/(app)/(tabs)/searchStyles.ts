@@ -13,6 +13,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   searchBarContainer: {
+    marginTop: 16,
     marginBottom: 16,
   },
   searchInput: {
@@ -51,6 +52,16 @@ export const styles = StyleSheet.create({
   filterList: {
     paddingHorizontal: 4,
     gap: 8,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  retryButton: {
+    marginTop: 16,
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -104,7 +115,7 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#3E2723',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   resultsList: {
     paddingBottom: 20,

@@ -1,78 +1,167 @@
 /**
  * Search Screen - Cookbook
- * TODO: Students implement
- * - Search recipes by query (GET /recipes/search?q=)
- * - Filter by category, cuisine, difficulty
- * - Filter by meal type, prep time
- * - Sort by rating, time, calories
- * - Infinite scroll pagination
+ *
+ * - Query search: GET /recipes/search?q=  (debounced while typing)
+ * - Filters: category (meal type), cuisine, difficulty
+ * - Sort: rating, total time, calories, name
+ * - Opened from Categories / Home with ?category=Dinner to show a filtered list
+ *
+ * DummyJSON has only ~50 recipes and its API can't filter by cuisine or
+ * difficulty, so the app loads them once (limit=0) and filters on the device.
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Card, Title, Chip, Button, Searchbar } from 'react-native-paper';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, FlatList, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ActivityIndicator, Button, Card, Chip, Searchbar, Title } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { styles } from './searchStyles';
 import { recipeApi } from '@/services/recipeApi';
+import { Recipe } from '@/types/recipe';
+import { useDebounce } from '@/hooks';
+import { styles } from './searchStyles';
 
-interface Recipe {
-  id: number;
-  name: string;
-  image: string;
-  difficulty: string;
-  cuisine: string;
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  servings: number;
-  rating: number;
-}
+type Difficulty = Recipe['difficulty'];
+type SortOption = 'rating' | 'time' | 'calories' | 'name';
+
+const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'rating', label: 'Top rated' },
+  { value: 'time', label: 'Quickest' },
+  { value: 'calories', label: 'Lowest calories' },
+  { value: 'name', label: 'A–Z' },
+];
+
+const totalTime = (recipe: Recipe) => recipe.prepTimeMinutes + recipe.cookTimeMinutes;
 
 export default function SearchScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ category?: string }>();
+
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [searchResults, setSearchResults] = useState<Recipe[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const debouncedQuery = useDebounce(query.trim(), 400);
+  const [category, setCategory] = useState<string | null>(params.category ?? null);
+  const [cuisine, setCuisine] = useState<string | null>(null);
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  const [sort, setSort] = useState<SortOption>('rating');
 
-  const categories = [
-    'Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Vegetarian',
-  ];
+  // Opening Search from Categories/Home sets the category filter
+  useEffect(() => {
+    if (params.category) setCategory(params.category);
+  }, [params.category]);
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  const loadAll = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // TODO: Student implementation
-      // const response = await fetch(`https://dummyjson.com/recipes/search?q=${encodeURIComponent(query)}`);
-      // const data = await response.json();
-      // setResults(data.recipes || []);
-      const data = await recipeApi.searchRecipes(query.trim());
-      setResults(data.recipes || []);
+      const data = await recipeApi.getRecipes({ limit: 0 });
+      setAllRecipes(data.recipes);
     } catch {
-      // Handle error
-      setResults([]);
-      Alert.alert('Search failed', 'Could not load recipes. Please try again.');
+      setError('Could not load recipes. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // Server-side text search, run after the user stops typing
+  useEffect(() => {
+    if (!debouncedQuery) {
+      setSearchResults(null);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    recipeApi
+      .searchRecipes(debouncedQuery, { limit: 0 })
+      .then((data) => {
+        if (!cancelled) setSearchResults(data.recipes);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Search failed. Please try again.');
+      })
+      .finally(() => {
+        if (!cancelled) setSearching(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery]);
+
+  // Filter options come from the data itself
+  const categories = useMemo(
+    () => Array.from(new Set(allRecipes.flatMap((r) => r.mealType))).sort(),
+    [allRecipes]
+  );
+  const cuisines = useMemo(
+    () => Array.from(new Set(allRecipes.map((r) => r.cuisine))).sort(),
+    [allRecipes]
+  );
+
+  const results = useMemo(() => {
+    const base = searchResults ?? allRecipes;
+    const filtered = base.filter(
+      (r) =>
+        (!category || r.mealType.includes(category)) &&
+        (!cuisine || r.cuisine === cuisine) &&
+        (!difficulty || r.difficulty === difficulty)
+    );
+    const sorted = [...filtered];
+    switch (sort) {
+      case 'rating':
+        sorted.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'time':
+        sorted.sort((a, b) => totalTime(a) - totalTime(b));
+        break;
+      case 'calories':
+        sorted.sort((a, b) => a.caloriesPerServing - b.caloriesPerServing);
+        break;
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+    }
+    return sorted;
+  }, [searchResults, allRecipes, category, cuisine, difficulty, sort]);
+
+  const hasFilters = !!(query || category || cuisine || difficulty);
+  const clearAll = () => {
+    setQuery('');
+    setCategory(null);
+    setCuisine(null);
+    setDifficulty(null);
+    router.setParams({ category: '' });
   };
 
   const renderResult = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.resultCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      onPress={() => router.push(`/recipe/${item.id}`)}
     >
       <Card style={styles.card} elevation={1}>
         <View style={styles.resultContent}>
           <Image source={{ uri: item.image }} style={styles.resultImage} resizeMode="cover" />
           <View style={styles.resultInfo}>
-            <Title style={styles.resultTitle} numberOfLines={1}>{item.name}</Title>
+            <Title style={styles.resultTitle} numberOfLines={1}>
+              {item.name}
+            </Title>
             <View style={styles.resultMeta}>
-              <Chip style={styles.difficultyChip}>{item.difficulty}</Chip>
-              <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
+              <Chip compact style={styles.difficultyChip}>
+                {item.difficulty}
+              </Chip>
+              <Chip compact style={styles.cuisineChip}>
+                {item.cuisine}
+              </Chip>
             </View>
             <Text style={styles.resultDetails}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes}min · 👥 {item.servings} · ⭐ {item.rating}
+              ⏱️ {totalTime(item)}min · 🔥 {item.caloriesPerServing} cal · ⭐ {item.rating.toFixed(1)}
             </Text>
           </View>
         </View>
@@ -80,91 +169,109 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
-  // Import Alert for TODO alert
-  const { Alert } = require('react-native');
+  // One horizontal row of filter chips
+  const chipRow = <T extends string>(
+    title: string,
+    options: readonly T[],
+    selected: T | null,
+    onSelect: (value: T | null) => void,
+    label: (value: T) => string = (v) => v
+  ) => (
+    <View style={styles.filterSection}>
+      <Text style={styles.filterTitle}>{title}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterList}>
+        {options.map((option) => (
+          <Chip
+            key={option}
+            selected={selected === option}
+            showSelectedOverlay
+            onPress={() => onSelect(selected === option ? null : option)}
+          >
+            {label(option)}
+          </Chip>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Search Bar */}
+  const header = (
+    <View>
       <View style={styles.searchBarContainer}>
         <Searchbar
-          style={styles.searchInput}
-          placeholder="Search recipes..."
+          placeholder="Search recipes, ingredients, tags..."
           value={query}
           onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
           onClearIconPress={() => setQuery('')}
-          loading={loading}
+          loading={searching}
         />
       </View>
 
-      {/* Category Filters */}
-      <View style={styles.filterSection}>
-        <Title style={styles.filterTitle}>Categories</Title>
-        <FlatList
-          data={categories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                selectedCategory === item && styles.filterChipSelected,
-              ]}
-              onPress={() => setSelectedCategory(selectedCategory === item ? null : item)}
-            >
-              <Text style={[
-                styles.filterChipText,
-                selectedCategory === item && styles.filterChipTextSelected,
-              ]}>
-                {item}
-              </Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item}
-        />
-      </View>
+      {chipRow('Category', categories, category, setCategory)}
+      {chipRow('Cuisine', cuisines, cuisine, setCuisine)}
+      {chipRow('Difficulty', DIFFICULTIES, difficulty, setDifficulty)}
+      {chipRow(
+        'Sort by',
+        SORT_OPTIONS.map((o) => o.value),
+        sort,
+        (value) => setSort(value ?? 'rating'),
+        (value) => SORT_OPTIONS.find((o) => o.value === value)?.label ?? value
+      )}
 
-      {/* Results */}
-      <View style={styles.resultsSection}>
+      <View style={styles.resultsHeader}>
         <Title style={styles.resultsTitle}>
-          Results {query ? `for "${query}"` : ''} {results.length > 0 && `(${results.length})`}
+          {results.length} recipe{results.length === 1 ? '' : 's'}
         </Title>
-        {loading ? (
-          <View style={styles.loadingCenter}>
-            <ActivityIndicator size="large" color="#E85D04" />
-          </View>
-        ) : results.length === 0 && query ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="magnify" size={64} color="#BCAAA4" />
-            <Text style={styles.emptyText}>No recipes found</Text>
-            <Text style={styles.emptySubtext}>Try a different search term</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={results}
-            renderItem={renderResult}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.resultsList}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-          />
+        {hasFilters && (
+          <Button compact onPress={clearAll}>
+            Clear all
+          </Button>
         )}
       </View>
+    </View>
+  );
 
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Complete the search functionality:\n
-          1. Call GET /recipes/search?q={'{query}'}\n
-          2. Add category filter: &category={'{category}'}\n
-          3. Add pagination with skip/limit\n
-          4. Implement infinite scroll\n
-          5. Add sort options (rating, time, calories)
-        </Text>
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingCenter]}>
+        <ActivityIndicator size="large" />
       </View>
-    </ScrollView>
+    );
+  }
+
+  if (error && allRecipes.length === 0) {
+    return (
+      <View style={[styles.container, styles.emptyState]}>
+        <MaterialCommunityIcons name="wifi-off" size={64} color="#BCAAA4" />
+        <Text style={styles.emptyText}>{error}</Text>
+        <Button mode="contained" onPress={loadAll} style={styles.retryButton}>
+          Try Again
+        </Button>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      data={results}
+      renderItem={renderResult}
+      keyExtractor={(item) => item.id.toString()}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      keyboardShouldPersistTaps="handled"
+      ListHeaderComponent={header}
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons name="magnify" size={64} color="#BCAAA4" />
+          <Text style={styles.emptyText}>No recipes found</Text>
+          <Text style={styles.emptySubtext}>Try a different search or clear the filters</Text>
+          {hasFilters && (
+            <Button mode="contained" onPress={clearAll} style={styles.retryButton}>
+              Clear filters
+            </Button>
+          )}
+        </View>
+      }
+    />
   );
 }
-

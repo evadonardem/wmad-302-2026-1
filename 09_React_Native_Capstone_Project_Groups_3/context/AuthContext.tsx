@@ -99,6 +99,8 @@ interface AuthContextType extends AuthState {
   logout: () => void;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  /** Apply profile changes to the logged-in user and save them on the device */
+  updateUser: (changes: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -111,16 +113,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const hydrateAuth = async () => {
       try {
-        const storedUser = authApi.getStoredUser();
+        // Load saved tokens from AsyncStorage before checking them
+        const storedUser = await authApi.loadStoredUser();
         if (storedUser?.token && storedUser?.refreshToken) {
           // Verify token still works by fetching user profile
           try {
             const freshUser = await authApi.getMe();
             // Merge stored tokens with fresh user data
+            // Saved values win over the server copy: DummyJSON does not save
+            // profile edits (PUT /users/{id}), so the device keeps them.
+            // storedUser also carries the current tokens.
             const mergedUser = {
               ...freshUser,
-              token: storedUser.token,
-              refreshToken: storedUser.refreshToken,
+              ...storedUser,
             };
             authApi.setTokens(mergedUser); // Update with fresh data
             dispatch({ type: 'AUTH_HYDRATE', payload: mergedUser });
@@ -219,6 +224,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [state.isAuthenticated]);
 
+  const updateUser = useCallback((changes: Partial<AuthUser>) => {
+    const storedUser = authApi.getStoredUser();
+    if (storedUser) {
+      authApi.setTokens({ ...storedUser, ...changes });
+    }
+    dispatch({ type: 'AUTH_UPDATE_USER', payload: changes });
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -228,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         clearError,
         refreshUser,
+        updateUser,
       }}
     >
       {children}
