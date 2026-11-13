@@ -1,11 +1,12 @@
-
 /**
  * Home Screen - Cookbook Discover Tab
  * Supports Light Mode, Dark Mode, and System Default.
+ * Includes Recommended and Recently Viewed Recipes.
  * API: https://dummyjson.com/docs/recipes
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+
 import {
   View,
   Text,
@@ -17,9 +18,14 @@ import {
   RefreshControl,
 } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import {
+  useRouter,
+  useFocusEffect,
+} from 'expo-router';
+
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
+import { recentlyViewedStorage } from '@/utils/storage';
 
 import {
   Card,
@@ -251,11 +257,17 @@ export default function HomeScreen() {
   const styles = createHomeStyles(colors);
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recentlyViewedRecipes, setRecentlyViewedRecipes] =
+    useState<Recipe[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch recipes from DummyJSON API
+  // ======================================
+  // FETCH RECIPES FROM DUMMYJSON
+  // ======================================
+
   const fetchRecipes = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -275,6 +287,7 @@ export default function HomeScreen() {
       }
 
       const data: RecipesResponse = await response.json();
+
       setRecipes(data.recipes);
     } catch (err) {
       setError(
@@ -288,37 +301,107 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Load recipes when the screen opens
+  // Load recipes when the screen opens.
   useEffect(() => {
     fetchRecipes();
   }, [fetchRecipes]);
 
-  // Pull-to-refresh
+  // ======================================
+  // LOAD RECENTLY VIEWED RECIPES
+  // ======================================
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const loadRecentlyViewed = async () => {
+        try {
+          const recipeIds = await recentlyViewedStorage.getIds();
+
+          if (recipeIds.length === 0) {
+            if (isActive) {
+              setRecentlyViewedRecipes([]);
+            }
+
+            return;
+          }
+
+          const viewedRecipes = await Promise.all(
+            recipeIds.map(
+              async (recipeId): Promise<Recipe | null> => {
+                try {
+                  const response = await fetch(
+                    `https://dummyjson.com/recipes/${recipeId}`
+                  );
+
+                  if (!response.ok) {
+                    return null;
+                  }
+
+                  return (await response.json()) as Recipe;
+                } catch {
+                  return null;
+                }
+              }
+            )
+          );
+
+          if (isActive) {
+            setRecentlyViewedRecipes(
+              viewedRecipes.filter(
+                (recipe): recipe is Recipe => recipe !== null
+              )
+            );
+          }
+        } catch (error) {
+          console.error(
+            'Failed to load recently viewed recipes:',
+            error
+          );
+        }
+      };
+
+      void loadRecentlyViewed();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
+
+  // ======================================
+  // PULL TO REFRESH
+  // ======================================
+
   const onRefresh = () => {
     fetchRecipes(true);
   };
 
-  // Open the existing Search screen
+  // ======================================
+  // NAVIGATION
+  // ======================================
+
   const openSearch = () => {
     router.push('/(app)/(tabs)/search');
   };
 
-  // Open Search with a selected meal type
   const openMealType = (mealType: string) => {
     router.push(
       `/(app)/(tabs)/search?query=${encodeURIComponent(mealType)}`
     );
   };
 
-  // Open Settings to update recommendation preferences
   const openSettings = () => {
     router.push('/(app)/settings');
   };
 
-  // Select one recipe for the current day.
-  // The selection changes each calendar day.
+  // ======================================
+  // RECIPE OF THE DAY
+  // ======================================
+
   const today = new Date();
   const startOfYear = new Date(today.getFullYear(), 0, 0);
+
   const dayOfYear = Math.floor(
     (today.getTime() - startOfYear.getTime()) /
       (1000 * 60 * 60 * 24)
@@ -329,8 +412,10 @@ export default function HomeScreen() {
       ? recipes[dayOfYear % recipes.length]
       : null;
 
-  // Popular Recipes: highest rating first.
-  // Review count is used when two recipes have the same rating.
+  // ======================================
+  // POPULAR RECIPES
+  // ======================================
+
   const popularRecipes = [...recipes]
     .sort((a, b) => {
       if (b.rating !== a.rating) {
@@ -341,9 +426,10 @@ export default function HomeScreen() {
     })
     .slice(0, 6);
 
-  // Recommended for You:
-  // Use the saved dietary preferences, preferred cuisines,
-  // and cooking difficulty from SettingsContext.
+  // ======================================
+  // RECOMMENDED FOR YOU
+  // ======================================
+
   const dietaryPreferences = settings.dietaryPreferences;
   const preferredCuisines = settings.preferredCuisines;
   const cookingDifficulty = settings.cookingDifficulty;
@@ -353,13 +439,10 @@ export default function HomeScreen() {
     preferredCuisines.length > 0 ||
     cookingDifficulty !== 'Any';
 
-  // Filter recipes using ingredient-based dietary preferences.
   const dietaryFilteredRecipes = recipes.filter((recipe) =>
     isCompatibleWithDiet(recipe, dietaryPreferences)
   );
 
-  // If no recipes match the dietary filters, show general
-  // recommendations instead of leaving the section empty.
   const hasDietaryMatches = dietaryFilteredRecipes.length > 0;
 
   const recommendationSource =
@@ -367,7 +450,6 @@ export default function HomeScreen() {
       ? dietaryFilteredRecipes
       : recipes;
 
-  // Score recipes based on the user's saved preferences.
   const recommendedRecipes = [...recommendationSource]
     .map((recipe) => {
       let score = 0;
@@ -390,7 +472,6 @@ export default function HomeScreen() {
         score += 2;
       }
 
-      // Prefer recipes whose tags mention selected dietary preferences.
       const normalizedTags = recipe.tags.map((tag) =>
         tag.toLowerCase()
       );
@@ -429,7 +510,10 @@ export default function HomeScreen() {
       preference.toLowerCase() !== 'halal'
   );
 
-  // Render individual recipe card
+  // ======================================
+  // RENDER RECIPE CARD
+  // ======================================
+
   const renderRecipe = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.recipeCard}
@@ -499,11 +583,15 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
-  // Initial loading screen
+  // ======================================
+  // INITIAL LOADING SCREEN
+  // ======================================
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
+
         <Text style={styles.loadingText}>
           Loading recipes...
         </Text>
@@ -511,7 +599,10 @@ export default function HomeScreen() {
     );
   }
 
-  // Error screen
+  // ======================================
+  // ERROR SCREEN
+  // ======================================
+
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -529,6 +620,10 @@ export default function HomeScreen() {
     );
   }
 
+  // ======================================
+  // MAIN HOME SCREEN
+  // ======================================
+
   return (
     <ScrollView
       style={styles.scrollView}
@@ -542,7 +637,8 @@ export default function HomeScreen() {
       }
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Welcome Header */}
+      {/* WELCOME HEADER */}
+
       <View style={styles.welcomeContainer}>
         <View style={styles.welcomeTextContainer}>
           <Text style={styles.welcomeGreeting}>
@@ -564,7 +660,8 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Home Search Bar */}
+      {/* HOME SEARCH BAR */}
+
       <View style={styles.searchBarContainer}>
         <TouchableOpacity
           style={styles.searchBar}
@@ -591,7 +688,8 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Categories */}
+      {/* CATEGORIES */}
+
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Title style={styles.sectionTitle}>
@@ -629,7 +727,8 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Browse by Meal Type */}
+      {/* BROWSE BY MEAL TYPE */}
+
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Title style={styles.sectionTitle}>
@@ -697,7 +796,8 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Recipe of the Day */}
+      {/* RECIPE OF THE DAY */}
+
       {recipeOfDay && (
         <View style={styles.dailyRecipeSection}>
           <View style={styles.sectionHeader}>
@@ -800,7 +900,8 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Popular Recipes */}
+      {/* POPULAR RECIPES */}
+
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <View>
@@ -851,7 +952,8 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Recommended for You */}
+      {/* RECOMMENDED FOR YOU */}
+
       {isSettingsLoaded && (
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -891,7 +993,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Show selected preferences */}
+          {/* SHOW SELECTED PREFERENCES */}
+
           {hasPreferences && (
             <View
               style={{
@@ -947,7 +1050,8 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Explain when dietary filtering has no matches */}
+          {/* DIETARY FILTER NOTICE */}
+
           {hasDietaryFilterPreference &&
             !hasDietaryMatches && (
               <Text
@@ -964,7 +1068,8 @@ export default function HomeScreen() {
               </Text>
             )}
 
-          {/* Halal information notice */}
+          {/* HALAL INFORMATION NOTICE */}
+
           {hasHalalPreference && (
             <Text
               style={{
@@ -979,6 +1084,8 @@ export default function HomeScreen() {
               independently.
             </Text>
           )}
+
+          {/* PERSONALIZATION PROMPT */}
 
           {!hasPreferences && (
             <TouchableOpacity
@@ -1041,7 +1148,50 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Featured Recipes */}
+      {/* RECENTLY VIEWED RECIPES */}
+
+      {recentlyViewedRecipes.length > 0 && (
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Title style={styles.sectionTitle}>
+                Recently Viewed
+              </Title>
+
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.onSurfaceVariant,
+                  marginTop: 3,
+                }}
+              >
+                Pick up where you left off
+              </Text>
+            </View>
+
+            <MaterialCommunityIcons
+              name="history"
+              size={23}
+              color={colors.primary}
+            />
+          </View>
+
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredList}
+            data={recentlyViewedRecipes}
+            renderItem={renderRecipe}
+            keyExtractor={(item) => item.id.toString()}
+            ItemSeparatorComponent={() => (
+              <View style={styles.cardSeparator} />
+            )}
+          />
+        </View>
+      )}
+
+      {/* FEATURED RECIPES */}
+
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Title style={styles.sectionTitle}>

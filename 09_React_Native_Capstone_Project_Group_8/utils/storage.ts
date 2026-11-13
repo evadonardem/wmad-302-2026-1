@@ -1,9 +1,8 @@
-
 /**
  * AsyncStorage Utilities
  * Wrapper for AsyncStorage with TypeScript support.
  * Includes authentication, local accounts, favorites,
- * meal planning, cart, and settings storage.
+ * meal planning, recently viewed recipes, cart, and settings.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,6 +28,7 @@ const STORAGE_KEYS = {
   CART: 'cart_items',
   SETTINGS: 'user_settings',
   MEAL_PLAN: 'meal_plan_entries',
+  RECENTLY_VIEWED: 'recently_viewed_recipe_ids',
 } as const;
 
 export type StorageKey =
@@ -369,6 +369,41 @@ export const mealPlanStorage = {
       updatedEntries
     );
   },
+};
+
+// ======================================
+// RECENTLY VIEWED RECIPES STORAGE
+// ======================================
+
+export const recentlyViewedStorage = {
+  // Get recently viewed recipe IDs, newest first.
+  getIds: async (): Promise<number[]> => {
+    return (
+      (await getStorageItem<number[]>(
+        STORAGE_KEYS.RECENTLY_VIEWED
+      )) ?? []
+    );
+  },
+
+  // Add a recipe to the beginning of the history.
+  // Remove duplicates and keep only the latest 10.
+  addId: async (id: number): Promise<void> => {
+    const ids = await recentlyViewedStorage.getIds();
+
+    const updatedIds = [
+      id,
+      ...ids.filter((existingId) => existingId !== id),
+    ].slice(0, 10);
+
+    await setStorageItem(
+      STORAGE_KEYS.RECENTLY_VIEWED,
+      updatedIds
+    );
+  },
+
+  // Clear recently viewed history if needed.
+  clear: () =>
+    removeStorageItem(STORAGE_KEYS.RECENTLY_VIEWED),
 };
 
 // ======================================

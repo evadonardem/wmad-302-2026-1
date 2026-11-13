@@ -1,8 +1,7 @@
-
 /**
  * Recipe Details Screen - Cookbook
  * Supports Light Mode and Dark Mode.
- * Manages Favorites and Meal Planning.
+ * Manages Favorites, Meal Planning, and Recently Viewed Recipes.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -32,6 +31,7 @@ import {
 import {
   favoritesStorage,
   mealPlanStorage,
+  recentlyViewedStorage,
 } from '@/utils/storage';
 
 import type { MealType } from '@/utils/storage';
@@ -58,8 +58,7 @@ export default function RecipeDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  // Get the currently selected application theme.
-  const theme = useTheme();
+  const theme = useTheme<MD3Theme>();
   const styles = createStyles(theme);
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
@@ -95,6 +94,17 @@ export default function RecipeDetailsScreen() {
       const data: Recipe = await response.json();
 
       setRecipe(data);
+
+      // Save this recipe to Recently Viewed.
+      // A storage error will not prevent the recipe from loading.
+      try {
+        await recentlyViewedStorage.addId(data.id);
+      } catch (storageError) {
+        console.error(
+          'Failed to save recently viewed recipe:',
+          storageError
+        );
+      }
 
       const favoriteIds = await favoritesStorage.getIds();
 
@@ -307,8 +317,6 @@ export default function RecipeDetailsScreen() {
         {/* MAIN CONTENT */}
 
         <View style={styles.content}>
-          {/* RECIPE INFORMATION */}
-
           <Text style={styles.recipeName}>
             {recipe.name}
           </Text>
@@ -724,8 +732,6 @@ function createStyles(theme: MD3Theme) {
       borderRadius: 12,
     },
 
-    // Hero image
-
     imageContainer: {
       width: '100%',
       height: 300,
@@ -786,8 +792,6 @@ function createStyles(theme: MD3Theme) {
       fontWeight: '700',
       letterSpacing: 1,
     },
-
-    // Main content
 
     content: {
       paddingHorizontal: 18,
@@ -854,8 +858,6 @@ function createStyles(theme: MD3Theme) {
       fontWeight: '600',
     },
 
-    // Section headings
-
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -884,8 +886,6 @@ function createStyles(theme: MD3Theme) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-
-    // Cooking information
 
     infoCard: {
       backgroundColor: colors.surface,
@@ -935,8 +935,6 @@ function createStyles(theme: MD3Theme) {
       backgroundColor: colors.outlineVariant,
     },
 
-    // Ingredients
-
     ingredientsCard: {
       backgroundColor: colors.surface,
       borderRadius: 16,
@@ -962,8 +960,6 @@ function createStyles(theme: MD3Theme) {
       lineHeight: 21,
       color: colors.onSurface,
     },
-
-    // Cooking instructions
 
     instructionRow: {
       flexDirection: 'row',
@@ -1009,8 +1005,6 @@ function createStyles(theme: MD3Theme) {
       lineHeight: 22,
       color: colors.onSurface,
     },
-
-    // Nutrition
 
     nutritionCard: {
       backgroundColor: colors.surface,
@@ -1065,8 +1059,6 @@ function createStyles(theme: MD3Theme) {
       color: colors.onSurfaceVariant,
     },
 
-    // Actions
-
     actionsContainer: {
       backgroundColor: colors.primaryContainer,
       borderRadius: 18,
@@ -1112,8 +1104,6 @@ function createStyles(theme: MD3Theme) {
       fontSize: 14,
       fontWeight: '700',
     },
-
-    // Meal selection
 
     mealOptionsContainer: {
       backgroundColor: colors.surface,
