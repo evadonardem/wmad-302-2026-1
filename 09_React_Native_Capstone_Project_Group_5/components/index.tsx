@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { Href, useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, IconButton } from 'react-native-paper';
+import { Button, Card, Dialog, IconButton, Portal } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Recipe } from '@/types/recipe';
 import { formatMinutes, mealTypesOf, totalTime } from '@/utils/recipeFilters';
@@ -34,15 +34,18 @@ import { createStyles, tc, useAppTheme } from '@/context/ThemeContext';
  */
 export function useCardScale(fullWidth = 300) {
     const [scale, setScale] = useState(1);
+    // Cards stay invisible until their first measurement so they never flash at full size and then shrink
+    const [ready, setReady] = useState(false);
     const onLayout = useCallback(
         (e: LayoutChangeEvent) => {
+            setReady(true);
             const next = Math.round(Math.min(1, Math.max(0.72, e.nativeEvent.layout.width / fullWidth)) * 100) / 100;
             setScale((prev) => (prev === next ? prev : next));
         },
         [fullWidth]
     );
     const sz = (n: number) => Math.round(n * scale * 10) / 10;
-    return { scale, onLayout, sz };
+    return { scale, onLayout, sz, ready };
 }
 
 export type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -278,9 +281,9 @@ export function RecipeCard({ recipe, onPress, isFavorite, onToggleFavorite, styl
 /** Grid card for the Home page: big photo, title, quick facts, dark "See Complete Recipe" bar. */
 export function RecipeGridCard({ recipe, onPress, isFavorite, onToggleFavorite, style }: RecipeCardProps) {
     useAppTheme();
-    const { scale, onLayout, sz } = useCardScale(300);
+    const { scale, onLayout, sz, ready } = useCardScale(300);
     return (
-        <View style={[styles.gridWrapper, style]} onLayout={onLayout}>
+        <View style={[styles.gridWrapper, style, !ready && { opacity: 0 }]} onLayout={onLayout}>
             <Pressable
                 onPress={onPress}
                 style={({ pressed }) => [styles.gridPressable, pressed && styles.pressed]}
@@ -688,7 +691,7 @@ const styles = createStyles({
     gridFavorite: { position: 'absolute', top: 20, left: 20, margin: 0 },
     carousel: { position: 'relative', overflow: 'hidden', backgroundColor: '#3E2723' },
     carouselImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-    carouselCaption: { position: 'absolute', right: 20, bottom: 32, maxWidth: '55%', alignItems: 'flex-end', backgroundColor: 'rgba(20,10,5,0.55)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 },
+    carouselCaption: { position: 'absolute', right: 20, bottom: 32, maxWidth: 340, alignItems: 'flex-end', backgroundColor: 'rgba(20,10,5,0.55)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 },
     carouselTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', textAlign: 'right', textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
     carouselSub: { color: 'rgba(255,255,255,0.92)', fontSize: 13, marginTop: 2, textAlign: 'right', textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
     carouselDots: { position: 'absolute', left: 0, right: 20, bottom: 10, flexDirection: 'row', justifyContent: 'flex-end', gap: 6 },
@@ -789,3 +792,95 @@ const styles = createStyles({
 });
 
 export { ErrorBoundary } from './ErrorBoundary';
+
+/* ------------------------------------------------------------------ */
+/* Pop-ups: one look for every confirm dialog, snackbar and menu       */
+/* ------------------------------------------------------------------ */
+
+/** Rounded snackbar look shared by every screen (dark brown pill with white text). */
+export const snackbarStyle = { borderRadius: 16, backgroundColor: '#3B1D12', marginHorizontal: 16 } as const;
+
+/** Menu panel look (rounded white card) for Paper `Menu` via `contentStyle`. */
+const popupMenu = createStyles({
+    menu: { borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#F0E3D4' },
+});
+export const menuContentStyle = popupMenu.menu;
+
+/** Friendly confirm pop-up: round icon, centered title + message, two big buttons. */
+export function ConfirmDialog({
+    visible,
+    onDismiss,
+    onConfirm,
+    title,
+    message,
+    icon = 'help-circle-outline',
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
+    destructive = false,
+}: {
+    visible: boolean;
+    onDismiss: () => void;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+    icon?: IconName;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    destructive?: boolean;
+}) {
+    useAppTheme();
+    const accent = destructive ? '#C62828' : '#E85D04';
+    return (
+        <Portal>
+            <Dialog visible={visible} onDismiss={onDismiss} style={popup.dialog}>
+                <View style={popup.body}>
+                    <View style={[popup.iconCircle, destructive ? popup.iconCircleDanger : popup.iconCircleWarm]}>
+                        <MaterialCommunityIcons name={icon} size={32} color={accent} />
+                    </View>
+                    <Text style={popup.title}>{title}</Text>
+                    <Text style={popup.message}>{message}</Text>
+                    <View style={popup.actions}>
+                        <Pressable
+                            onPress={onDismiss}
+                            accessibilityRole="button"
+                            style={({ pressed }) => [popup.button, popup.cancel, pressed && popup.pressed]}
+                        >
+                            <Text style={popup.cancelText}>{cancelLabel}</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={onConfirm}
+                            accessibilityRole="button"
+                            style={({ pressed }) => [popup.button, { backgroundColor: accent }, pressed && popup.pressed]}
+                        >
+                            <Text style={popup.confirmText}>{confirmLabel}</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Dialog>
+        </Portal>
+    );
+}
+
+const popup = createStyles({
+    dialog: {
+        alignSelf: 'center',
+        width: '92%',
+        maxWidth: 400,
+        borderRadius: 28,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#F0E3D4',
+    },
+    body: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24 },
+    iconCircle: { width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    iconCircleWarm: { backgroundColor: '#FFF1E3' },
+    iconCircleDanger: { backgroundColor: '#FDECEA' },
+    title: { fontSize: 22, fontWeight: '800', color: '#2B2320', textAlign: 'center' },
+    message: { fontSize: 15, lineHeight: 22, color: '#6D4C41', textAlign: 'center', marginTop: 8 },
+    actions: { flexDirection: 'row', gap: 12, marginTop: 24, alignSelf: 'stretch' },
+    button: { flex: 1, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+    cancel: { backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#E8D5C4' },
+    cancelText: { fontSize: 15, fontWeight: '700', color: '#3E2723' },
+    confirmText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+    pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+});

@@ -26,7 +26,7 @@ export const styles = createStyles({
   heroClip: { ...StyleSheet.absoluteFillObject, borderRadius: 28, overflow: 'hidden', backgroundColor: '#3E2723' },
   themeToggle: { position: 'absolute', top: 12, right: 12, zIndex: 30, margin: 0 },
   heroNarrow: { minHeight: 380 },
-  // Dish name under the search box (phones)
+  // Dish name under the search box (phones and mid-size screens)
   heroDish: { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'stretch', marginTop: 12, marginBottom: 14, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, backgroundColor: 'rgba(20,10,5,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
   heroDishText: { flex: 1 },
   heroDishName: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },

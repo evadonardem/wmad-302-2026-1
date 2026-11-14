@@ -12,13 +12,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Avatar, Button, Card, Dialog, Divider, List, Portal } from 'react-native-paper';
+import { Avatar, Button, Card, Divider, List } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { recipeApi } from '@/services/recipeApi';
 import { routes } from '@/utils/routes';
-import { IconName, Screen, Skeleton, useScrollToTopOnNav } from '@/components';
+import { ConfirmDialog, IconName, Screen, Skeleton, useScrollToTopOnNav } from '@/components';
 import { styles } from './profileStyles';
 import { tc, useAppTheme } from '@/context/ThemeContext';
 
@@ -186,26 +186,19 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      <Portal>
-        <Dialog visible={confirmLogout} onDismiss={() => setConfirmLogout(false)}>
-          <Dialog.Title>Logout</Dialog.Title>
-          <Dialog.Content>
-            <Text style={{ color: tc('#3E2723') }}>Are you sure you want to logout?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setConfirmLogout(false)}>Cancel</Button>
-            <Button
-              textColor={tc('#C62828')}
-              onPress={() => {
-                setConfirmLogout(false);
-                logout();
-              }}
-            >
-              Logout
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <ConfirmDialog
+        visible={confirmLogout}
+        onDismiss={() => setConfirmLogout(false)}
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+        }}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        icon="logout"
+        confirmLabel="Logout"
+        destructive
+      />
     </Screen>
   );
 }

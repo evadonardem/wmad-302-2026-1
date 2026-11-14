@@ -1,5 +1,5 @@
 /**
- * DecorBackground - soft colour blobs and faint food icons behind a screen,
+ * DecorBackground - soft colour blobs and food icons behind a screen,
  * so large empty areas don't look flat. Sits behind everything and ignores touches.
  */
 import React from 'react';
@@ -49,7 +49,7 @@ export function DecorBackground() {
                         position: 'absolute',
                         top: d.top,
                         left: d.left,
-                        opacity: d.opacity ?? 0.05,
+                        opacity: d.opacity ?? 0.14,
                         transform: [{ rotate: d.rotate }],
                     }}
                 />
@@ -60,7 +60,7 @@ export function DecorBackground() {
 
 const styles = createStyles({
     blob: { position: 'absolute', borderRadius: 999 },
-    blobTop: { width: 460, height: 460, top: -200, right: -160, backgroundColor: '#FFE9CC', opacity: 0.55 },
-    blobMid: { width: 340, height: 340, top: '40%', left: -230, backgroundColor: '#FFF3CC', opacity: 0.55 },
-    blobBottom: { width: 420, height: 420, bottom: -230, right: '4%', backgroundColor: '#FFE3D3', opacity: 0.45 },
+    blobTop: { width: 460, height: 460, top: -200, right: -160, backgroundColor: '#FFE9CC', opacity: 1 },
+    blobMid: { width: 340, height: 340, top: '40%', left: -230, backgroundColor: '#FFF3CC', opacity: 1 },
+    blobBottom: { width: 420, height: 420, bottom: -230, right: '4%', backgroundColor: '#FFE3D3', opacity: 0.9 },
 });

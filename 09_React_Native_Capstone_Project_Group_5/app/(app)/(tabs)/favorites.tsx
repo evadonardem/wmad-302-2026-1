@@ -24,9 +24,11 @@ import {
   EmptyState,
   ErrorState,
   IconName,
+  menuContentStyle,
   RecipeGridSkeleton,
   Screen,
   Skeleton,
+  snackbarStyle,
   useScrollToTopOnNav,
 } from '@/components';
 import { styles } from './favoritesStyles';
@@ -192,6 +194,7 @@ export default function FavoritesScreen() {
           </View>
           <Menu
             visible={sortOpen}
+            contentStyle={menuContentStyle}
             onDismiss={() => setSortOpen(false)}
             anchor={
               <Pressable onPress={() => setSortOpen(true)} style={styles.sortButton} accessibilityRole="button" accessibilityLabel="Sort">
@@ -301,6 +304,7 @@ export default function FavoritesScreen() {
       )}
       <Snackbar
         visible={lastRemoved !== null}
+        style={snackbarStyle}
         onDismiss={() => setLastRemoved(null)}
         duration={4000}
         action={{

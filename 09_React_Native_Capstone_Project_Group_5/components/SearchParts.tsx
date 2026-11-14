@@ -76,7 +76,7 @@ export function CardRow({
                     </View>
                 )}
             </View>
-            <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+            <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={width === 0 ? { opacity: 0 } : undefined}>
                 <ScrollView
                     ref={ref}
                     horizontal

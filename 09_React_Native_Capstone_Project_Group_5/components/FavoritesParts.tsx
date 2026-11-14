@@ -35,9 +35,9 @@ export const MEAL_ICONS: Record<string, IconName> = {
 /** One saved recipe: photo with a time tag, title, cuisine and a heart to remove it. */
 export function SavedCard({ recipe, onOpen, onRemove }: { recipe: Recipe; onOpen: () => void; onRemove: () => void }) {
     useAppTheme();
-    const { onLayout, sz } = useCardScale(320);
+    const { onLayout, sz, ready } = useCardScale(320);
     return (
-        <View style={styles.cardWrap} onLayout={onLayout}>
+        <View style={[styles.cardWrap, !ready && { opacity: 0 }]} onLayout={onLayout}>
             <Pressable
                 onPress={onOpen}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}

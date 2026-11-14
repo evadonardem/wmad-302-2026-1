@@ -90,21 +90,6 @@ export const styles = createStyles({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
-  demoContainer: {
-    marginTop: 8,
-  },
-  divider: {
-    marginVertical: 16,
-  },
-  demoButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  demoButtonText: {
-    fontSize: 14,
-    color: '#E85D04',
-    fontWeight: '500',
-  },
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',

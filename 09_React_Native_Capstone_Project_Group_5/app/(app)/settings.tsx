@@ -3,11 +3,12 @@
  */
 import React, { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
-import { Button, Card, Dialog, List, Portal, SegmentedButtons, Switch } from 'react-native-paper';
+import { Card, List, SegmentedButtons, Switch } from 'react-native-paper';
+import { ConfirmDialog } from '@/components';
 import { useAsyncStorage } from '@/hooks';
 import { useFavorites } from '@/context/FavoritesContext';
 import { AppSettings, DEFAULT_SETTINGS, STORAGE_KEYS } from '@/utils/storage';
-import { createStyles, tc, ThemeMode, useAppTheme } from '@/context/ThemeContext';
+import { createStyles, ThemeMode, useAppTheme } from '@/context/ThemeContext';
 
 export default function SettingsScreen() {
     const { mode, setMode } = useAppTheme();
@@ -62,26 +63,19 @@ export default function SettingsScreen() {
 
             <Text style={styles.version}>Cookbook v1.0.0</Text>
 
-            <Portal>
-                <Dialog visible={confirmClear} onDismiss={() => setConfirmClear(false)}>
-                    <Dialog.Title>Clear favorites?</Dialog.Title>
-                    <Dialog.Content>
-                        <Text style={{ color: tc('#3E2723') }}>This removes all {count} saved recipes from this device.</Text>
-                    </Dialog.Content>
-                    <Dialog.Actions>
-                        <Button onPress={() => setConfirmClear(false)}>Cancel</Button>
-                        <Button
-                            textColor={tc('#C62828')}
-                            onPress={() => {
-                                clearFavorites();
-                                setConfirmClear(false);
-                            }}
-                        >
-                            Clear
-                        </Button>
-                    </Dialog.Actions>
-                </Dialog>
-            </Portal>
+            <ConfirmDialog
+                visible={confirmClear}
+                onDismiss={() => setConfirmClear(false)}
+                onConfirm={() => {
+                    clearFavorites();
+                    setConfirmClear(false);
+                }}
+                title="Clear favorites?"
+                message={`This removes all ${count} saved recipes from this device.`}
+                icon="heart-broken-outline"
+                confirmLabel="Clear"
+                destructive
+            />
         </ScrollView>
     );
 }

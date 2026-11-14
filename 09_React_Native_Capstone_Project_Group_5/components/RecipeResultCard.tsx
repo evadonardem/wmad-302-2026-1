@@ -32,9 +32,9 @@ function describe(r: Recipe): string {
 export function RecipeResultCard({ recipe, onPress, isFavorite, onToggleFavorite }: Props) {
     useAppTheme();
     const color = HAT_COLOR[recipe.difficulty];
-    const { onLayout, sz } = useCardScale(330);
+    const { onLayout, sz, ready } = useCardScale(330);
     return (
-        <View style={styles.wrapper} onLayout={onLayout}>
+        <View style={[styles.wrapper, !ready && { opacity: 0 }]} onLayout={onLayout}>
             <Pressable
                 onPress={onPress}
                 style={({ pressed }) => [styles.card, { padding: sz(12), borderRadius: sz(24) }, pressed && styles.pressed]}

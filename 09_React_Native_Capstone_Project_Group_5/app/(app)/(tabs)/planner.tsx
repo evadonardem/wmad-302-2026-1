@@ -8,7 +8,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, Text, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, Dialog, Portal, Snackbar } from 'react-native-paper';
+import { Button, Snackbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { recipeApi } from '@/services/recipeApi';
@@ -28,7 +28,7 @@ import {
     startOfWeek,
 } from '@/utils/recipeFilters';
 import { routes } from '@/utils/routes';
-import { ErrorState, Screen, Skeleton, useScrollToTopOnNav } from '@/components';
+import { ConfirmDialog, ErrorState, Screen, Skeleton, snackbarStyle, useScrollToTopOnNav } from '@/components';
 import { MEAL_ICON, Slot, itemKey, SlotCell, SlotRow, RecipePicker, ShoppingCard } from '@/components/PlannerParts';
 import { createStyles, tc, useAppTheme } from '@/context/ThemeContext';
 
@@ -431,24 +431,18 @@ export default function PlannerScreen() {
                 }}
             />
 
-            <Portal>
-                <Dialog visible={confirmClear} onDismiss={() => setConfirmClear(false)}>
-                    <Dialog.Title>Clear this week?</Dialog.Title>
-                    <Dialog.Content>
-                        <Text style={{ color: tc('#3E2723') }}>
-                            This removes every planned meal for {formatWeekRange(weekStart)}.
-                        </Text>
-                    </Dialog.Content>
-                    <Dialog.Actions>
-                        <Button onPress={() => setConfirmClear(false)}>Cancel</Button>
-                        <Button textColor={tc('#C62828')} onPress={onClearWeek}>
-                            Clear
-                        </Button>
-                    </Dialog.Actions>
-                </Dialog>
-            </Portal>
+            <ConfirmDialog
+                visible={confirmClear}
+                onDismiss={() => setConfirmClear(false)}
+                onConfirm={onClearWeek}
+                title="Clear this week?"
+                message={`This removes every planned meal for ${formatWeekRange(weekStart)}.`}
+                icon="calendar-remove-outline"
+                confirmLabel="Clear"
+                destructive
+            />
 
-            <Snackbar visible={!!snack} onDismiss={() => setSnack('')} duration={2600}>
+            <Snackbar visible={!!snack} onDismiss={() => setSnack('')} duration={2600} style={snackbarStyle}>
                 {snack}
             </Snackbar>
         </Screen>

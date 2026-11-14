@@ -87,6 +87,9 @@ export default function HomeScreen() {
   // 1 column on phones, 2 on tablets, 3 on desktop
   const columns = width >= 760 ? 3 : width >= 460 ? 2 : 1;
   const wide = width >= 700;
+  // The dish name sits in the banner's corner only when the screen is wide enough to not touch the search box;
+  // otherwise it moves into a chip under the search box.
+  const cornerCaption = width >= 1100;
 
   // Numbered pages, 10 recipes each
   const [page, setPage] = useState(1);
@@ -163,14 +166,14 @@ export default function HomeScreen() {
   const header = (
     <View>
       {/* Hero banner: the photo carousel fills the whole card, the text sits on a smooth dark fade */}
-      <View style={[styles.hero, !wide && styles.heroNarrow]}>
+      <View style={[styles.hero, !cornerCaption && styles.heroNarrow]}>
         {/* Clipped layer (rounded corners); the search dropdown below is NOT clipped */}
         <View pointerEvents="box-none" style={styles.heroClip}>
           <HeroCarousel
             recipes={heroRecipes}
             onPressRecipe={(r) => router.push(routes.recipe(r.id))}
             style={StyleSheet.absoluteFill}
-            showCaption={wide}
+            showCaption={cornerCaption}
             onChange={setHeroCurrent}
           />
           {wide ? <FadeScrim /> : <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.scrimFlat]} />}
@@ -193,7 +196,7 @@ export default function HomeScreen() {
             <Text style={styles.heroAccent}>Delicious</Text> Recipes
           </Text>
           <HeroSearch />
-          {!wide && heroCurrent && (
+          {!cornerCaption && heroCurrent && (
             <TouchableOpacity
               onPress={() => router.push(routes.recipe(heroCurrent.id))}
               activeOpacity={0.85}
