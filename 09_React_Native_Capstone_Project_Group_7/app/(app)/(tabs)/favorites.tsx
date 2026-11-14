@@ -26,7 +26,7 @@ import { Recipe } from '@/types/recipe';
 export default function FavoritesScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const numColumns = width >= 960 ? 3 : width >= 600 ? 2 : 1;
+  const numColumns = width >= 960 ? 3 : width >= 360 ? 2 : 1;
 
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [notes, setNotes] = useState<Record<number, string>>({});
@@ -248,19 +248,19 @@ const ui = StyleSheet.create({
     width: '100%',
     maxWidth: 1120,
     alignSelf: 'center',
-    padding: 16,
+    padding: 12,
     paddingBottom: 32,
   },
   columnRow: {
-    gap: 16,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 10,
   },
   gridItem: {
     flex: 1,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   header: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   kicker: {
     fontSize: 11,
@@ -283,7 +283,7 @@ const ui = StyleSheet.create({
   imageBox: {
     position: 'relative',
     width: '100%',
-    height: 195,
+    height: 145,
     backgroundColor: '#EFE6DD',
   },
   heroImage: {
@@ -298,7 +298,7 @@ const ui = StyleSheet.create({
     gap: 2,
   },
   cardBody: {
-    padding: 14,
+    padding: 10,
   },
   tagRow: {
     flexDirection: 'row',
@@ -312,8 +312,8 @@ const ui = StyleSheet.create({
     backgroundColor: '#FFF3E0',
   },
   title: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 19,
     fontWeight: '700',
     color: '#2D1B14',
     marginBottom: 6,

@@ -27,6 +27,8 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#E85D04',
+        tabBarLabelPosition: 'below-icon',
+        tabBarItemStyle: { paddingVertical: 4 },
         tabBarInactiveTintColor: '#8D6E63',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
@@ -40,7 +42,7 @@ export default function TabsLayout() {
           paddingBottom: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '500',
         },
       }}
