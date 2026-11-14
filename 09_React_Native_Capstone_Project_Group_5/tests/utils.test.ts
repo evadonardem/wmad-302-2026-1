@@ -10,6 +10,8 @@ import {
     addDays,
     aisleFor,
     buildShoppingList,
+    buildTasteProfile,
+    generateTastePlan,
     canonicalMealType,
     dateKey,
     filterRecipes,
@@ -218,6 +220,35 @@ describe('meal types and the meal planner', () => {
         expect(added).toBe(20);
         expect(plan['2025-06-23|Dinner']).toBe(3);
         expect(new Set(Object.values(plan)).size).toBe(21);
+    });
+
+    it('learns a taste profile from favorites', () => {
+        const favs = [
+            make({ id: 1, cuisine: 'Italian', tags: ['Pasta', 'Cheesy'], caloriesPerServing: 600, cookTimeMinutes: 50 }),
+            make({ id: 2, cuisine: 'Italian', tags: ['Pasta'], caloriesPerServing: 500, cookTimeMinutes: 50 }),
+            make({ id: 3, cuisine: 'Asian', tags: ['Noodles'], caloriesPerServing: 400, cookTimeMinutes: 50, difficulty: 'Medium' }),
+        ];
+        const taste = buildTasteProfile(favs);
+        expect(taste.total).toBe(3);
+        expect(taste.cuisines[0]).toEqual({ name: 'Italian', count: 2, pct: 67 });
+        expect(taste.tags[0].name).toBe('Pasta');
+        expect(taste.avgCalories).toBe(500);
+        expect(taste.avgTime).toBe(60);
+        expect(taste.title).toBe('Italian Hearty Eater');
+        expect(buildTasteProfile([]).total).toBe(0);
+    });
+
+    it('plans meals that fit the taste and fills every empty slot', () => {
+        // 30 Italian + 30 Asian recipes, so there are enough Italian ones for all 21 slots
+        const pool = Array.from({ length: 60 }, (_, i) =>
+            make({ id: i + 1, cuisine: i % 2 === 0 ? 'Italian' : 'Asian', mealType: ['Breakfast', 'Lunch', 'Dinner'] })
+        );
+        const taste = buildTasteProfile([make({ id: 1, cuisine: 'Italian' })]);
+        const monday = startOfWeek(new Date(2025, 5, 25));
+        const { plan, added } = generateTastePlan(pool, monday, {}, taste, () => 0);
+        expect(added).toBe(21);
+        const picked = Object.values(plan).map((id) => pool.find((r) => r.id === id)?.cuisine);
+        expect(picked.every((c) => c === 'Italian')).toBe(true);
     });
 
     it('combines ingredients into aisles', () => {

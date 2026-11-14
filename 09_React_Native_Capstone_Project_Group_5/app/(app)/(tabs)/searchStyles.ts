@@ -71,7 +71,6 @@ export const styles = createStyles({
     height: 50,
   },
   bannerButtonText: { fontSize: 15, fontWeight: '700', color: '#2A2124' },
-  rowScroll: { gap: 16, paddingVertical: 8, paddingRight: 8 },
   rowCard: { width: 290 },
   skeletonRow: { flexDirection: 'row', gap: 16, marginTop: 24, overflow: 'hidden' },
   resultsMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 },
@@ -81,8 +80,4 @@ export const styles = createStyles({
   clearText: { fontSize: 13, fontWeight: '700', color: '#D81B60', marginLeft: 4 },
   footer: { paddingVertical: 24, alignItems: 'center', gap: 12 },
   loadMoreInfo: { fontSize: 13, color: '#8A6673' },
-  loadMoreBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 28, borderRadius: 24, backgroundColor: '#D81B60', shadowColor: '#D81B60', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
-  loadMorePressed: { opacity: 0.8 },
-  loadMoreText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
-  loadingBox: { paddingVertical: 40, alignItems: 'center' },
 });

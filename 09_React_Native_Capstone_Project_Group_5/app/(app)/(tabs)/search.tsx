@@ -11,7 +11,7 @@
  * sort options and infinite scroll.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFavorites } from '@/context/FavoritesContext';
@@ -35,7 +35,7 @@ import { styles } from './searchStyles';
 import { RowTitle, CardRow } from '@/components/SearchParts';
 import { tc, useAppTheme } from '@/context/ThemeContext';
 
-const PAGE_SIZE = 10; // 10 at first, "Load more" adds 10 each time
+const PAGE_SIZE = 9; // 9 at first; the next 9 load by themselves when you scroll to the bottom
 const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 const SORTS: { value: SortOption; label: string }[] = [
   { value: 'relevance', label: 'Relevance' },
@@ -44,8 +44,6 @@ const SORTS: { value: SortOption; label: string }[] = [
   { value: 'calories', label: 'Lowest calories' },
 ];
 const SIDEBAR_WIDTH = 300;
-
-
 
 export default function SearchScreen() {
   useAppTheme();
@@ -264,6 +262,13 @@ export default function SearchScreen() {
     </View>
   );
 
+  // onEndReached alone is not reliable on web (tall header + grid), so also check the scroll position:
+  // when the person is within 400px of the bottom, load the next 9 (loadMore ignores repeat calls).
+  const loadWhenNearBottom = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    if (contentSize.height > 0 && layoutMeasurement.height + contentOffset.y >= contentSize.height - 400) loadMore();
+  };
+
   const results = (
     <FlatList
       ref={resultsRef}
@@ -302,30 +307,23 @@ export default function SearchScreen() {
           />
         )
       }
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
+      onScroll={loadWhenNearBottom}
+      scrollEventThrottle={120}
       ListFooterComponent={
         !loading && data.length > 0 ? (
           <View style={styles.footer}>
-            <Text style={styles.loadMoreInfo}>
-              Showing {data.length} of {total ?? data.length} recipes
-            </Text>
-            {hasMore ? (
-              <Pressable
-                onPress={loadMore}
-                disabled={loadingMore}
-                accessibilityRole="button"
-                accessibilityLabel="Load more recipes"
-                style={({ pressed }) => [styles.loadMoreBtn, (pressed || loadingMore) && styles.loadMorePressed]}
-              >
-                {loadingMore ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <MaterialCommunityIcons name="chevron-down-circle-outline" size={20} color="#FFFFFF" />
-                )}
-                <Text style={styles.loadMoreText}>{loadingMore ? 'Loading…' : 'Load more recipes'}</Text>
-              </Pressable>
+            {loadingMore ? (
+              <ActivityIndicator color="#D81B60" />
+            ) : hasMore ? (
+              <Text style={styles.loadMoreInfo}>Scroll for more recipes</Text>
             ) : (
               <Text style={styles.loadMoreInfo}>You&apos;ve reached the end 🍽️</Text>
             )}
+            <Text style={styles.loadMoreInfo}>
+              Showing {data.length} of {total ?? data.length} recipes
+            </Text>
           </View>
         ) : null
       }

@@ -16,11 +16,13 @@ import { Recipe } from '@/types/recipe';
 import {
     addDays,
     buildShoppingList,
+    buildTasteProfile,
     DAY_NAMES,
     dateKey,
     formatShortDate,
     formatWeekRange,
     generatePlan,
+    generateTastePlan,
     MealPlan,
     PLAN_MEALS,
     PlanMeal,
@@ -28,33 +30,12 @@ import {
     startOfWeek,
 } from '@/utils/recipeFilters';
 import { routes } from '@/utils/routes';
+import { useFavorites } from '@/context/FavoritesContext';
 import { ConfirmDialog, ErrorState, Screen, Skeleton, snackbarStyle, useScrollToTopOnNav } from '@/components';
 import { MEAL_ICON, Slot, itemKey, SlotCell, SlotRow, RecipePicker, ShoppingCard } from '@/components/PlannerParts';
 import { createStyles, tc, useAppTheme } from '@/context/ThemeContext';
 
 const STORAGE_KEY = 'meal_plan_v1';
-
-
-
-
-
-/* ------------------------------------------------------------------ */
-/* Small pieces                                                        */
-/* ------------------------------------------------------------------ */
-
-
-
-
-
-/* ------------------------------------------------------------------ */
-/* Recipe picker                                                       */
-/* ------------------------------------------------------------------ */
-
-
-/* ------------------------------------------------------------------ */
-/* Shopping list                                                       */
-/* ------------------------------------------------------------------ */
-
 
 /* ------------------------------------------------------------------ */
 /* Screen                                                              */
@@ -65,6 +46,7 @@ export default function PlannerScreen() {
     const scrollRef = useRef<ScrollView>(null);
     useScrollToTopOnNav(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
     const router = useRouter();
+    const { ids: favoriteIds } = useFavorites();
     const { width } = useWindowDimensions();
     const wide = width >= 1000;
 
@@ -135,7 +117,30 @@ export default function PlannerScreen() {
     const daysWithMeals = days.filter((d) => dayCalories(d) > 0).length;
     const avgCalories = daysWithMeals > 0 ? Math.round(planned.reduce((s, r) => s + r.caloriesPerServing, 0) / daysWithMeals) : 0;
 
-    const groups = useMemo(() => buildShoppingList(planned), [planned]);
+    // Shopping list scope: the whole week, or just one chosen day
+    const [scope, setScope] = useState<'week' | 'day'>('week');
+    const [shopDay, setShopDay] = useState(dayIndex);
+    const dayCounts = useMemo(
+        () => days.map((d) => PLAN_MEALS.filter((m) => slots[slotKey(d, m)] !== undefined && byId.has(slots[slotKey(d, m)])).length),
+        [days, slots, byId]
+    );
+    const listRecipes = useMemo(() => {
+        if (scope === 'week') return planned;
+        const list: Recipe[] = [];
+        PLAN_MEALS.forEach((m) => {
+            const id = slots[slotKey(days[shopDay], m)];
+            const r = id === undefined ? undefined : byId.get(id);
+            if (r) list.push(r);
+        });
+        return list;
+    }, [scope, planned, slots, days, shopDay, byId]);
+    const listDate = scope === 'day' ? days[shopDay] : weekStart; // ticks are saved per list
+    const groups = useMemo(() => buildShoppingList(listRecipes), [listRecipes]);
+
+    const changeScope = (next: 'week' | 'day') => {
+        if (next === 'day') setShopDay(dayIndex); // start from the day being viewed
+        setScope(next);
+    };
 
     const changeWeek = (delta: number) => {
         const next = addDays(weekStart, delta * 7);
@@ -160,6 +165,24 @@ export default function PlannerScreen() {
         if (added > 0) setListOpen(false);
     };
 
+    // Fill the empty slots with recipes that match what the person usually favorites
+    const onGenerateTaste = () => {
+        if (!recipes) return;
+        const taste = buildTasteProfile(recipes.filter((r) => favoriteIds.includes(r.id)));
+        if (taste.total === 0) {
+            setSnack('Favorite a few recipes first, then I can learn your taste');
+            return;
+        }
+        const { plan, added } = generateTastePlan(recipes, weekStart, slots, taste);
+        setSlots(plan);
+        setSnack(
+            added > 0
+                ? `Planned ${added} meal${added === 1 ? '' : 's'} for your taste: ${taste.title}`
+                : 'Every meal this week is already planned'
+        );
+        if (added > 0) setListOpen(false);
+    };
+
     const onClearWeek = () => {
         setSlots((prev) => {
             const next = { ...prev };
@@ -174,7 +197,8 @@ export default function PlannerScreen() {
         const lines = groups
             .map((g) => `${g.aisle}\n${g.items.map((i) => `- ${i.name}${i.count > 1 ? ` x${i.count}` : ''}`).join('\n')}`)
             .join('\n\n');
-        const text = `Shopping list (${formatWeekRange(weekStart)})\n\n${lines}`;
+        const title = scope === 'day' ? `${DAY_NAMES[shopDay]}, ${formatShortDate(days[shopDay])}` : formatWeekRange(weekStart);
+        const text = `Shopping list (${title})\n\n${lines}`;
         if (Platform.OS === 'web') {
             const nav = (globalThis as unknown as { navigator?: { clipboard?: { writeText: (t: string) => Promise<void> } } })
                 .navigator;
@@ -194,12 +218,12 @@ export default function PlannerScreen() {
     };
 
     const toggleItem = (name: string) =>
-        setChecked((prev) => ({ ...prev, [itemKey(weekStart, name)]: !prev[itemKey(weekStart, name)] }));
+        setChecked((prev) => ({ ...prev, [itemKey(listDate, name)]: !prev[itemKey(listDate, name)] }));
 
     const clearChecked = () =>
         setChecked((prev) => {
             const next = { ...prev };
-            const prefix = `${dateKey(weekStart)}|`;
+            const prefix = `${dateKey(listDate)}|`;
             Object.keys(next).forEach((k) => k.startsWith(prefix) && delete next[k]);
             return next;
         });
@@ -375,8 +399,15 @@ export default function PlannerScreen() {
 
                 <ShoppingCard
                     groups={groups}
-                    mealCount={planned.length}
-                    weekStart={weekStart}
+                    mealCount={listRecipes.length}
+                    weekMealCount={planned.length}
+                    scope={scope}
+                    onScopeChange={changeScope}
+                    days={days}
+                    dayCounts={dayCounts}
+                    dayIndex={shopDay}
+                    onDayChange={setShopDay}
+                    weekStart={listDate}
                     checked={checked}
                     open={listOpen}
                     onToggleOpen={() => setListOpen((v) => !v)}
@@ -404,6 +435,16 @@ export default function PlannerScreen() {
                                 Clear week
                             </Button>
                         )}
+                        <Button
+                            mode="outlined"
+                            icon="dna"
+                            textColor="#D81B60"
+                            onPress={onGenerateTaste}
+                            disabled={!recipes}
+                            compact
+                        >
+                            From my taste
+                        </Button>
                         <Button
                             mode="contained"
                             icon="auto-fix"
@@ -457,7 +498,7 @@ const styles = createStyles({
     title: { fontSize: 30, fontWeight: '800', color: '#2A2124' },
     titleAccent: { color: '#D81B60' },
     subtitle: { fontSize: 14, color: '#8A6673', marginTop: 4 },
-    headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    headerButtons: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
     generate: { borderRadius: 14 },
     generateContent: { paddingVertical: 4, paddingHorizontal: 6 },
     card: {

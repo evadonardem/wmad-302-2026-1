@@ -6,7 +6,7 @@ import { createStyles } from '@/context/ThemeContext';
 export const styles = createStyles({
   container: {
     flex: 1,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#FEF9FB',
     overflow: 'hidden',
   },
   scrollContent: {
@@ -28,12 +28,12 @@ export const styles = createStyles({
   appName: {
     fontSize: 38,
     fontWeight: '800',
-    color: '#3E2723',
+    color: '#3C252D',
     letterSpacing: -0.5,
   },
   tagline: {
     fontSize: 16,
-    color: '#8D6E63',
+    color: '#8A6673',
     marginTop: 4,
   },
   card: {
@@ -42,7 +42,7 @@ export const styles = createStyles({
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F3E3D3',
+    borderColor: '#F1D5DF',
   },
   cardContent: {
     padding: 28,
@@ -50,13 +50,13 @@ export const styles = createStyles({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#3E2723',
+    color: '#3C252D',
     textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#8D6E63',
+    color: '#8A6673',
     textAlign: 'center',
     marginBottom: 28,
   },
@@ -101,14 +101,14 @@ export const styles = createStyles({
   },
   registerText: {
     fontSize: 14,
-    color: '#8D6E63',
+    color: '#8A6673',
   },
   link: {
     paddingHorizontal: 4,
   },
   linkText: {
     fontSize: 14,
-    color: '#E85D04',
+    color: '#D81B60',
     fontWeight: '600',
   },
   footer: {
@@ -117,21 +117,21 @@ export const styles = createStyles({
   },
   footerText: {
     fontSize: 12,
-    color: '#8D6E63',
+    color: '#8A6673',
     textAlign: 'center',
     lineHeight: 18,
   },
 
   /* ---- Login screen extras ---- */
   lgBadgeArea: { width: 190, height: 150, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  lgBadgeRing: { width: 124, height: 124, borderRadius: 62, backgroundColor: '#FFE3C7', alignItems: 'center', justifyContent: 'center' },
+  lgBadgeRing: { width: 124, height: 124, borderRadius: 62, backgroundColor: '#FBCBDD', alignItems: 'center', justifyContent: 'center' },
   lgBadge: {
     width: 96,
     height: 96,
     borderRadius: 48,
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
-    borderColor: '#E85D04',
+    borderColor: '#D81B60',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -140,7 +140,7 @@ export const styles = createStyles({
   lgFloatTR: { top: 0, right: 10 },
   lgFloatBL: { bottom: 6, left: 14 },
   lgFloatBR: { bottom: 10, right: 6 },
-  lgAppNameAccent: { color: '#E85D04' },
+  lgAppNameAccent: { color: '#D81B60' },
   lgPerks: { flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' },
   lgPerk: {
     flexDirection: 'row',
@@ -151,13 +151,71 @@ export const styles = createStyles({
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F3E3D3',
+    borderColor: '#F1D5DF',
   },
-  lgPerkText: { fontSize: 12, fontWeight: '700', color: '#6D4C41' },
-  lgCardStripe: { height: 6, backgroundColor: '#E85D04' },
+  lgPerkText: { fontSize: 12, fontWeight: '700', color: '#6A4452' },
+  lgCardStripe: { height: 6, backgroundColor: '#D81B60' },
   lgInputOutline: { borderRadius: 16 },
   lgLoginButton: { marginTop: 8, marginBottom: 8, borderRadius: 26, height: 54, justifyContent: 'center' },
   lgFooterEmoji: { fontSize: 22, letterSpacing: 6, marginBottom: 10 },
+
+  /* ---- Login: split layout ---- */
+  spSplit: { flex: 1, flexDirection: 'row' },
+  spPanel: { flex: 1.05, backgroundColor: '#D81B60', padding: 56, justifyContent: 'space-between', overflow: 'hidden' },
+  spPanelBody: { zIndex: 1, paddingRight: 72 },
+  spPanelFoot: { fontSize: 24, letterSpacing: 8, color: '#FFFFFF', zIndex: 1 },
+  spHeader: { backgroundColor: '#D81B60', paddingHorizontal: 24, paddingTop: 56, paddingBottom: 72, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, overflow: 'hidden' },
+  spHeaderBody: { marginTop: 22, zIndex: 1, paddingRight: 56 },
+  spCircleA: { position: 'absolute', width: 320, height: 320, borderRadius: 160, top: -110, right: -90, backgroundColor: 'rgba(255,255,255,0.12)' },
+  spCircleB: { position: 'absolute', width: 220, height: 220, borderRadius: 110, bottom: -70, left: -60, backgroundColor: 'rgba(255,255,255,0.10)' },
+  spCircleC: { position: 'absolute', width: 120, height: 120, borderRadius: 60, top: '46%', right: 40, backgroundColor: 'rgba(255,255,255,0.08)' },
+  spFloater: { position: 'absolute', fontSize: 30, zIndex: 1 },
+  spFloatA: { top: 48, right: 20, transform: [{ rotate: '12deg' }] },
+  spFloatB: { top: 108, right: 46 },
+  spFloatC: { top: 168, right: 22 },
+  spFloatD: { top: 228, right: 46 },
+  spBrandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 1 },
+  spLogo: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  spLogoEmoji: { fontSize: 26 },
+  spBrandName: { fontSize: 26, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.4 },
+  spHeadline: { fontSize: 46, lineHeight: 52, fontWeight: '800', color: '#FFFFFF', letterSpacing: -1 },
+  spHeadlineSmall: { fontSize: 30, lineHeight: 36, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5 },
+  spLead: { fontSize: 15, lineHeight: 22, color: 'rgba(255,255,255,0.88)', marginTop: 12, maxWidth: 420 },
+  spPerks: { marginTop: 32, gap: 16 },
+  spPerk: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  spPerkIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  spPerkText: { flex: 1 },
+  spPerkTitle: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+  spPerkSub: { fontSize: 13, color: 'rgba(255,255,255,0.82)', marginTop: 1 },
+  spRight: { flex: 1 },
+  spRightContent: { flexGrow: 1, justifyContent: 'center', padding: 40 },
+  spFormWide: { width: '100%', maxWidth: 420, alignSelf: 'center' },
+  spPhoneScroll: { flexGrow: 1 },
+  spSheet: {
+    marginTop: -40,
+    marginHorizontal: 16,
+    marginBottom: 32,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#F1D5DF',
+    shadowColor: '#5A0F2E',
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+    maxWidth: 520,
+    alignSelf: 'center',
+    width: '92%',
+  },
+  spTitle: { fontSize: 28, fontWeight: '800', color: '#3C252D', marginBottom: 4 },
+  spSubtitle: { fontSize: 14, color: '#8A6673', marginBottom: 24 },
+  spDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, marginBottom: 14 },
+  spDividerLine: { flex: 1, height: 1, backgroundColor: '#F1D5DF' },
+  spDividerText: { fontSize: 12, fontWeight: '700', color: '#8A6673', textTransform: 'uppercase', letterSpacing: 0.8 },
+  spCreate: { borderRadius: 26, borderColor: '#D81B60', borderWidth: 1.5 },
+  spTerms: { fontSize: 12, color: '#8A6673', textAlign: 'center', lineHeight: 18, marginTop: 20 },
 
   /* ---- Register screen ---- */
   nameRow: {
@@ -177,7 +235,7 @@ export const styles = createStyles({
   },
   genderLabel: {
     fontSize: 12,
-    color: '#8D6E63',
+    color: '#8A6673',
     marginBottom: 6,
   },
   genderOptions: {
@@ -189,18 +247,18 @@ export const styles = createStyles({
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#BCAAA4',
+    borderColor: '#BAA6AD',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   genderOptionSelected: {
-    backgroundColor: '#E85D04',
-    borderColor: '#E85D04',
+    backgroundColor: '#D81B60',
+    borderColor: '#D81B60',
   },
   genderOptionText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#5D4037',
+    color: '#5A3A46',
   },
   genderOptionTextSelected: {
     color: '#FFFFFF',
@@ -216,7 +274,7 @@ export const styles = createStyles({
   termsText: {
     flex: 1,
     fontSize: 13,
-    color: '#5D4037',
+    color: '#5A3A46',
     lineHeight: 18,
   },
   registerButton: {
@@ -232,6 +290,6 @@ export const styles = createStyles({
   },
   loginText: {
     fontSize: 14,
-    color: '#8D6E63',
+    color: '#8A6673',
   },
 });

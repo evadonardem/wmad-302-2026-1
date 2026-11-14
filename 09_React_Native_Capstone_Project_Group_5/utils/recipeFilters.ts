@@ -183,6 +183,115 @@ export function generatePlan(
     return { plan, added };
 }
 
+/* ------------------------------------------------------------------ */
+/* Taste DNA - what the person likes, learned from their favorites     */
+/* ------------------------------------------------------------------ */
+
+export interface TasteShare {
+    name: string;
+    count: number;
+    /** Share of the favorites that have it (0-100). */
+    pct: number;
+}
+
+export interface TasteProfile {
+    total: number;
+    ids: number[];
+    cuisines: TasteShare[];
+    tags: TasteShare[];
+    mealTypes: TasteShare[];
+    difficulties: TasteShare[];
+    avgCalories: number;
+    avgTime: number;
+    avgRating: number;
+    /** A short nickname such as "Italian Hearty Eater". */
+    title: string;
+}
+
+function tally(values: string[][], total: number): TasteShare[] {
+    const counts = new Map<string, number>();
+    values.forEach((list) => new Set(list).forEach((v) => counts.set(v, (counts.get(v) ?? 0) + 1)));
+    return Array.from(counts, ([name, count]) => ({ name, count, pct: Math.round((count / total) * 100) })).sort(
+        (a, b) => b.count - a.count || a.name.localeCompare(b.name)
+    );
+}
+
+/** Looks at the favorite recipes and works out the cuisines, flavors, meal types and size the person likes. */
+export function buildTasteProfile(favorites: Recipe[]): TasteProfile {
+    const total = favorites.length;
+    if (total === 0) {
+        return { total: 0, ids: [], cuisines: [], tags: [], mealTypes: [], difficulties: [], avgCalories: 0, avgTime: 0, avgRating: 0, title: '' };
+    }
+    const avg = (f: (r: Recipe) => number) => favorites.reduce((n, r) => n + f(r), 0) / total;
+    const avgCalories = Math.round(avg((r) => r.caloriesPerServing));
+    const avgTime = Math.round(avg(totalTime));
+    const avgRating = Math.round(avg((r) => r.rating) * 10) / 10;
+    const cuisines = tally(favorites.map((r) => [r.cuisine]), total);
+    const vibe = avgTime <= 35 ? 'Speedy Cook' : avgCalories <= 300 ? 'Light Eater' : avgCalories >= 450 ? 'Hearty Eater' : 'Food Explorer';
+    return {
+        total,
+        ids: favorites.map((r) => r.id),
+        cuisines,
+        tags: tally(favorites.map((r) => r.tags), total),
+        mealTypes: tally(favorites.map(mealTypesOf), total),
+        difficulties: tally(favorites.map((r) => [r.difficulty]), total),
+        avgCalories,
+        avgTime,
+        avgRating,
+        title: `${cuisines[0].name} ${vibe}`,
+    };
+}
+
+/** How well a recipe fits a taste profile (higher is better). */
+export function tasteScore(recipe: Recipe, taste: TasteProfile): number {
+    if (taste.total === 0) return 0;
+    const share = (list: TasteShare[], name: string) => (list.find((s) => s.name === name)?.pct ?? 0) / 100;
+    let score = share(taste.cuisines, recipe.cuisine) * 3;
+    score += recipe.tags.reduce((n, t) => n + share(taste.tags, t), 0) * 0.5;
+    score += share(taste.difficulties, recipe.difficulty);
+    if (taste.avgCalories > 0) {
+        score += Math.max(0, 1 - Math.abs(recipe.caloriesPerServing - taste.avgCalories) / taste.avgCalories) * 0.5;
+    }
+    score += (recipe.rating / 5) * 0.5;
+    if (taste.ids.includes(recipe.id)) score += 1; // they already love this one
+    return score;
+}
+
+/**
+ * Like generatePlan, but each empty slot is filled with a recipe that fits the taste profile.
+ * It picks at random among the 4 best matches so the week still has variety, and avoids repeats.
+ */
+export function generateTastePlan(
+    recipes: Recipe[],
+    weekStart: Date,
+    existing: MealPlan,
+    taste: TasteProfile,
+    random: () => number = Math.random
+): { plan: MealPlan; added: number } {
+    const plan: MealPlan = { ...existing };
+    const used = new Set<number>(Object.values(existing));
+    let added = 0;
+    for (let i = 0; i < 7; i++) {
+        for (const meal of PLAN_MEALS) {
+            const key = slotKey(addDays(weekStart, i), meal);
+            if (plan[key] !== undefined) continue;
+            const matching = recipes.filter((r) => hasMealType(r, meal));
+            const pool = matching.length > 0 ? matching : recipes;
+            if (pool.length === 0) continue;
+            const fresh = pool.filter((r) => !used.has(r.id));
+            const choices = (fresh.length > 0 ? fresh : pool)
+                .map((r) => ({ r, score: tasteScore(r, taste) }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 4);
+            const pick = choices[Math.floor(random() * choices.length)].r;
+            plan[key] = pick.id;
+            used.add(pick.id);
+            added += 1;
+        }
+    }
+    return { plan, added };
+}
+
 export interface ShoppingGroup {
     aisle: string;
     items: { name: string; count: number }[];

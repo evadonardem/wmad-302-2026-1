@@ -310,6 +310,13 @@ export function RecipePicker({
 export function ShoppingCard({
     groups,
     mealCount,
+    weekMealCount,
+    scope,
+    onScopeChange,
+    days,
+    dayCounts,
+    dayIndex,
+    onDayChange,
     weekStart,
     checked,
     open,
@@ -320,6 +327,16 @@ export function ShoppingCard({
 }: {
     groups: ShoppingGroup[];
     mealCount: number;
+    /** Meals planned in the whole week (decides whether the scope picker is shown). */
+    weekMealCount: number;
+    scope: 'week' | 'day';
+    onScopeChange: (scope: 'week' | 'day') => void;
+    days: Date[];
+    /** Number of planned meals for each of the 7 days. */
+    dayCounts: number[];
+    dayIndex: number;
+    onDayChange: (index: number) => void;
+    /** Date the ticks are saved under (the week start, or the chosen day for a one-day list). */
     weekStart: Date;
     checked: Record<string, boolean>;
     open: boolean;
@@ -356,8 +373,53 @@ export function ShoppingCard({
                 </Button>
             </View>
 
+            {weekMealCount > 0 && (
+                <View style={styles.scopeBlock}>
+                    <View style={styles.toggleRow}>
+                        <Pressable
+                            onPress={() => onScopeChange('week')}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: scope === 'week' }}
+                            style={[styles.toggle, scope === 'week' && styles.toggleActive]}
+                        >
+                            <Text style={[styles.toggleText, scope === 'week' && styles.toggleTextActive]}>Whole week</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => onScopeChange('day')}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: scope === 'day' }}
+                            style={[styles.toggle, scope === 'day' && styles.toggleActive]}
+                        >
+                            <Text style={[styles.toggleText, scope === 'day' && styles.toggleTextActive]}>Just one day</Text>
+                        </Pressable>
+                    </View>
+                    {scope === 'day' && (
+                        <View style={styles.dayChips}>
+                            {days.map((d, i) => (
+                                <Pressable
+                                    key={i}
+                                    onPress={() => onDayChange(i)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`${DAY_NAMES[i]}, ${dayCounts[i]} planned meals`}
+                                    accessibilityState={{ selected: dayIndex === i }}
+                                    style={[styles.dayChip, dayIndex === i && styles.dayChipActive]}
+                                >
+                                    <Text style={[styles.dayChipName, dayIndex === i && styles.dayChipTextActive]}>{DAY_NAMES[i].slice(0, 3)}</Text>
+                                    <Text style={[styles.dayChipDate, dayIndex === i && styles.dayChipTextActive]}>{d.getDate()}</Text>
+                                    <View style={[styles.dayDot, dayCounts[i] > 0 && styles.dayDotOn, dayIndex === i && dayCounts[i] > 0 && styles.dayDotActive]} />
+                                </Pressable>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            )}
+
             {mealCount === 0 && (
-                <Text style={styles.shopHint}>Plan at least one meal this week and your ingredients will show up here.</Text>
+                <Text style={styles.shopHint}>
+                    {scope === 'day' && weekMealCount > 0
+                        ? `Nothing is planned for ${DAY_NAMES[dayIndex]}. Pick another day or plan a meal for it.`
+                        : 'Plan at least one meal this week and your ingredients will show up here.'}
+                </Text>
             )}
 
             {open && mealCount > 0 && (
@@ -470,6 +532,16 @@ const styles = createStyles({
     sheetClose: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EBEF' },
     searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, borderRadius: 23, paddingHorizontal: 14, backgroundColor: '#F5EBEF', borderWidth: 1, borderColor: '#E9CED8' },
     searchInput: { flex: 1, fontSize: 15, color: '#3C252D', height: 44, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
+    scopeBlock: { paddingHorizontal: 4 },
+    dayChips: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+    dayChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: '#E3C7D1', backgroundColor: '#FFFFFF' },
+    dayChipActive: { backgroundColor: '#D81B60', borderColor: '#D81B60' },
+    dayChipName: { fontSize: 11, fontWeight: '700', color: '#8A6673' },
+    dayChipDate: { fontSize: 15, fontWeight: '800', color: '#2A2124', marginTop: 1 },
+    dayChipTextActive: { color: '#FFFFFF' },
+    dayDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4, backgroundColor: 'transparent' },
+    dayDotOn: { backgroundColor: '#D81B60' },
+    dayDotActive: { backgroundColor: '#FFFFFF' },
     toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 8 },
     toggle: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: '#E3C7D1', backgroundColor: '#FFFFFF' },
     toggleActive: { backgroundColor: '#D81B60', borderColor: '#D81B60' },

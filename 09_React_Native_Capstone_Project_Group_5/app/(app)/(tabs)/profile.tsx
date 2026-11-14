@@ -9,7 +9,7 @@
  *
  * Done: user info, live stats, menu (My Recipes, Favorites, Edit Profile, Settings) and logout.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Avatar, Button, Card, Divider, List } from 'react-native-paper';
@@ -17,8 +17,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { recipeApi } from '@/services/recipeApi';
+import { buildTasteProfile } from '@/utils/recipeFilters';
+import { Recipe } from '@/types/recipe';
 import { routes } from '@/utils/routes';
 import { ConfirmDialog, IconName, Screen, Skeleton, useScrollToTopOnNav } from '@/components';
+import { TasteDNACard } from '@/components/TasteDNA';
 import { styles } from './profileStyles';
 import { tc, useAppTheme } from '@/context/ThemeContext';
 
@@ -55,7 +58,9 @@ export default function ProfileScreen() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [myRecipeCount, setMyRecipeCount] = useState(0);
   const [statsReady, setStatsReady] = useState(false);
-  const [favoriteCuisines, setFavoriteCuisines] = useState(0);
+  const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>([]);
+  const taste = useMemo(() => buildTasteProfile(favoriteRecipes), [favoriteRecipes]);
+  const favoriteCuisines = taste.cuisines.length;
 
   const userId = user?.id;
   const idsKey = ids.join(',');
@@ -67,7 +72,7 @@ export default function ProfileScreen() {
       .then((all) => {
         setMyRecipeCount(all.filter((r) => r.userId === userId).length);
         setStatsReady(true);
-        setFavoriteCuisines(new Set(all.filter((r) => ids.includes(r.id)).map((r) => r.cuisine)).size);
+        setFavoriteRecipes(all.filter((r) => ids.includes(r.id)));
       })
       .catch(() => setStatsReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,6 +124,9 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Cuisines</Text>
           </View>
         </View>
+
+        {/* Taste DNA, learned from the favorites */}
+        <TasteDNACard taste={taste} onPlan={() => router.push(routes.planner)} onBrowse={() => router.push(routes.search())} />
 
         {/* Menu Sections */}
         <View style={styles.section}>
