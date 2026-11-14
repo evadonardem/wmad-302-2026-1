@@ -7,10 +7,12 @@ import { favoritesStorage } from '@/utils/storage';
 import { Card, Title, Button, List, Avatar, Divider, TextInput } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from '@/styles/profileStyles';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, isAuthenticated, updateProfile } = useAuth();
+  const { colors } = useAppTheme();
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
@@ -70,7 +72,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       {/* Profile Header */}
       {editing && (
         <Card style={styles.menuCard} elevation={1}>
@@ -89,27 +91,27 @@ export default function ProfileScreen() {
           style={styles.avatar}
         />
         <View style={styles.nameContainer}>
-          <Text style={styles.name}>
+          <Text style={[styles.name, { color: colors.text }]}>
             {user?.firstName} {user?.lastName}
           </Text>
           <Text style={styles.username}>@{user?.username}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+          <Text style={[styles.email, { color: colors.textMuted }]}>{user?.email}</Text>
         </View>
       </View>
 
       {/* Stats */}
-      <View style={styles.statsContainer}>
+      <View style={[styles.statsContainer, { backgroundColor: colors.primarySoft }]}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Recipes</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted }]}>Recipes</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{favoriteCount}</Text>
-          <Text style={styles.statLabel}>Favorites</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted }]}>Favorites</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Collections</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted }]}>Collections</Text>
         </View>
       </View>
 

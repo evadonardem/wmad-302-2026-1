@@ -17,10 +17,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, TextInput as PaperTextInput, Divider } from 'react-native-paper';
 import { styles } from '@/styles/authStyles';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login, isLoading, error, clearError } = useAuth();
+  const { colors } = useAppTheme();
   const { redirect } = useLocalSearchParams<{ redirect?: string }>();
 
   const [username, setUsername] = useState('');
@@ -62,7 +64,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >

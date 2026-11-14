@@ -14,8 +14,10 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, TextInput as PaperTextInput, Checkbox } from 'react-native-paper';
 import { styles } from '@/styles/authStyles';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function RegisterScreen() {
+  const { colors } = useAppTheme();
   const router = useRouter();
   const { register, isLoading, error, clearError } = useAuth();
 
@@ -89,7 +91,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

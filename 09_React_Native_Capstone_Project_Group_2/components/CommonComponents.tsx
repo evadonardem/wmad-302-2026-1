@@ -6,6 +6,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Card, Title, Chip, Badge, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAppTheme } from '@/context/ThemeContext';
 
 interface RecipeCardProps {
   recipe: {
@@ -26,13 +27,15 @@ interface RecipeCardProps {
 }
 
 export function RecipeCard({ recipe, onPress, style }: RecipeCardProps) {
+  const { colors } = useAppTheme();
+
   return (
     <TouchableOpacity
       style={[styles.cardWrapper, style]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Card style={styles.card} elevation={2}>
+      <Card style={[styles.card, { backgroundColor: colors.surfaceElevated }]} elevation={2}>
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: recipe.image }}
@@ -51,21 +54,21 @@ export function RecipeCard({ recipe, onPress, style }: RecipeCardProps) {
           </View>
         </View>
         <Card.Content style={styles.cardContent}>
-          <Title style={styles.recipeTitle} numberOfLines={1}>
+          <Title style={[styles.recipeTitle, { color: colors.text }]} numberOfLines={1}>
             {recipe.name}
           </Title>
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
+            <Text style={[styles.metaText, { color: colors.textMuted }]}>
               ⏱️ {recipe.prepTimeMinutes + recipe.cookTimeMinutes} min
             </Text>
-            <Text style={styles.metaText}>👥 {recipe.servings} servings</Text>
-            <Text style={styles.metaText}>🔥 {recipe.caloriesPerServing} cal</Text>
+            <Text style={[styles.metaText, { color: colors.textMuted }]}>👥 {recipe.servings} servings</Text>
+            <Text style={[styles.metaText, { color: colors.textMuted }]}>🔥 {recipe.caloriesPerServing} cal</Text>
           </View>
           <View style={styles.cuisineRow}>
             <Chip style={styles.cuisineChip}>{recipe.cuisine}</Chip>
           </View>
           <View style={styles.ratingRow}>
-            <Text style={styles.ratingText}>
+            <Text style={[styles.ratingText, { color: colors.textMuted }]}>
               ⭐ {recipe.rating.toFixed(1)} ({recipe.reviewCount} reviews)
             </Text>
           </View>
@@ -91,6 +94,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onPress, style }: ProductCardProps) {
+  const { colors } = useAppTheme();
   const discountedPrice = product.price * (1 - product.discountPercentage / 100);
 
   return (
@@ -99,7 +103,7 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Card style={styles.card} elevation={2}>
+      <Card style={[styles.card, { backgroundColor: colors.surfaceElevated }]} elevation={2}>
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: product.thumbnail }}
@@ -114,7 +118,7 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
         </View>
         <Card.Content style={styles.cardContent}>
           <Text style={styles.productCategory}>{product.category}</Text>
-          <Title style={styles.productTitle} numberOfLines={2}>
+          <Title style={[styles.productTitle, { color: colors.text }]} numberOfLines={2}>
             {product.title}
           </Title>
           <View style={styles.priceRow}>
@@ -124,7 +128,7 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
             )}
           </View>
           <View style={styles.ratingRow}>
-            <Text style={styles.ratingText}>
+            <Text style={[styles.ratingText, { color: colors.textMuted }]}>
               ⭐ {product.rating.toFixed(1)} · {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
             </Text>
           </View>
@@ -176,12 +180,13 @@ interface LoadingOverlayProps {
 }
 
 export function LoadingOverlay({ visible, message = 'Loading...' }: LoadingOverlayProps) {
+  const { colors } = useAppTheme();
   if (!visible) return null;
 
   return (
-    <View style={styles.loadingOverlay}>
-      <ActivityIndicator size="large" color="#E85D04" />
-      <Text style={styles.loadingText}>{message}</Text>
+    <View style={[styles.loadingOverlay, { backgroundColor: `${colors.background}CC` }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={[styles.loadingText, { color: colors.textMuted }]}>{message}</Text>
     </View>
   );
 }
@@ -195,11 +200,12 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ icon, title, message, actionLabel, onAction }: EmptyStateProps) {
+  const { colors } = useAppTheme();
   return (
     <View style={styles.emptyState}>
-      <MaterialCommunityIcons name={icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={80} color="#BCAAA4" />
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyMessage}>{message}</Text>
+      <MaterialCommunityIcons name={icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={80} color={colors.textMuted} />
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.emptyMessage, { color: colors.textMuted }]}>{message}</Text>
       {actionLabel && onAction && (
         <Button mode="contained" onPress={onAction} style={styles.actionButton}>
           {actionLabel}

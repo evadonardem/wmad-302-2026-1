@@ -8,9 +8,11 @@ import { styles } from '@/styles/favoritesStyles';
 import { recipeApi } from '@/services/recipeApi';
 import { favoritesStorage } from '@/utils/storage';
 import { Recipe } from '@/types/recipe';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -89,7 +91,7 @@ export default function FavoritesScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {favorites.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="heart-outline" size={80} color="#BCAAA4" />

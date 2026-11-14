@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Title, Chip, Avatar, Button } from 'react-native-paper';
 import { styles } from '@/styles/homeStyles';
+import { useAppTheme } from '@/context/ThemeContext';
 
 // Types for DummyJSON Recipes API
 interface Recipe {
@@ -49,6 +50,7 @@ interface RecipesResponse {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors } = useAppTheme();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -153,19 +155,19 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.scrollView}
+      style={[styles.scrollView, { backgroundColor: colors.background }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E85D04']} />
       }
       contentContainerStyle={styles.scrollContent}
     >
       {/* Welcome Header */}
-      <View style={styles.welcomeContainer}>
+      <View style={[styles.welcomeContainer, { backgroundColor: colors.primarySoft }]}>
         <View style={styles.welcomeTextContainer}>
-          <Text style={styles.welcomeGreeting}>
+          <Text style={[styles.welcomeGreeting, { color: colors.text }]}>
             {user ? `Welcome back, ${user.firstName}!` : 'Welcome to Cookbook!'}
           </Text>
-          <Text style={styles.welcomeSubtitle}>Discover delicious recipes</Text>
+          <Text style={[styles.welcomeSubtitle, { color: colors.textMuted }]}>Discover delicious recipes</Text>
         </View>
         <Avatar.Icon size={56} icon="chef-hat" style={styles.welcomeAvatar} />
       </View>
@@ -173,7 +175,7 @@ export default function HomeScreen() {
       {/* Categories */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Categories</Title>
+          <Title style={[styles.sectionTitle, { color: colors.text }]}>Categories</Title>
         </View>
         <FlatList
           data={[
@@ -184,10 +186,10 @@ export default function HomeScreen() {
           contentContainerStyle={styles.categoryList}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.categoryChip, { backgroundColor: '#FFF3E0' }]}
+              style={[styles.categoryChip, { backgroundColor: colors.primarySoft, borderColor: colors.border }]}
               onPress={() => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(item)}`)}
             >
-              <Text style={styles.categoryChipText}>{item}</Text>
+              <Text style={[styles.categoryChipText, { color: colors.primary }]}>{item}</Text>
             </TouchableOpacity>
           )}
           keyExtractor={(item) => item}
@@ -197,9 +199,9 @@ export default function HomeScreen() {
       {/* Featured Recipes */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Featured Recipes</Title>
+          <Title style={[styles.sectionTitle, { color: colors.text }]}>Featured Recipes</Title>
           <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/search')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
           </TouchableOpacity>
         </View>
         <FlatList

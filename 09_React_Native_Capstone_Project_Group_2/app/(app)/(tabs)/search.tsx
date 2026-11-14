@@ -7,9 +7,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from '@/styles/searchStyles';
 import { recipeApi } from '@/services/recipeApi';
 import { Recipe } from '@/types/recipe';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
   const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Recipe[]>([]);
@@ -80,7 +82,7 @@ export default function SearchScreen() {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       {/* Search Bar */}
       <View style={styles.searchBarContainer}>
         <PaperTextInput
@@ -115,7 +117,7 @@ export default function SearchScreen() {
 
       {/* Category Filters */}
       <View style={styles.filterSection}>
-        <Title style={styles.filterTitle}>Categories</Title>
+        <Title style={[styles.filterTitle, { color: colors.text }]}>Categories</Title>
         <FlatList
           data={categories}
           horizontal
@@ -143,7 +145,7 @@ export default function SearchScreen() {
 
       {/* Results */}
       <View style={styles.resultsSection}>
-        <Title style={styles.resultsTitle}>
+        <Title style={[styles.resultsTitle, { color: colors.text }]}>
           Results {query ? `for "${query}"` : ''} {results.length > 0 && `(${results.length})`}
         </Title>
         {loading ? (

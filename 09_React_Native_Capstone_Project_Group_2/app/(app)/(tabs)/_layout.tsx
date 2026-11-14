@@ -5,21 +5,24 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAppTheme } from '@/context/ThemeContext';
 
 export default function TabsLayout() {
+  const { colors } = useAppTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#E85D04',
-        tabBarInactiveTintColor: '#8D6E63',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surfaceElevated,
           borderTopWidth: 0,
           elevation: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
+          shadowOpacity: 0.16,
           shadowRadius: 8,
           paddingTop: 8,
           paddingBottom: 8,
@@ -38,7 +41,7 @@ export default function TabsLayout() {
             <MaterialCommunityIcons
               name={focused ? 'store' : 'store-outline'}
               size={24}
-              color={color}
+              color={String(color)}
             />
           ),
         }}
@@ -51,7 +54,7 @@ export default function TabsLayout() {
             <MaterialCommunityIcons
               name="magnify"
               size={24}
-              color={color}
+              color={String(color)}
             />
           ),
         }}
@@ -64,7 +67,7 @@ export default function TabsLayout() {
             <MaterialCommunityIcons
               name={focused ? 'heart' : 'heart-outline'}
               size={24}
-              color={color}
+              color={String(color)}
             />
           ),
         }}
@@ -77,7 +80,7 @@ export default function TabsLayout() {
             <MaterialCommunityIcons
               name={focused ? 'account' : 'account-outline'}
               size={24}
-              color={color}
+              color={String(color)}
             />
           ),
         }}
