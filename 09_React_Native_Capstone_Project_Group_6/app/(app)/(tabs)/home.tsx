@@ -11,21 +11,37 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Chip, Avatar, Button, IconButton, Snackbar, useTheme } from 'react-native-paper';
+import { Avatar, Card, Title, Button, IconButton, Snackbar, useTheme } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Recipe } from '@/types/recipe';
 import { recipeApi } from '@/services/recipeApi';
+import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { styles } from './homeStyles';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
   const { user } = useAuth();
   const { favoriteIds, isLoading: favoritesLoading, toggleFavorite } = useFavorites();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const isMobileLayout = width < 768;
+  const isWebLayout = Platform.OS === 'web';
+  const isFourColumnWebLayout = isWebLayout && width >= 1024;
+  const isThreeColumnLayout = !isWebLayout && width >= 1024;
+  const mobileImageHeight = Math.max(56, Math.round((width - 54) / 4));
+  const numColumns = isMobileLayout
+    ? 2
+    : isFourColumnWebLayout
+      ? 4
+      : isThreeColumnLayout
+        ? 3
+        : 2;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,19 +104,40 @@ export default function HomeScreen() {
 
   const renderRecipe = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
-      style={styles.recipeCard}
+      style={[
+        styles.recipeCard,
+        isMobileLayout && { width: '46%', aspectRatio: 1, minHeight: 0 },
+        isFourColumnWebLayout && { minHeight: 300 },
+        isFourColumnWebLayout && { width: '23.5%' },
+        !isMobileLayout && isThreeColumnLayout && { width: '31.5%' },
+        !isMobileLayout && !isFourColumnWebLayout && !isThreeColumnLayout && { width: '48%' },
+      ]}
       onPress={() => router.push(`/(app)/recipe/${item.id}`)}
       activeOpacity={0.8}
     >
-      <Card style={[styles.card, { backgroundColor: colors.surface }]} elevation={2}>
-        <View style={styles.imageContainer}>
+      <Card
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface },
+          isMobileLayout && { minHeight: 0 },
+          isFourColumnWebLayout && { minHeight: 300 },
+        ]}
+        elevation={2}
+      >
+        <View
+          style={[
+            styles.imageContainer,
+            isMobileLayout && { height: mobileImageHeight },
+            isFourColumnWebLayout && { height: 140 },
+          ]}
+        >
           <Image
             source={{ uri: item.image }}
             style={styles.recipeImage}
             resizeMode="cover"
           />
           <View style={[styles.difficultyBadge, { left: 12, right: undefined }]}>
-            <Chip
+            <View
               style={[
                 styles.difficultyChip,
                 item.difficulty === 'Easy' && styles.easy,
@@ -108,8 +145,8 @@ export default function HomeScreen() {
                 item.difficulty === 'Hard' && styles.hard,
               ]}
             >
-              {item.difficulty}
-            </Chip>
+              <Text style={styles.difficultyText}>{item.difficulty}</Text>
+            </View>
           </View>
           <IconButton
             icon={favoriteIds.includes(item.id) ? 'heart' : 'heart-outline'}
@@ -124,27 +161,47 @@ export default function HomeScreen() {
             accessibilityLabel={favoriteIds.includes(item.id) ? 'Remove from favorites' : 'Add to favorites'}
           />
         </View>
-        <Card.Content style={styles.cardContent}>
-          <Title style={[styles.recipeTitle, { color: colors.onSurface }]} numberOfLines={1}>
+        <Card.Content
+          style={[
+            styles.cardContent,
+            isMobileLayout && { paddingHorizontal: 7, paddingTop: 6, paddingBottom: 6 },
+          ]}
+        >
+          <Title
+            style={[
+              styles.recipeTitle,
+              { color: colors.onSurface },
+              isMobileLayout && { fontSize: 11, lineHeight: 14, marginBottom: 2 },
+            ]}
+            numberOfLines={1}
+          >
             {item.name}
           </Title>
-          <View style={styles.metaRow}>
-            <Text style={[styles.metaText, { color: colors.onSurfaceVariant }]}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
-            </Text>
-            <Text style={[styles.metaText, { color: colors.onSurfaceVariant }]}>👥 {item.servings}</Text>
-            <Text style={[styles.metaText, { color: colors.onSurfaceVariant }]}>🔥 {item.caloriesPerServing} cal</Text>
-          </View>
-          <View style={styles.cuisineRow}>
-            <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
-            {item.mealType.slice(0, 2).map((meal) => (
-              <Chip key={meal} style={styles.mealChip}>{meal}</Chip>
+          {!isMobileLayout && (
+            <View style={styles.metaRow}>
+              <Text style={[styles.metaText, { color: colors.onSurfaceVariant }]}>
+                ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
+              </Text>
+              <Text style={[styles.metaText, { color: colors.onSurfaceVariant }]}>👥 {item.servings}</Text>
+              <Text style={[styles.metaText, { color: colors.onSurfaceVariant }]}>🔥 {item.caloriesPerServing} cal</Text>
+            </View>
+          )}
+          <View style={[styles.cuisineRow, isMobileLayout && { gap: 3, marginBottom: 2, paddingHorizontal: 0 }]}>
+            <View style={[styles.cuisineChip, isMobileLayout && { paddingHorizontal: 6, paddingVertical: 2 }]}>
+              <Text style={[styles.cuisineChipText, isMobileLayout && { fontSize: 9 }]}>{item.cuisine}</Text>
+            </View>
+            {item.mealType.slice(0, isMobileLayout ? 1 : 2).map((meal) => (
+              <View key={meal} style={[styles.mealChip, isMobileLayout && { paddingHorizontal: 6, paddingVertical: 2 }]}>
+                <Text style={[styles.mealChipText, isMobileLayout && { fontSize: 9 }]}>{meal}</Text>
+              </View>
             ))}
           </View>
-          <View style={styles.ratingRow}>
-            <Text style={[styles.ratingText, { color: colors.primary }]}>
-              ⭐ {item.rating.toFixed(1)} ({item.reviewCount} reviews)
-            </Text>
+          <View style={[styles.ratingRow, isMobileLayout && { marginTop: 1, paddingTop: 4 }]}>
+            <View style={[styles.ratingBadge, isMobileLayout && { gap: 3, paddingHorizontal: 6, paddingVertical: 2 }]}>
+              <MaterialCommunityIcons name="star" size={isMobileLayout ? 12 : 15} color="#E9A400" />
+              <Text style={[styles.ratingText, isMobileLayout && { fontSize: 10 }]}>{item.rating.toFixed(1)}</Text>
+            </View>
+            {!isMobileLayout && <Text style={styles.reviewCount}>{item.reviewCount} reviews</Text>}
           </View>
         </Card.Content>
       </Card>
@@ -173,20 +230,24 @@ export default function HomeScreen() {
 
   const header = (
     <View>
-      <View style={styles.welcomeContainer}>
+      <View style={[styles.welcomeContainer, { backgroundColor: colors.primaryContainer }]}>
         <View style={styles.welcomeTextContainer}>
-          <Text style={[styles.welcomeGreeting, { color: colors.onBackground }]}>
-            {user ? `Welcome back, ${user.firstName}!` : 'Welcome to Cookbook!'}
+          <Text style={[styles.welcomeGreeting, { color: colors.onPrimaryContainer }]} numberOfLines={2}>
+            {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
           </Text>
-          <Text style={[styles.welcomeSubtitle, { color: colors.onSurfaceVariant }]}>Discover delicious recipes</Text>
+          <Text style={[styles.welcomeSubtitle, { color: colors.onPrimaryContainer }]}>Discover delicious recipes</Text>
         </View>
-        <Avatar.Icon size={56} icon="chef-hat" style={styles.welcomeAvatar} />
+        <View style={styles.welcomeImageContainer}>
+          <Avatar.Icon size={88} icon="chef-hat" style={styles.chefHatAvatar} color="#FFFFFF" />
+        </View>
       </View>
 
-      {/* Categories */}
       <View style={styles.sectionContainer}>
         <View style={styles.categoryHeader}>
-          <Title style={[styles.sectionTitle, { color: colors.onSurface }]}>Categories</Title>
+          <View style={styles.sectionHeadingIcon}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={17} color="#E85D04" />
+          </View>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Categories</Text>
         </View>
         <FlatList
           data={[...new Set(recipes.map((recipe) => recipe.cuisine))]}
@@ -195,10 +256,11 @@ export default function HomeScreen() {
           contentContainerStyle={styles.categoryList}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.categoryChip, { backgroundColor: colors.surfaceVariant }]}
+              style={styles.categoryChip}
               onPress={() => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(item)}`)}
             >
-              <Text style={[styles.categoryChipText, { color: colors.onSurface }]}>{item}</Text>
+              <View style={styles.categoryMarker} />
+              <Text style={styles.categoryChipText}>{item}</Text>
             </TouchableOpacity>
           )}
           keyExtractor={(item) => item}
@@ -208,7 +270,19 @@ export default function HomeScreen() {
       {/* Featured Recipes */}
       <View style={styles.sectionContainer}>
         <View style={styles.featuredHeader}>
-          <Title style={[styles.sectionTitle, { color: colors.onSurface }]}>Featured Recipes</Title>
+          <View style={styles.featuredHeadingGroup}>
+            <View style={styles.sectionHeadingIcon}>
+              <MaterialCommunityIcons name="star-four-points" size={18} color="#E85D04" />
+            </View>
+            <View>
+              <Text style={styles.featuredEyebrow}>TODAY&apos;S PICKS</Text>
+              <Title style={[styles.sectionTitle, { color: colors.onSurface }]}>Featured Recipes</Title>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.seeAll} onPress={() => router.push('/(app)/(tabs)/search')}>
+            <Text style={styles.seeAllText}>See all</Text>
+            <MaterialCommunityIcons name="arrow-right" size={16} color="#E85D04" />
+          </TouchableOpacity>
         </View>
       </View>
       {isOffline && <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Offline mode · showing saved recipes</Text>}
@@ -233,13 +307,14 @@ export default function HomeScreen() {
   return (
     <>
       <FlatList
+        key={`recipes-${numColumns}`}
         style={[styles.scrollView, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: 16 }]}
         data={recipes}
         renderItem={renderRecipe}
         keyExtractor={(item) => item.id.toString()}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 8 }}
+        numColumns={numColumns}
+        columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 6, gap: 10 }}
         ListHeaderComponent={header}
         ListFooterComponent={footer}
         ListEmptyComponent={

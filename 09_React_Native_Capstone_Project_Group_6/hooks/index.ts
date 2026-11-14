@@ -155,17 +155,26 @@ export function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    if (Platform.OS !== 'web' || typeof globalThis === 'undefined') return;
+    const currentWindow = (globalThis as typeof globalThis & {
+      window?: {
+        navigator: { onLine: boolean };
+        addEventListener: (type: string, listener: () => void) => void;
+        removeEventListener: (type: string, listener: () => void) => void;
+      };
+    }).window;
+    if (!currentWindow) return;
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    setIsOnline(window.navigator.onLine);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    setIsOnline(currentWindow.navigator.onLine);
+    currentWindow.addEventListener('online', handleOnline);
+    currentWindow.addEventListener('offline', handleOffline);
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      currentWindow.removeEventListener('online', handleOnline);
+      currentWindow.removeEventListener('offline', handleOffline);
     };
   }, []);
 

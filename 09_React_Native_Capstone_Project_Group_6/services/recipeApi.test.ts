@@ -1,4 +1,4 @@
-import { recipeCacheStorage } from '@/utils/storage';
+import { recipeCacheStorage, userRecipesStorage } from '@/utils/storage';
 import type { Recipe, RecipesResponse } from '@/types/recipe';
 import { RecipeApiService } from './recipeApi';
 
@@ -23,6 +23,9 @@ jest.mock('@/utils/storage', () => ({
     setResponse: jest.fn(),
     getRecipe: jest.fn(),
     setRecipes: jest.fn(),
+  },
+  userRecipesStorage: {
+    getRecipe: jest.fn(),
   },
 }));
 
@@ -61,7 +64,17 @@ describe('RecipeApiService', () => {
     jest.mocked(recipeCacheStorage.getRecipe).mockResolvedValue(null);
     jest.mocked(recipeCacheStorage.setResponse).mockResolvedValue();
     jest.mocked(recipeCacheStorage.setRecipes).mockResolvedValue();
+    jest.mocked(userRecipesStorage.getRecipe).mockResolvedValue(null);
     service = new RecipeApiService();
+  });
+
+  it('loads a user-created recipe from that user’s collection', async () => {
+    const userRecipe = { ...recipe, id: -123 };
+    jest.mocked(userRecipesStorage.getRecipe).mockResolvedValue(userRecipe);
+
+    await expect(service.getRecipeById(-123, 1)).resolves.toEqual(userRecipe);
+    expect(userRecipesStorage.getRecipe).toHaveBeenCalledWith(1, -123);
+    expect(mockClient.get).not.toHaveBeenCalled();
   });
 
   it('fetches and caches a page of recipes', async () => {
@@ -128,6 +141,7 @@ describe('RecipeApiService', () => {
 
     await expect(service.getCategories()).resolves.toEqual(['Italian', 'Mexican']);
     await expect(service.getMealTypes()).resolves.toContain('Breakfast');
+    await expect(service.getMealTypes()).resolves.not.toContain('Drink');
   });
 
   it('keeps online results available if writing the offline cache fails', async () => {

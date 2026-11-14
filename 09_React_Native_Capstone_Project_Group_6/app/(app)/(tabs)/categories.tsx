@@ -12,6 +12,8 @@ interface Category {
   count: number;
 }
 
+const categoryPalette = { accent: '#E85D04', soft: '#FFF3E0' };
+
 export default function CategoriesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -43,23 +45,34 @@ export default function CategoriesScreen() {
     void loadCategories();
   }, [loadCategories]);
 
-  const renderCategory = ({ item }: { item: Category }) => (
-    <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={() => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(item.name)}`)}
-      activeOpacity={0.85}
-    >
-      <Card style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons name={getCategoryIcon(item.name)} size={32} color="#E85D04" />
-          </View>
-          <Title style={[styles.categoryName, { color: colors.onSurface }]}>{item.name}</Title>
-          <Text style={[styles.categoryCount, { color: colors.onSurfaceVariant }]}>{item.count} {item.count === 1 ? 'recipe' : 'recipes'}</Text>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
+  const renderCategory = ({ item }: { item: Category }) => {
+    const palette = categoryPalette;
+    return (
+      <TouchableOpacity
+        style={styles.categoryCard}
+        onPress={() => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(item.name)}`)}
+        activeOpacity={0.85}
+      >
+        <Card
+          style={[styles.card, { backgroundColor: colors.surface, borderColor: palette.soft }]}
+          elevation={1}
+        >
+          <View style={[styles.cardAccent, { backgroundColor: palette.accent }]} />
+          <Card.Content style={styles.cardContent}>
+            <View style={[styles.iconContainer, { backgroundColor: palette.soft }]}>
+              <MaterialCommunityIcons name={getCategoryIcon(item.name)} size={32} color={palette.accent} />
+            </View>
+            <Title style={[styles.categoryName, { color: colors.onSurface }]}>{item.name}</Title>
+            <View style={[styles.countBadge, { backgroundColor: palette.soft }]}>
+              <Text style={[styles.categoryCount, { color: palette.accent }]}>
+                {item.count} {item.count === 1 ? 'recipe' : 'recipes'}
+              </Text>
+            </View>
+          </Card.Content>
+        </Card>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -82,9 +95,16 @@ export default function CategoriesScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Title style={[styles.pageTitle, { color: colors.onBackground }]}>Recipe categories</Title>
-      <Text style={[styles.pageSubtitle, { color: colors.onSurfaceVariant }]}>Browse by ingredient, meal, and dish type.</Text>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      <View style={styles.pageHeader}>
+        <View style={styles.pageHeaderCopy}>
+          <Title style={[styles.pageTitle, { color: colors.onBackground }]}>Recipe categories</Title>
+          <Text style={[styles.pageSubtitle, { color: colors.onSurfaceVariant }]}>Browse by ingredient, meal, and dish type.</Text>
+        </View>
+        <View style={styles.headerIconContainer}>
+          <MaterialCommunityIcons name="silverware-fork-knife" size={28} color="#E85D04" />
+        </View>
+      </View>
       {isOffline && <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Offline mode · using saved recipes</Text>}
       <FlatList
         data={categories}

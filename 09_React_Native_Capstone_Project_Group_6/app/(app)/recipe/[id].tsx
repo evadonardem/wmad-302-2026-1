@@ -15,11 +15,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Recipe } from '@/types/recipe';
 import { recipeApi } from '@/services/recipeApi';
 import { useFavorites } from '@/context/FavoritesContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const { user } = useAuth();
   const { favoriteIds, isLoading: favoritesLoading, toggleFavorite } = useFavorites();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ export default function RecipeDetailScreen() {
 
   const loadRecipe = useCallback(async () => {
     const recipeId = Number(id);
-    if (!Number.isInteger(recipeId) || recipeId <= 0) {
+    if (!Number.isInteger(recipeId) || recipeId === 0) {
       setError('This recipe could not be found.');
       setLoading(false);
       return;
@@ -38,13 +40,13 @@ export default function RecipeDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      setRecipe(await recipeApi.getRecipeById(recipeId));
+      setRecipe(await recipeApi.getRecipeById(recipeId, user?.id));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load this recipe.');
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, user?.id]);
 
   useEffect(() => {
     void loadRecipe();
@@ -124,7 +126,13 @@ export default function RecipeDetailScreen() {
     <>
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
       <View style={styles.imageWrap}>
-        <Image source={{ uri: recipe.image }} style={styles.image} resizeMode="cover" />
+        {recipe.image ? (
+          <Image source={{ uri: recipe.image }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.image, { backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' }]}>
+            <MaterialCommunityIcons name="food-outline" size={76} color={colors.primary} />
+          </View>
+        )}
         <IconButton
           icon="arrow-left"
           iconColor="#3E2723"
@@ -157,13 +165,6 @@ export default function RecipeDetailScreen() {
           <Stat icon="clock-outline" value={`${recipe.prepTimeMinutes + recipe.cookTimeMinutes} min`} label="Total time" />
           <Stat icon="account-group-outline" value={`${recipe.servings}`} label="Servings" />
           <Stat icon="fire" value={`${recipe.caloriesPerServing}`} label="Cal / serving" />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.onBackground }]}>Nutrition per serving</Text>
-          <Text style={[styles.muted, { color: colors.onSurfaceVariant }]}>
-            {recipe.caloriesPerServing} calories
-          </Text>
         </View>
 
         <View style={styles.section}>
@@ -213,11 +214,13 @@ export default function RecipeDetailScreen() {
 }
 
 function Stat({ icon, value, label }: { icon: 'clock-outline' | 'account-group-outline' | 'fire'; value: string; label: string }) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.stat}>
       <MaterialCommunityIcons name={icon} size={22} color="#E85D04" />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, { color: colors.onSurface }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>{label}</Text>
     </View>
   );
 }

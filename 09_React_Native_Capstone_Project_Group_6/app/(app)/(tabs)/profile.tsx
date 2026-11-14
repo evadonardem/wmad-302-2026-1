@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Modal, ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Avatar, Button, Card, Dialog, Divider, List, Portal, Switch, TextInput, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useSettings } from '@/context/SettingsContext';
 import { recipeApi } from '@/services/recipeApi';
+import { userRecipesStorage } from '@/utils/storage';
 import { styles } from './profileStyles';
 
 export default function ProfileScreen() {
@@ -25,17 +26,26 @@ export default function ProfileScreen() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
 
-  useEffect(() => {
-    if (!user) return;
-    recipeApi.getRecipes({ limit: 100 })
-      .then(({ recipes }) => setRecipeCount(recipes.filter((recipe) => recipe.userId === user.id).length))
+  useFocusEffect(useCallback(() => {
+    if (!user) return undefined;
+    let active = true;
+    Promise.all([
+      recipeApi.getRecipes({ limit: 100 }),
+      userRecipesStorage.getRecipes(user.id),
+    ])
+      .then(([{ recipes }, userRecipes]) => {
+        if (active) setRecipeCount(recipes.filter((recipe) => recipe.userId === user.id).length + userRecipes.length);
+      })
       .catch((error: unknown) => {
-        setFeedback({
-          title: 'Could not load profile stats',
-          message: error instanceof Error ? error.message : 'Please try again later.',
-        });
+        if (active) {
+          setFeedback({
+            title: 'Could not load profile stats',
+            message: error instanceof Error ? error.message : 'Please try again later.',
+          });
+        }
       });
-  }, [user]);
+    return () => { active = false; };
+  }, [user]));
 
   const handleLogout = () => {
     setLogoutDialogVisible(true);
@@ -103,7 +113,7 @@ export default function ProfileScreen() {
 
   if (!isAuthenticated || !user) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <Text style={[styles.notLoggedIn, { color: colors.onBackground }]}>Please sign in to view your profile.</Text>
       </View>
     );
@@ -121,14 +131,14 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={[styles.statsContainer, { backgroundColor: colors.surfaceVariant }]}>
+        <View style={[styles.statsContainer, { backgroundColor: colors.primaryContainer }]}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.onBackground }]}>{recipeCount === null ? '—' : recipeCount}</Text>
-            <Text style={styles.statLabel}>My recipes</Text>
+            <Text style={[styles.statValue, { color: colors.onPrimaryContainer }]}>{recipeCount === null ? '—' : recipeCount}</Text>
+            <Text style={[styles.statLabel, { color: colors.onPrimaryContainer }]}>My recipes</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.onBackground }]}>{favoriteIds.length}</Text>
-            <Text style={styles.statLabel}>Favorites</Text>
+            <Text style={[styles.statValue, { color: colors.onPrimaryContainer }]}>{favoriteIds.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.onPrimaryContainer }]}>Favorites</Text>
           </View>
         </View>
 
@@ -180,7 +190,7 @@ export default function ProfileScreen() {
                 right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
                 onPress={() => setFeedback({
                   title: 'Privacy',
-                  message: 'Your profile and favorites are stored on this device. Cookbook uses the DummyJSON demo API for recipes and sign-in.',
+                  message: 'Your profile and favorites are stored on this device. Cookbook uses DummyJSON for recipes. Local demo mode skips credential verification only during development; production and configured auth services require valid credentials.',
                 })}
               />
               <Divider style={styles.divider} />
@@ -236,7 +246,7 @@ export default function ProfileScreen() {
         >
           <Dialog.Title>Sign out?</Dialog.Title>
           <Dialog.Content>
-            <Text>You can sign in again at any time.</Text>
+            <Text style={{ color: colors.onSurface }}>You can sign in again at any time.</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setLogoutDialogVisible(false)} disabled={logoutPending}>Cancel</Button>
@@ -256,7 +266,7 @@ export default function ProfileScreen() {
           style={{ borderRadius: 12, width: '90%', maxWidth: 400, alignSelf: 'center' }}
         >
           <Dialog.Title>{feedback?.title}</Dialog.Title>
-          <Dialog.Content><Text>{feedback?.message}</Text></Dialog.Content>
+          <Dialog.Content><Text style={{ color: colors.onSurface }}>{feedback?.message}</Text></Dialog.Content>
           <Dialog.Actions><Button onPress={() => setFeedback(null)}>OK</Button></Dialog.Actions>
         </Dialog>
       </Portal>

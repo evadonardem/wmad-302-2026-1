@@ -3,7 +3,6 @@ import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -92,6 +91,7 @@ export default function PlannerScreen() {
   const [editedIngredient, setEditedIngredient] = useState('');
   const [collectionName, setCollectionName] = useState('');
   const [collectionDialog, setCollectionDialog] = useState(false);
+  const [collectionToDelete, setCollectionToDelete] = useState<RecipeCollection | null>(null);
   const [addingToCollection, setAddingToCollection] = useState<string | null>(null);
 
   const loadStorage = useCallback(async () => {
@@ -457,10 +457,7 @@ export default function PlannerScreen() {
                       icon="delete-outline"
                       accessibilityLabel={`Delete ${collection.name}`}
                       disabled={saving}
-                      onPress={() => Alert.alert('Delete collection?', `Remove "${collection.name}" and its recipe list?`, [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Delete', style: 'destructive', onPress: () => removeCollection(collection.id) },
-                      ])}
+                      onPress={() => setCollectionToDelete(collection)}
                     />
                   )}
                 />
@@ -479,7 +476,7 @@ export default function PlannerScreen() {
                   </Button>
                   {collection.recipes.map((recipe) => (
                     <View key={recipe.id} style={styles.listRow}>
-                      <Text style={styles.flex}>{recipe.name}</Text>
+                      <Text style={styles.recipeName}>{recipe.name}</Text>
                       <IconButton
                         icon="close"
                         accessibilityLabel={`Remove ${recipe.name} from ${collection.name}`}
@@ -570,6 +567,32 @@ export default function PlannerScreen() {
           <Dialog.Actions>
             <Button onPress={() => setCollectionDialog(false)}>Cancel</Button>
             <Button onPress={createCollection} disabled={saving || !collectionName.trim()}>Create</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog
+          visible={collectionToDelete !== null}
+          onDismiss={() => setCollectionToDelete(null)}
+          style={{ borderRadius: 12, width: '90%', maxWidth: 400, alignSelf: 'center' }}
+        >
+          <Dialog.Title>Delete collection?</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.body}>
+              Remove &quot;{collectionToDelete?.name}&quot; and its recipe list?
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setCollectionToDelete(null)}>Cancel</Button>
+            <Button
+              textColor={colors.error}
+              disabled={saving}
+              onPress={() => {
+                if (collectionToDelete) removeCollection(collectionToDelete.id);
+                setCollectionToDelete(null);
+              }}
+            >
+              Delete
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
@@ -677,7 +700,13 @@ function createStyles(colors: MD3Theme['colors']) {
     browseLink: { marginTop: 18, alignSelf: 'center' },
     dialogLabel: { color: colors.onSurface, fontWeight: '600', marginTop: 8, marginBottom: 8 },
     chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-    recipeDialog: { maxHeight: '85%' },
+    recipeDialog: {
+      width: '92%',
+      maxWidth: 700,
+      maxHeight: '85%',
+      alignSelf: 'center',
+      borderRadius: 8,
+    },
     dialogSearch: { marginBottom: 10 },
   });
 }

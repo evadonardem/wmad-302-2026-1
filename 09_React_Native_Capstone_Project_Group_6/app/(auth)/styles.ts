@@ -33,6 +33,11 @@ export const styles = StyleSheet.create({
     color: '#8D6E63',
     marginTop: 4,
   },
+  headerWrap: {
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 20,
+  },
   card: {
     borderRadius: 16,
     padding: 0,
@@ -133,6 +138,7 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 12,
     height: 52,
+    backgroundColor: '#E85D04',
   },
   buttonContent: {
     paddingHorizontal: 24,
@@ -141,6 +147,7 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.5,
+    color: '#FFFFFF',
   },
   demoContainer: {
     marginTop: 8,

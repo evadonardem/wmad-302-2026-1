@@ -1,6 +1,6 @@
 /**
  * React Native Paper Theme - Cookbook App
- * Warm, food-friendly color palette
+ * Purple-accented app palette
  */
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
@@ -8,11 +8,11 @@ export const theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#E85D04',      // Warm orange
-    primaryContainer: '#FFF3E0',
-    secondary: '#6D4C41',    // Brown
+    primary: '#E85D04',
+    primaryContainer: '#FFE0B2',
+    secondary: '#6D4C41',
     secondaryContainer: '#EFEBE9',
-    tertiary: '#2E7D32',     // Green (fresh ingredients)
+    tertiary: '#2E7D32',
     tertiaryContainer: '#E8F5E9',
     surface: '#FFFFFF',
     surfaceVariant: '#FFF8F0',
@@ -20,6 +20,7 @@ export const theme = {
     error: '#C62828',
     errorContainer: '#FDEDED',
     onPrimary: '#FFFFFF',
+    onPrimaryContainer: '#3E2723',
     onSecondary: '#FFFFFF',
     onTertiary: '#FFFFFF',
     onSurface: '#3E2723',
@@ -61,6 +62,7 @@ export const darkTheme = {
     surface: '#221C19',
     surfaceVariant: '#352A25',
     onBackground: '#F3E8E2',
+    onPrimaryContainer: '#FFFFFF',
     onSurface: '#F3E8E2',
     onSurfaceVariant: '#D1BDB2',
     outline: '#A38B7F',

@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   FAVORITES: 'favorite_recipe_ids',
   SETTINGS: 'user_settings',
   RECIPE_CACHE: 'recipe_cache',
+  USER_RECIPES: 'user_recipes',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
@@ -128,6 +129,7 @@ interface RecipeCache {
 }
 
 let recipeCacheWrite = Promise.resolve();
+let userRecipesWrite = Promise.resolve();
 
 async function updateRecipeCache(update: (cache: RecipeCache) => void): Promise<void> {
   const write = recipeCacheWrite.catch(() => undefined).then(async () => {
@@ -226,26 +228,94 @@ export const authStorage = {
 };
 
 export const favoritesStorage = {
-  getIds: async () => (await getStorageItem<number[]>(STORAGE_KEYS.FAVORITES)) ?? [],
-  setIds: (ids: number[]) => setStorageItem(STORAGE_KEYS.FAVORITES, ids),
-  addId: async (id: number) => {
-    const ids = await favoritesStorage.getIds();
+  getIds: async (accountKey: string) => {
+    const stored = await getStorageItem<unknown>(STORAGE_KEYS.FAVORITES);
+    if (Array.isArray(stored)) return [];
+    if (typeof stored !== 'object' || stored === null) return [];
+    const ids = (stored as Record<string, unknown>)[accountKey];
+    return Array.isArray(ids)
+      ? ids.filter((id): id is number => typeof id === 'number' && Number.isInteger(id))
+      : [];
+  },
+  setIds: async (accountKey: string, ids: number[]) => {
+    const stored = await getStorageItem<unknown>(STORAGE_KEYS.FAVORITES);
+    const favoritesByUser = Array.isArray(stored)
+      ? {}
+      : typeof stored === 'object' && stored !== null
+        ? stored as Record<string, number[]>
+        : {};
+    await setStorageItem(STORAGE_KEYS.FAVORITES, { ...favoritesByUser, [accountKey]: ids });
+  },
+  addId: async (accountKey: string, id: number) => {
+    const ids = await favoritesStorage.getIds(accountKey);
     if (!ids.includes(id)) {
-      await favoritesStorage.setIds([...ids, id]);
+      await favoritesStorage.setIds(accountKey, [...ids, id]);
     }
   },
-  removeId: async (id: number) => {
-    const ids = await favoritesStorage.getIds();
-    await favoritesStorage.setIds(ids.filter((i) => i !== id));
+  removeId: async (accountKey: string, id: number) => {
+    const ids = await favoritesStorage.getIds(accountKey);
+    await favoritesStorage.setIds(accountKey, ids.filter((i) => i !== id));
   },
-  toggleId: async (id: number) => {
-    const ids = await favoritesStorage.getIds();
+  toggleId: async (accountKey: string, id: number) => {
+    const ids = await favoritesStorage.getIds(accountKey);
     if (ids.includes(id)) {
-      await favoritesStorage.removeId(id);
+      await favoritesStorage.removeId(accountKey, id);
       return false;
     } else {
-      await favoritesStorage.addId(id);
+      await favoritesStorage.addId(accountKey, id);
       return true;
     }
+  },
+};
+
+export const userRecipesStorage = {
+  getRecipes: async (userId: number): Promise<Recipe[]> => {
+    const stored = await getStorageItem<unknown>(STORAGE_KEYS.USER_RECIPES);
+    if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return [];
+    const recipes = (stored as Record<string, unknown>)[String(userId)];
+    return Array.isArray(recipes) ? recipes as Recipe[] : [];
+  },
+  getRecipe: async (userId: number, recipeId: number): Promise<Recipe | null> => {
+    const recipes = await userRecipesStorage.getRecipes(userId);
+    return recipes.find((recipe) => recipe.id === recipeId) ?? null;
+  },
+  addRecipe: async (userId: number, recipe: Recipe): Promise<void> => {
+    const write = userRecipesWrite.catch(() => undefined).then(async () => {
+      const stored = await getStorageItem<unknown>(STORAGE_KEYS.USER_RECIPES);
+      const recipesByUser = typeof stored === 'object' && stored !== null && !Array.isArray(stored)
+        ? stored as Record<string, unknown>
+        : {};
+      const existing = recipesByUser[String(userId)];
+      const recipes = Array.isArray(existing) ? existing as Recipe[] : [];
+      await setStorageItem(STORAGE_KEYS.USER_RECIPES, {
+        ...recipesByUser,
+        [String(userId)]: [recipe, ...recipes],
+      });
+    });
+    userRecipesWrite = write;
+    await write;
+  },
+  removeRecipe: async (userId: number, recipeId: number): Promise<boolean> => {
+    let removed = false;
+    const write = userRecipesWrite.catch(() => undefined).then(async () => {
+      const stored = await getStorageItem<unknown>(STORAGE_KEYS.USER_RECIPES);
+      if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return;
+      const recipesByUser = stored as Record<string, unknown>;
+      const existing = recipesByUser[String(userId)];
+      if (!Array.isArray(existing)) return;
+
+      const recipes = existing as Recipe[];
+      const remaining = recipes.filter((recipe) => recipe.id !== recipeId);
+      if (remaining.length === recipes.length) return;
+
+      removed = true;
+      await setStorageItem(STORAGE_KEYS.USER_RECIPES, {
+        ...recipesByUser,
+        [String(userId)]: remaining,
+      });
+    });
+    userRecipesWrite = write;
+    await write;
+    return removed;
   },
 };

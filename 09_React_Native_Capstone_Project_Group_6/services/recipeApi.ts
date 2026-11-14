@@ -5,7 +5,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import { Recipe, RecipesResponse, RecipeSearchParams } from '@/types/recipe';
-import { recipeCacheStorage } from '@/utils/storage';
+import { recipeCacheStorage, userRecipesStorage } from '@/utils/storage';
 
 const API_BASE_URL = 'https://dummyjson.com/recipes';
 
@@ -35,7 +35,18 @@ class RecipeApiService {
   /**
    * Get single recipe by ID
    */
-  async getRecipeById(id: number): Promise<Recipe> {
+  async getRecipeById(id: number, userId?: number): Promise<Recipe> {
+    if (id < 0) {
+      if (userId === undefined) {
+        throw new Error('Sign in to view this recipe.');
+      }
+      const recipe = await userRecipesStorage.getRecipe(userId, id);
+      if (!recipe) {
+        throw new Error('This recipe could not be found in your account.');
+      }
+      return recipe;
+    }
+
     let recipe: Recipe;
     try {
       ({ data: recipe } = await this.client.get<Recipe>(`/${id}`));
@@ -136,7 +147,7 @@ class RecipeApiService {
    */
   async getMealTypes(): Promise<string[]> {
     return [
-      'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Appetizer', 'Dessert', 'Drink',
+      'Breakfast', 'Lunch', 'Dinner', 'Snack', 'Appetizer', 'Dessert',
     ];
   }
 }

@@ -6,11 +6,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Recipe } from '@/types/recipe';
 import { recipeApi } from '@/services/recipeApi';
 import { useFavorites } from '@/context/FavoritesContext';
+import { useAuth } from '@/context/AuthContext';
 import { styles } from './favoritesStyles';
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { user } = useAuth();
   const {
     favoriteIds,
     isLoading: favoritesLoading,
@@ -29,14 +31,14 @@ export default function FavoritesScreen() {
     setLoading(true);
     setError(null);
     try {
-      const recipes = await Promise.all(favoriteIds.map((id) => recipeApi.getRecipeById(id)));
+      const recipes = await Promise.all(favoriteIds.map((id) => recipeApi.getRecipeById(id, user?.id)));
       setFavorites(recipes);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load saved recipes');
     } finally {
       setLoading(false);
     }
-  }, [favoriteIds, favoritesLoading]);
+  }, [favoriteIds, favoritesLoading, user?.id]);
 
   useEffect(() => {
     void loadFavorites();
@@ -62,25 +64,55 @@ export default function FavoritesScreen() {
       onPress={() => router.push(`/(app)/recipe/${item.id}`)}
       activeOpacity={0.85}
     >
-      <Card style={[styles.card, { backgroundColor: colors.surface }]} elevation={1}>
-        <View style={styles.cardContent}>
-          <Image source={{ uri: item.image }} style={styles.recipeImage} resizeMode="cover" />
+      <Card
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.outline,
+            borderWidth: 2,
+          },
+        ]}
+        elevation={1}
+      >
+        <Card.Content style={styles.cardContent}>
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.recipeImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.recipeImage, { backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' }]}>
+              <MaterialCommunityIcons name="food-outline" size={30} color={colors.primary} />
+            </View>
+          )}
           <View style={styles.info}>
             <Title style={[styles.title, { color: colors.onSurface }]} numberOfLines={2}>{item.name}</Title>
-            <Text style={[styles.details, { color: colors.onSurfaceVariant }]}>
-              {item.cuisine} · {item.prepTimeMinutes + item.cookTimeMinutes} min · ⭐ {item.rating.toFixed(1)}
-            </Text>
+            <View style={styles.detailsRow}>
+              <View style={styles.cuisineBadge}>
+                <Text style={styles.cuisineLabel}>{item.cuisine}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="clock-outline" size={15} color={colors.primary} />
+                <Text style={[styles.details, { color: colors.onSurfaceVariant }]}>
+                  {item.prepTimeMinutes + item.cookTimeMinutes} min
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="star" size={15} color="#E9A400" />
+                <Text style={[styles.details, { color: colors.onSurfaceVariant }]}>{item.rating.toFixed(1)}</Text>
+              </View>
+            </View>
           </View>
           <IconButton
             icon="heart"
             iconColor="#C62828"
+            containerColor="#FFF3E0"
+            style={styles.favoriteButton}
             onPress={(event) => {
               event.stopPropagation();
               handleRemove(item);
             }}
             accessibilityLabel="Remove from favorites"
           />
-        </View>
+        </Card.Content>
       </Card>
     </TouchableOpacity>
   );
@@ -106,7 +138,7 @@ export default function FavoritesScreen() {
 
   if (error) {
     return (
-      <View style={styles.emptyState}>
+      <View style={[styles.emptyState, { backgroundColor: colors.background }]}>
         <Text style={styles.emptyTitle}>Couldn’t load your favorites</Text>
         <Text style={styles.emptyText}>{error}</Text>
         <Button mode="contained" onPress={() => { void loadFavorites(); }}>Try again</Button>
@@ -137,11 +169,18 @@ export default function FavoritesScreen() {
           renderItem={renderFavorite}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListHeaderComponent={
-            <View style={styles.header}>
-              <Title style={[styles.headerTitle, { color: colors.onBackground }]}>Saved recipes</Title>
-              <Text style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>{favorites.length} recipes in your cookbook</Text>
+            <View style={[styles.header, { backgroundColor: colors.primaryContainer }]}>
+              <View style={styles.headerCopy}>
+                <Title style={[styles.headerTitle, { color: colors.onPrimaryContainer }]}>Saved recipes</Title>
+                <Text style={[styles.headerSubtitle, { color: colors.onPrimaryContainer }]}>
+                  {favorites.length} saved {favorites.length === 1 ? 'recipe' : 'recipes'} in your cookbook
+                </Text>
+              </View>
+              <View style={styles.countBadge}>
+                <MaterialCommunityIcons name="heart" size={18} color="#FFFFFF" />
+                <Text style={styles.countText}>{favorites.length}</Text>
+              </View>
             </View>
           }
         />
@@ -155,7 +194,9 @@ export default function FavoritesScreen() {
       >
         <Dialog.Title>Remove favorite?</Dialog.Title>
         <Dialog.Content>
-          <Text>{pendingRemoval ? `${pendingRemoval.name} will be removed from your saved recipes.` : ''}</Text>
+          <Text style={{ color: colors.onSurface }}>
+            {pendingRemoval ? `${pendingRemoval.name} will be removed from your saved recipes.` : ''}
+          </Text>
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={() => setPendingRemoval(null)}>Cancel</Button>

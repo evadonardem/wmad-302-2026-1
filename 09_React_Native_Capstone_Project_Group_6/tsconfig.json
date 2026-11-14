@@ -8,6 +8,7 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "strict": true,
+    "types": ["jest", "node"],
     "noEmit": true,
     "isolatedModules": true,
     "esModuleInterop": true,
@@ -15,7 +16,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
@@ -52,5 +52,5 @@
     "dist",
     ".expo"
   ],
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base.json"
 }

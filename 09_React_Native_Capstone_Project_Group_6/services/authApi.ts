@@ -10,6 +10,39 @@ import { authStorage } from '@/utils/storage';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_AUTH_API_URL?.trim() || 'https://dummyjson.com/auth';
 const hasCustomAuthApi = Boolean(process.env.EXPO_PUBLIC_AUTH_API_URL?.trim());
+const DEVELOPMENT_SESSION_PREFIX = 'cookbook-dev-demo-';
+
+function getDevelopmentUserId(email: string): number {
+  let hash = 2166136261;
+  for (const character of email.trim().toLowerCase()) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  }
+  return (hash >>> 0) || 1;
+}
+
+function createDevelopmentUser(identifier: string): AuthUser {
+  const normalizedIdentifier = identifier.trim();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedIdentifier);
+  const usernameSource = isEmail ? normalizedIdentifier.split('@')[0] : normalizedIdentifier;
+  const username = usernameSource
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '.')
+    .replace(/^[._-]+|[._-]+$/g, '') || 'demo-user';
+  const email = isEmail ? normalizedIdentifier.toLowerCase() : `${username}@demo.local`;
+  const nameParts = usernameSource.replace(/[._-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+
+  return {
+    id: getDevelopmentUserId(email),
+    username,
+    email,
+    firstName: nameParts[0] || 'Demo',
+    lastName: nameParts.slice(1).join(' ') || 'User',
+    gender: 'female',
+    image: `https://dummyjson.com/icon/${encodeURIComponent(username)}/128`,
+    token: `${DEVELOPMENT_SESSION_PREFIX}access-token`,
+    refreshToken: `${DEVELOPMENT_SESSION_PREFIX}refresh-token`,
+  };
+}
 
 class AuthApiService {
   private client: AxiosInstance;
@@ -74,10 +107,6 @@ class AuthApiService {
     return (await authStorage.getUser())?.token ?? null;
   }
 
-  private async getRefreshToken(): Promise<string | null> {
-    return (await authStorage.getUser())?.refreshToken ?? null;
-  }
-
   async setTokens(user: AuthUser): Promise<void> {
     await authStorage.setUser(user);
   }
@@ -93,19 +122,68 @@ class AuthApiService {
     await authStorage.clearUser();
   }
 
+  private isDevelopmentDemoUser(user: AuthUser | null): boolean {
+    return process.env.NODE_ENV === 'development'
+      && !hasCustomAuthApi
+      && user?.token.startsWith(DEVELOPMENT_SESSION_PREFIX) === true;
+  }
+
   /**
-   * Login user with username/email and password
+   * Login with a username or, for DummyJSON, resolve an email to its username first.
    * POST /auth/login
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await this.client.post<AuthResponse>('/login', {
-      username: credentials.username,
-      password: credentials.password,
-      expiresInMins: credentials.expiresInMins || 60,
-    });
-    const user = this.normalizeUser(response.data);
+    const identifier = credentials.username.trim();
+    if (!identifier || credentials.password.length === 0) {
+      throw new Error('Please enter both username and password.');
+    }
+
+    if (process.env.NODE_ENV === 'development' && !hasCustomAuthApi) {
+      const user = createDevelopmentUser(identifier);
+      await this.setTokens(user);
+      return user;
+    }
+
+    const username = await this.resolveLoginUsername(identifier);
+    let response: AuthResponse;
+    try {
+      ({ data: response } = await this.client.post<AuthResponse>('/login', {
+        username,
+        password: credentials.password,
+        expiresInMins: credentials.expiresInMins || 60,
+      }));
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        throw new Error('Incorrect email/username or password, or this account is not registered.');
+      }
+      throw error;
+    }
+
+    const user = this.normalizeUser(response);
     await this.setTokens(user);
     return user;
+  }
+
+  private async resolveLoginUsername(identifier: string): Promise<string> {
+    const normalizedIdentifier = identifier.trim();
+    if (hasCustomAuthApi || !normalizedIdentifier.includes('@')) return normalizedIdentifier;
+
+    const apiRoot = API_BASE_URL.replace(/\/auth\/?$/, '');
+    const response = await axios.get<{
+      users: { username: string; email: string }[];
+    }>(`${apiRoot}/users/filter`, {
+      params: {
+        key: 'email',
+        value: normalizedIdentifier.toLowerCase(),
+        select: 'username,email',
+      },
+      timeout: 10000,
+    });
+    const account = response.data.users.find(
+      (user) => user.email.toLowerCase() === normalizedIdentifier.toLowerCase()
+    );
+    if (!account) throw new Error('No account was found with that email address.');
+    return account.username;
   }
 
   /** Registration is enabled only for a configured API that supports POST /register. */
@@ -124,6 +202,18 @@ class AuthApiService {
    * GET /auth/me
    */
   async getMe(): Promise<AuthProfile> {
+    const storedUser = await this.getStoredUser();
+    if (storedUser && this.isDevelopmentDemoUser(storedUser)) {
+      return {
+        id: storedUser.id || getDevelopmentUserId(storedUser.email),
+        username: storedUser.username,
+        email: storedUser.email,
+        firstName: storedUser.firstName,
+        lastName: storedUser.lastName,
+        gender: storedUser.gender,
+        image: storedUser.image,
+      };
+    }
     const response = await this.client.get<AuthProfile>('/me');
     return response.data;
   }
@@ -150,12 +240,18 @@ class AuthApiService {
     id: number,
     profile: Pick<AuthUser, 'firstName' | 'lastName' | 'email'>
   ): Promise<AuthUser> {
+    const currentUser = await this.getStoredUser();
+    if (!currentUser) throw new Error('Your session has expired. Please sign in again.');
+    if (this.isDevelopmentDemoUser(currentUser)) {
+      const updatedUser = { ...currentUser, ...profile };
+      await this.setTokens(updatedUser);
+      return updatedUser;
+    }
+
     const response = await axios.put<Partial<AuthUser>>(`https://dummyjson.com/users/${id}`, profile, {
       timeout: 10000,
       headers: { 'Content-Type': 'application/json' },
     });
-    const currentUser = await this.getStoredUser();
-    if (!currentUser) throw new Error('Your session has expired. Please sign in again.');
     const updatedUser = { ...currentUser, ...response.data, ...profile };
     await this.setTokens(updatedUser);
     return updatedUser;
@@ -171,7 +267,15 @@ class AuthApiService {
     }
 
     this.refreshTokenPromise = (async () => {
-      const refreshToken = await this.getRefreshToken();
+      const currentUser = await this.getStoredUser();
+      if (currentUser && this.isDevelopmentDemoUser(currentUser)) {
+        return {
+          accessToken: currentUser.token,
+          refreshToken: currentUser.refreshToken,
+        };
+      }
+
+      const refreshToken = currentUser?.refreshToken ?? null;
       if (!refreshToken) throw new Error('No refresh token available');
 
       try {
