@@ -4,6 +4,7 @@
  * API: https://dummyjson.com/docs/recipes
  * Favorites: AsyncStorage
  * Unique Feature: Smart Pantry Match
+ * Supports Global Light/Dark Mode
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -21,6 +22,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { useThemeMode } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Avatar,
@@ -57,19 +59,6 @@ interface RecipesResponse {
   limit: number;
 }
 
-const COLORS = {
-  background: '#FFFDF7',
-  primary: '#24543D',
-  secondary: '#E4C68E',
-  text: '#26372C',
-  muted: '#858B80',
-  white: '#FFFFFF',
-  border: '#EEECE4',
-  lightGreen: '#EAF2E9',
-  lightGold: '#F5ECD9',
-  red: '#D84343',
-};
-
 const STORAGE_KEY = 'favoriteRecipeIds';
 const LIMIT = 20;
 
@@ -87,7 +76,25 @@ const CATEGORIES = [
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { isDark } = useThemeMode();
   const { width: screenWidth } = useWindowDimensions();
+
+  // GLOBAL THEME COLORS
+  const themeColors = {
+    background: isDark ? '#101C18' : '#FFFDF7',
+    surface: isDark ? '#1B2B24' : '#FFFFFF',
+    primary: isDark ? '#78C6A3' : '#24543D',
+    banner: isDark ? '#203C30' : '#24543D',
+    secondary: '#E4C68E',
+    text: isDark ? '#F3F7F2' : '#26372C',
+    muted: isDark ? '#A8B5AA' : '#858B80',
+    border: isDark ? '#35483D' : '#EEECE4',
+    lightGreen: isDark ? '#293B32' : '#EAF2E9',
+    pantryIcon: isDark ? '#35483D' : '#FFFFFF',
+    white: '#FFFFFF',
+    red: '#D84343',
+    searchPlaceholder: isDark ? '#A8B5AA' : '#858B80',
+  };
 
   const isMobile = screenWidth < 600;
 
@@ -234,13 +241,20 @@ export default function HomeScreen() {
           { width: recipeCardWidth },
         ]}
       >
-        <Card style={styles.recipeCard} mode="elevated">
+        <Card
+          style={[
+            styles.recipeCard,
+            { backgroundColor: themeColors.surface },
+          ]}
+          mode="elevated"
+        >
           <View>
             <Image
               source={{ uri: item.image }}
               style={[
                 styles.recipeImage,
                 isMobile && styles.mobileRecipeImage,
+                { backgroundColor: themeColors.border },
               ]}
               resizeMode="cover"
             />
@@ -254,13 +268,16 @@ export default function HomeScreen() {
                   {
                     backgroundColor:
                       item.difficulty === 'Easy'
-                        ? '#E3F2E5'
+                        ? isDark ? '#294B38' : '#E3F2E5'
                         : item.difficulty === 'Medium'
-                        ? '#FFF0D8'
-                        : '#FCE4E4',
+                        ? isDark ? '#55452C' : '#FFF0D8'
+                        : isDark ? '#542F32' : '#FCE4E4',
                   },
                 ]}
-                textStyle={styles.difficultyText}
+                textStyle={[
+                  styles.difficultyText,
+                  { color: themeColors.text },
+                ]}
               >
                 {item.difficulty}
               </Chip>
@@ -269,7 +286,10 @@ export default function HomeScreen() {
             {/* FAVORITE HEART BUTTON */}
             <TouchableOpacity
               activeOpacity={0.75}
-              style={styles.favoriteButton}
+              style={[
+                styles.favoriteButton,
+                { backgroundColor: themeColors.surface },
+              ]}
               onPress={(event) => {
                 event.stopPropagation();
                 toggleFavorite(item.id);
@@ -284,7 +304,7 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name={isFavorite ? 'heart' : 'heart-outline'}
                 size={23}
-                color={isFavorite ? COLORS.red : COLORS.primary}
+                color={isFavorite ? themeColors.red : themeColors.primary}
               />
             </TouchableOpacity>
           </View>
@@ -295,20 +315,41 @@ export default function HomeScreen() {
               isMobile && styles.mobileRecipeContent,
             ]}
           >
-            <Text numberOfLines={1} style={styles.recipeName}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.recipeName,
+                { color: themeColors.text },
+              ]}
+            >
               {item.name}
             </Text>
 
-            <Text style={styles.cuisine}>
+            <Text
+              style={[
+                styles.cuisine,
+                { color: themeColors.muted },
+              ]}
+            >
               {item.cuisine}
             </Text>
 
             <View style={styles.recipeMeta}>
-              <Text style={styles.metaText}>
+              <Text
+                style={[
+                  styles.metaText,
+                  { color: themeColors.text },
+                ]}
+              >
                 ⭐ {item.rating.toFixed(1)}
               </Text>
 
-              <Text style={styles.metaText}>
+              <Text
+                style={[
+                  styles.metaText,
+                  { color: themeColors.text },
+                ]}
+              >
                 ⏱ {item.prepTimeMinutes + item.cookTimeMinutes} min
               </Text>
             </View>
@@ -321,9 +362,23 @@ export default function HomeScreen() {
   // LOADING SCREEN
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: themeColors.background },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={themeColors.primary}
+        />
+
+        <Text
+          style={[
+            styles.loadingText,
+            { color: themeColors.muted },
+          ]}
+        >
           Preparing your recipes...
         </Text>
       </View>
@@ -333,20 +388,36 @@ export default function HomeScreen() {
   // ERROR SCREEN
   if (error && recipes.length === 0) {
     return (
-      <View style={styles.center}>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: themeColors.background },
+        ]}
+      >
         <Text style={styles.errorIcon}>🍽️</Text>
 
-        <Text style={styles.errorTitle}>
+        <Text
+          style={[
+            styles.errorTitle,
+            { color: themeColors.text },
+          ]}
+        >
           Oops! Something went wrong.
         </Text>
 
-        <Text style={styles.loadingText}>
+        <Text
+          style={[
+            styles.loadingText,
+            { color: themeColors.muted },
+          ]}
+        >
           {error}
         </Text>
 
         <Button
           mode="contained"
-          buttonColor={COLORS.primary}
+          buttonColor={themeColors.primary}
+          textColor={isDark ? '#101C18' : '#FFFFFF'}
           onPress={() => fetchRecipes()}
           style={styles.retryButton}
         >
@@ -358,15 +429,18 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[
+        styles.container,
+        { backgroundColor: themeColors.background },
+      ]}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={() => fetchRecipes(true)}
-          tintColor={COLORS.primary}
-          colors={[COLORS.primary]}
+          tintColor={themeColors.primary}
+          colors={[themeColors.primary]}
         />
       }
     >
@@ -378,17 +452,32 @@ export default function HomeScreen() {
         ]}
       >
         <View style={styles.headerTextContainer}>
-          <Text style={styles.hello}>
+          <Text
+            style={[
+              styles.hello,
+              { color: themeColors.primary },
+            ]}
+          >
             HELLO, CHEF 👋
           </Text>
 
-          <Text style={styles.welcome}>
+          <Text
+            style={[
+              styles.welcome,
+              { color: themeColors.text },
+            ]}
+          >
             {user?.firstName
               ? `Hi, ${user.firstName}!`
               : 'Welcome to Cookbook!'}
           </Text>
 
-          <Text style={styles.subtitle}>
+          <Text
+            style={[
+              styles.subtitle,
+              { color: themeColors.muted },
+            ]}
+          >
             What would you like to cook today?
           </Text>
         </View>
@@ -396,8 +485,8 @@ export default function HomeScreen() {
         <Avatar.Icon
           size={isMobile ? 46 : 54}
           icon="chef-hat"
-          color={COLORS.white}
-          style={styles.avatar}
+          color={themeColors.white}
+          style={{ backgroundColor: themeColors.primary }}
         />
       </View>
 
@@ -405,12 +494,22 @@ export default function HomeScreen() {
       <View style={styles.searchContainer}>
         <Searchbar
           placeholder="Search delicious recipes..."
+          placeholderTextColor={themeColors.searchPlaceholder}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={searchRecipes}
-          style={styles.searchbar}
-          inputStyle={styles.searchInput}
-          iconColor={COLORS.primary}
+          style={[
+            styles.searchbar,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+            },
+          ]}
+          inputStyle={[
+            styles.searchInput,
+            { color: themeColors.text },
+          ]}
+          iconColor={themeColors.primary}
           elevation={0}
         />
       </View>
@@ -420,6 +519,7 @@ export default function HomeScreen() {
         style={[
           styles.banner,
           isMobile && styles.mobileBanner,
+          { backgroundColor: themeColors.banner },
         ]}
       >
         <View style={styles.bannerText}>
@@ -437,7 +537,12 @@ export default function HomeScreen() {
               router.push('/(app)/(tabs)/search')
             }
           >
-            <Text style={styles.bannerButtonText}>
+            <Text
+              style={[
+                styles.bannerButtonText,
+                { color: isDark ? '#203C30' : '#24543D' },
+              ]}
+            >
               Explore Recipes →
             </Text>
           </TouchableOpacity>
@@ -454,31 +559,60 @@ export default function HomeScreen() {
         style={[
           styles.pantryBanner,
           isMobile && styles.mobilePantryBanner,
+          {
+            backgroundColor: themeColors.lightGreen,
+            borderColor: themeColors.border,
+          },
         ]}
         onPress={() => router.push('/(app)/pantry' as any)}
       >
-        <View style={styles.pantryIcon}>
+        <View
+          style={[
+            styles.pantryIcon,
+            { backgroundColor: themeColors.pantryIcon },
+          ]}
+        >
           <MaterialCommunityIcons
             name="fridge-outline"
             size={28}
-            color={COLORS.primary}
+            color={themeColors.primary}
           />
         </View>
 
         <View style={styles.pantryText}>
-          <Text style={styles.pantryLabel}>
+          <Text
+            style={[
+              styles.pantryLabel,
+              { color: themeColors.muted },
+            ]}
+          >
             YOUR KITCHEN, YOUR RECIPES
           </Text>
 
-          <Text style={styles.pantryTitle}>
+          <Text
+            style={[
+              styles.pantryTitle,
+              { color: themeColors.text },
+            ]}
+          >
             What's in your pantry?
           </Text>
 
-          <Text style={styles.pantrySubtitle}>
+          <Text
+            style={[
+              styles.pantrySubtitle,
+              { color: themeColors.muted },
+            ]}
+          >
             Find meals using ingredients you already have.
           </Text>
 
-          <Text style={styles.pantryLink}>
+          <Text
+            style={[
+              styles.pantryLink,
+              { color: themeColors.primary },
+            ]}
+          >
             Find Recipes →
           </Text>
         </View>
@@ -486,7 +620,7 @@ export default function HomeScreen() {
         <MaterialCommunityIcons
           name="chevron-right"
           size={25}
-          color={COLORS.primary}
+          color={themeColors.primary}
         />
       </TouchableOpacity>
 
@@ -494,11 +628,21 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionTitle}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: themeColors.text },
+              ]}
+            >
               Categories
             </Text>
 
-            <Text style={styles.sectionSubtitle}>
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                { color: themeColors.muted },
+              ]}
+            >
               Find your favorite
             </Text>
           </View>
@@ -516,13 +660,23 @@ export default function HomeScreen() {
                 })
               }
             >
-              <View style={styles.categoryIcon}>
+              <View
+                style={[
+                  styles.categoryIcon,
+                  { backgroundColor: themeColors.lightGreen },
+                ]}
+              >
                 <Text style={styles.categoryEmoji}>
                   {category.icon}
                 </Text>
               </View>
 
-              <Text style={styles.categoryName}>
+              <Text
+                style={[
+                  styles.categoryName,
+                  { color: themeColors.text },
+                ]}
+              >
                 {category.name}
               </Text>
             </TouchableOpacity>
@@ -534,11 +688,21 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View style={styles.featuredHeading}>
-            <Text style={styles.sectionTitle}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: themeColors.text },
+              ]}
+            >
               Featured Recipes
             </Text>
 
-            <Text style={styles.sectionSubtitle}>
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                { color: themeColors.muted },
+              ]}
+            >
               Delicious ideas for your next meal
             </Text>
           </View>
@@ -548,7 +712,12 @@ export default function HomeScreen() {
               router.push('/(app)/(tabs)/search')
             }
           >
-            <Text style={styles.seeAll}>
+            <Text
+              style={[
+                styles.seeAll,
+                { color: themeColors.primary },
+              ]}
+            >
               See All →
             </Text>
           </TouchableOpacity>
@@ -569,8 +738,11 @@ export default function HomeScreen() {
           onPress={loadMore}
           loading={loadingMore}
           disabled={loadingMore || recipes.length >= total}
-          textColor={COLORS.primary}
-          style={styles.loadMoreButton}
+          textColor={themeColors.primary}
+          style={[
+            styles.loadMoreButton,
+            { borderColor: themeColors.primary },
+          ]}
           contentStyle={styles.loadMoreContent}
         >
           {recipes.length >= total
@@ -589,11 +761,21 @@ export default function HomeScreen() {
       <View style={styles.footer}>
         <Text style={styles.footerEmoji}>❤️</Text>
 
-        <Text style={styles.footerText}>
+        <Text
+          style={[
+            styles.footerText,
+            { color: themeColors.text },
+          ]}
+        >
           Good food brings people together.
         </Text>
 
-        <Text style={styles.footerSmall}>
+        <Text
+          style={[
+            styles.footerSmall,
+            { color: themeColors.muted },
+          ]}
+        >
           Made with love in Cookbook
         </Text>
       </View>
@@ -604,7 +786,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 24,
@@ -613,7 +794,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
     padding: 24,
   },
   header: {
@@ -637,31 +817,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 2,
     fontWeight: '700',
-    color: COLORS.primary,
   },
   welcome: {
     fontSize: 25,
     fontWeight: '800',
-    color: COLORS.text,
     marginTop: 5,
   },
   subtitle: {
     fontSize: 13,
-    color: COLORS.muted,
     marginTop: 5,
-  },
-  avatar: {
-    backgroundColor: COLORS.primary,
   },
   searchContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   searchbar: {
-    backgroundColor: COLORS.white,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   searchInput: {
     fontSize: 13,
@@ -669,7 +841,6 @@ const styles = StyleSheet.create({
   banner: {
     marginHorizontal: 20,
     padding: 22,
-    backgroundColor: COLORS.primary,
     borderRadius: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -686,19 +857,19 @@ const styles = StyleSheet.create({
   },
   bannerLabel: {
     fontSize: 9,
-    color: COLORS.secondary,
+    color: '#E4C68E',
     fontWeight: '800',
     letterSpacing: 1.2,
   },
   bannerTitle: {
-    color: COLORS.white,
+    color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '800',
     lineHeight: 29,
     marginTop: 10,
   },
   bannerButton: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: '#E4C68E',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 9,
@@ -706,7 +877,6 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   bannerButtonText: {
-    color: COLORS.primary,
     fontWeight: '800',
     fontSize: 11,
   },
@@ -715,15 +885,13 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
 
-  // SMART PANTRY MATCH STYLES
+  // SMART PANTRY MATCH
   pantryBanner: {
     marginHorizontal: 20,
     marginTop: 22,
     padding: 16,
-    backgroundColor: '#EAF2E9',
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: '#DCE8DA',
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -735,7 +903,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 15,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 13,
@@ -747,22 +914,18 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 1,
     fontWeight: '800',
-    color: '#858B80',
   },
   pantryTitle: {
-    color: '#26372C',
     fontSize: 17,
     fontWeight: '800',
     marginTop: 4,
   },
   pantrySubtitle: {
-    color: '#858B80',
     fontSize: 11,
     marginTop: 4,
     lineHeight: 16,
   },
   pantryLink: {
-    color: '#24543D',
     fontSize: 12,
     fontWeight: '800',
     marginTop: 9,
@@ -784,10 +947,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: COLORS.text,
   },
   sectionSubtitle: {
-    color: COLORS.muted,
     fontSize: 12,
     marginTop: 4,
   },
@@ -808,20 +969,17 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.lightGreen,
   },
   categoryEmoji: {
     fontSize: 25,
   },
   categoryName: {
-    color: COLORS.text,
     fontSize: 10,
     fontWeight: '600',
     marginTop: 8,
     textAlign: 'center',
   },
   seeAll: {
-    color: COLORS.primary,
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 8,
@@ -834,14 +992,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   recipeCard: {
-    backgroundColor: COLORS.white,
     borderRadius: 14,
     overflow: 'hidden',
   },
   recipeImage: {
     width: '100%',
     height: 165,
-    backgroundColor: COLORS.border,
   },
   mobileRecipeImage: {
     height: 120,
@@ -856,7 +1012,6 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 10,
-    color: COLORS.text,
     fontWeight: '600',
   },
   favoriteButton: {
@@ -866,7 +1021,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 20,
-    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
@@ -884,11 +1038,9 @@ const styles = StyleSheet.create({
   recipeName: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.text,
   },
   cuisine: {
     fontSize: 11,
-    color: COLORS.muted,
     marginTop: 5,
   },
   recipeMeta: {
@@ -897,21 +1049,18 @@ const styles = StyleSheet.create({
     marginTop: 13,
   },
   metaText: {
-    color: COLORS.text,
     fontSize: 11,
     fontWeight: '600',
   },
   loadMoreButton: {
     marginHorizontal: 20,
     marginTop: 12,
-    borderColor: COLORS.primary,
     borderRadius: 12,
   },
   loadMoreContent: {
     minHeight: 44,
   },
   loadingText: {
-    color: COLORS.muted,
     marginTop: 12,
     textAlign: 'center',
   },
@@ -921,7 +1070,6 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text,
     marginTop: 15,
     textAlign: 'center',
   },
@@ -942,13 +1090,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   footerText: {
-    color: COLORS.text,
     fontWeight: '700',
     marginTop: 8,
     textAlign: 'center',
   },
   footerSmall: {
-    color: COLORS.muted,
     fontSize: 11,
     marginTop: 5,
   },

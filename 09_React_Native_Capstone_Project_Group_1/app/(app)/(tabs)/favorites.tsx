@@ -1,6 +1,8 @@
+
 /**
  * Favorites Screen - Cookbook
  * Loads and removes favorite recipes using AsyncStorage.
+ * Supports Global Light and Dark Mode.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -17,8 +19,9 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Card, Chip, IconButton, Button } from 'react-native-paper';
+import { Card, Chip, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useThemeMode } from '@/context/ThemeContext';
 
 interface Recipe {
   id: number;
@@ -32,7 +35,7 @@ interface Recipe {
   rating: number;
 }
 
-const COLORS = {
+const LIGHT_COLORS = {
   background: '#FFFDF7',
   primary: '#24543D',
   text: '#26372C',
@@ -44,10 +47,26 @@ const COLORS = {
   red: '#D84343',
 };
 
+const DARK_COLORS = {
+  background: '#101C18',
+  primary: '#78C6A3',
+  text: '#F3F7F2',
+  muted: '#AAB8AE',
+  white: '#1B2B24',
+  border: '#35483D',
+  lightGreen: '#293B32',
+  lightGold: '#3A3426',
+  red: '#F07171',
+};
+
 const STORAGE_KEY = 'favoriteRecipeIds';
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { isDark } = useThemeMode();
+
+  const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
+  const styles = createStyles(COLORS);
 
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,7 +287,7 @@ export default function FavoritesScreen() {
           <Button
             mode="contained"
             buttonColor={COLORS.primary}
-            textColor={COLORS.white}
+            textColor={isDark ? '#101C18' : COLORS.white}
             onPress={() =>
               router.push('/(app)/(tabs)/search')
             }
@@ -286,6 +305,7 @@ export default function FavoritesScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          style={styles.flatList}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -315,121 +335,126 @@ export default function FavoritesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-  },
-  loadingText: {
-    marginTop: 12,
-    color: COLORS.muted,
-    fontSize: 13,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    backgroundColor: COLORS.background,
-  },
-  emptyTitle: {
-    fontSize: 21,
-    fontWeight: '800',
-    color: COLORS.text,
-    marginTop: 18,
-  },
-  emptyText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 21,
-    marginTop: 8,
-  },
-  browseButton: {
-    marginTop: 22,
-    borderRadius: 10,
-  },
-  buttonContent: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 25,
-  },
-  header: {
-    paddingTop: 35,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 25,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: COLORS.muted,
-    marginTop: 5,
-  },
-  favoriteCard: {
-    marginBottom: 13,
-  },
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-  },
-  recipeImage: {
-    width: 105,
-    height: 105,
-    borderRadius: 10,
-    backgroundColor: COLORS.border,
-  },
-  info: {
-    flex: 1,
-    paddingHorizontal: 11,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-  meta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 7,
-    gap: 5,
-  },
-  difficultyChip: {
-    backgroundColor: COLORS.lightGreen,
-  },
-  cuisineChip: {
-    backgroundColor: COLORS.lightGold,
-  },
-  chipText: {
-    fontSize: 10,
-    color: COLORS.text,
-  },
-  details: {
-    color: COLORS.muted,
-    fontSize: 10,
-    marginTop: 8,
-  },
-  removeButton: {
-    width: 38,
-    height: 38,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+function createStyles(COLORS: typeof LIGHT_COLORS) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    flatList: {
+      backgroundColor: COLORS.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: COLORS.background,
+    },
+    loadingText: {
+      marginTop: 12,
+      color: COLORS.muted,
+      fontSize: 13,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 30,
+      backgroundColor: COLORS.background,
+    },
+    emptyTitle: {
+      fontSize: 21,
+      fontWeight: '800',
+      color: COLORS.text,
+      marginTop: 18,
+    },
+    emptyText: {
+      color: COLORS.muted,
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 21,
+      marginTop: 8,
+    },
+    browseButton: {
+      marginTop: 22,
+      borderRadius: 10,
+    },
+    buttonContent: {
+      minHeight: 44,
+      paddingHorizontal: 12,
+    },
+    listContent: {
+      paddingHorizontal: 16,
+      paddingBottom: 25,
+    },
+    header: {
+      paddingTop: 35,
+      paddingBottom: 20,
+    },
+    headerTitle: {
+      fontSize: 25,
+      fontWeight: '800',
+      color: COLORS.text,
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      color: COLORS.muted,
+      marginTop: 5,
+    },
+    favoriteCard: {
+      marginBottom: 13,
+    },
+    card: {
+      backgroundColor: COLORS.white,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+    cardContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+    },
+    recipeImage: {
+      width: 105,
+      height: 105,
+      borderRadius: 10,
+      backgroundColor: COLORS.border,
+    },
+    info: {
+      flex: 1,
+      paddingHorizontal: 11,
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: COLORS.text,
+    },
+    meta: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 7,
+      gap: 5,
+    },
+    difficultyChip: {
+      backgroundColor: COLORS.lightGreen,
+    },
+    cuisineChip: {
+      backgroundColor: COLORS.lightGold,
+    },
+    chipText: {
+      fontSize: 10,
+      color: COLORS.text,
+    },
+    details: {
+      color: COLORS.muted,
+      fontSize: 10,
+      marginTop: 8,
+    },
+    removeButton: {
+      width: 38,
+      height: 38,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+}

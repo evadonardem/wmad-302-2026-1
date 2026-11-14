@@ -12,11 +12,12 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useThemeMode } from '@/context/ThemeContext';
 import type { Recipe, RecipesResponse } from '@/types/recipe';
 
 const API_URL = 'https://dummyjson.com/recipes?limit=0';
 
-const COLORS = {
+const LIGHT_COLORS = {
   background: '#FFFDF7',
   primary: '#24543D',
   text: '#26372C',
@@ -26,17 +27,30 @@ const COLORS = {
   lightGreen: '#EAF2E9',
   gold: '#E4C68E',
   orange: '#D97736',
+  inputBackground: '#F8F8F2',
+};
+
+const DARK_COLORS = {
+  background: '#101C18',
+  primary: '#78C6A3',
+  text: '#F3F7F2',
+  muted: '#AAB8AE',
+  white: '#1B2B24',
+  border: '#35483D',
+  lightGreen: '#293B32',
+  gold: '#D8B878',
+  orange: '#E5A16F',
+  inputBackground: '#293B32',
 };
 
 const SUGGESTIONS = [
-  'Eggs',
-  'Chicken',
-  'Garlic',
-  'Rice',
-  'Tomato',
-  'Onion',
-  'Potato',
-  'Cheese',
+  'Eggs', 'Chicken', 'Beef', 'Pork', 'Fish', 'Shrimp',
+  'Garlic', 'Onion', 'Rice', 'Tomato', 'Potato', 'Carrot',
+  'Cheese', 'Butter', 'Milk', 'Cream', 'Mushroom', 'Broccoli',
+  'Spinach', 'Cabbage', 'Bell Pepper', 'Ginger', 'Lemon',
+  'Avocado', 'Corn', 'Flour', 'Bread', 'Pasta', 'Soy Sauce',
+  'Olive Oil', 'Coconut Milk', 'Cucumber', 'Sweet Potato',
+  'Green Beans', 'Chili',
 ];
 
 const normalize = (value: string) =>
@@ -44,6 +58,10 @@ const normalize = (value: string) =>
 
 export default function PantryScreen() {
   const router = useRouter();
+  const { isDark } = useThemeMode();
+
+  const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
+  const styles = createStyles(COLORS);
 
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [ingredients, setIngredients] = useState<string[]>([]);
@@ -51,6 +69,7 @@ export default function PantryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // LOAD RECIPES
   useEffect(() => {
     const loadRecipes = async () => {
       try {
@@ -67,7 +86,9 @@ export default function PantryScreen() {
         setAllRecipes(data.recipes);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : 'Something went wrong.'
+          err instanceof Error
+            ? err.message
+            : 'Something went wrong.'
         );
       } finally {
         setLoading(false);
@@ -77,6 +98,7 @@ export default function PantryScreen() {
     loadRecipes();
   }, []);
 
+  // ADD INGREDIENTS
   const addIngredients = (value: string) => {
     const newItems = value
       .split(',')
@@ -100,12 +122,14 @@ export default function PantryScreen() {
     setInput('');
   };
 
+  // REMOVE INGREDIENT
   const removeIngredient = (item: string) => {
     setIngredients((previous) =>
       previous.filter((ingredient) => ingredient !== item)
     );
   };
 
+  // MATCH RECIPES
   const matchingRecipes = useMemo(() => {
     if (ingredients.length === 0) return [];
 
@@ -160,6 +184,7 @@ export default function PantryScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      {/* BACK BUTTON */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.back()}
@@ -172,6 +197,7 @@ export default function PantryScreen() {
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
+      {/* HEADING */}
       <View style={styles.headingArea}>
         <View style={styles.headingIcon}>
           <MaterialCommunityIcons
@@ -181,7 +207,9 @@ export default function PantryScreen() {
           />
         </View>
 
-        <Text style={styles.heading}>Smart Pantry Match</Text>
+        <Text style={styles.heading}>
+          Smart Pantry Match
+        </Text>
 
         <Text style={styles.subtitle}>
           What's in your kitchen today? Find recipes you can make
@@ -189,14 +217,17 @@ export default function PantryScreen() {
         </Text>
       </View>
 
+      {/* INGREDIENT INPUT CARD */}
       <View style={styles.inputCard}>
-        <Text style={styles.label}>YOUR AVAILABLE INGREDIENTS</Text>
+        <Text style={styles.label}>
+          YOUR AVAILABLE INGREDIENTS
+        </Text>
 
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
             placeholder="e.g. eggs, chicken, garlic"
-            placeholderTextColor="#9A9A90"
+            placeholderTextColor={COLORS.muted}
             value={input}
             onChangeText={setInput}
             onSubmitEditing={() => addIngredients(input)}
@@ -210,7 +241,7 @@ export default function PantryScreen() {
             <MaterialCommunityIcons
               name="plus"
               size={23}
-              color={COLORS.white}
+              color={isDark ? '#101C18' : '#FFFFFF'}
             />
           </TouchableOpacity>
         </View>
@@ -219,6 +250,7 @@ export default function PantryScreen() {
           Separate multiple ingredients with commas.
         </Text>
 
+        {/* QUICK ADD */}
         <Text style={styles.label}>QUICK ADD</Text>
 
         <View style={styles.suggestions}>
@@ -251,6 +283,7 @@ export default function PantryScreen() {
           })}
         </View>
 
+        {/* MY INGREDIENTS */}
         {ingredients.length > 0 && (
           <>
             <View style={styles.ingredientHeader}>
@@ -270,7 +303,10 @@ export default function PantryScreen() {
                   style={styles.ingredientChip}
                   onPress={() => removeIngredient(item)}
                 >
-                  <Text style={styles.ingredientText}>{item}</Text>
+                  <Text style={styles.ingredientText}>
+                    {item}
+                  </Text>
+
                   <MaterialCommunityIcons
                     name="close-circle"
                     size={16}
@@ -283,9 +319,13 @@ export default function PantryScreen() {
         )}
       </View>
 
+      {/* RESULTS HEADER */}
       <View style={styles.resultsHeading}>
         <View>
-          <Text style={styles.resultsTitle}>Recipes for your pantry</Text>
+          <Text style={styles.resultsTitle}>
+            Recipes for your pantry
+          </Text>
+
           <Text style={styles.resultsSubtitle}>
             {ingredients.length === 0
               ? 'Add ingredients to discover recipes.'
@@ -300,20 +340,30 @@ export default function PantryScreen() {
         />
       </View>
 
+      {/* LOADING */}
       {loading ? (
         <View style={styles.emptyState}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.emptyText}>Finding recipes...</Text>
+          <ActivityIndicator
+            size="large"
+            color={COLORS.primary}
+          />
+          <Text style={styles.emptyText}>
+            Finding recipes...
+          </Text>
         </View>
       ) : error ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Unable to find recipes</Text>
+          <Text style={styles.emptyTitle}>
+            Unable to find recipes
+          </Text>
           <Text style={styles.emptyText}>{error}</Text>
         </View>
       ) : ingredients.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>🥕</Text>
-          <Text style={styles.emptyTitle}>Start with your ingredients</Text>
+          <Text style={styles.emptyTitle}>
+            Start with your ingredients
+          </Text>
           <Text style={styles.emptyText}>
             Add at least one ingredient to see what you can cook.
           </Text>
@@ -321,12 +371,15 @@ export default function PantryScreen() {
       ) : matchingRecipes.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>🍽️</Text>
-          <Text style={styles.emptyTitle}>No matches yet</Text>
+          <Text style={styles.emptyTitle}>
+            No matches yet
+          </Text>
           <Text style={styles.emptyText}>
             Try adding more ingredients to discover recipes.
           </Text>
         </View>
       ) : (
+        // MATCHING RECIPE CARDS
         matchingRecipes.map((item) => (
           <TouchableOpacity
             key={item.recipe.id}
@@ -344,6 +397,7 @@ export default function PantryScreen() {
                 <Text style={styles.matchPercentage}>
                   {item.percentage}% match
                 </Text>
+
                 <Text style={styles.matchCount}>
                   {item.matched.length}/{item.recipe.ingredients.length} items
                 </Text>
@@ -378,246 +432,250 @@ export default function PantryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  backText: {
-    color: COLORS.primary,
-    fontWeight: '700',
-    marginLeft: 5,
-  },
-  headingArea: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  headingIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 20,
-    backgroundColor: COLORS.lightGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 13,
-  },
-  heading: {
-    fontSize: 25,
-    fontWeight: '800',
-    color: COLORS.text,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginTop: 8,
-    maxWidth: 380,
-  },
-  inputCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 17,
-  },
-  label: {
-    color: COLORS.muted,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    height: 48,
-    backgroundColor: '#F8F8F2',
-    borderRadius: 11,
-    paddingHorizontal: 13,
-    color: COLORS.text,
-    fontSize: 13,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 11,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 9,
-  },
-  helperText: {
-    color: COLORS.muted,
-    fontSize: 11,
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  suggestions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 15,
-  },
-  suggestionChip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: '#FAFAF5',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  selectedSuggestion: {
-    backgroundColor: COLORS.lightGreen,
-    borderColor: COLORS.primary,
-  },
-  suggestionText: {
-    fontSize: 12,
-    color: COLORS.text,
-    fontWeight: '600',
-  },
-  selectedSuggestionText: {
-    color: COLORS.primary,
-  },
-  ingredientHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  clearText: {
-    color: COLORS.orange,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  ingredientList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  ingredientChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.lightGreen,
-    borderRadius: 20,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  ingredientText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  resultsHeading: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 28,
-    marginBottom: 15,
-  },
-  resultsTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  resultsSubtitle: {
-    color: COLORS.muted,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  emptyState: {
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 28,
-    marginTop: 5,
-  },
-  emptyEmoji: {
-    fontSize: 38,
-    marginBottom: 10,
-  },
-  emptyTitle: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  emptyText: {
-    color: COLORS.muted,
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 7,
-    lineHeight: 18,
-  },
-  recipeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 15,
-    padding: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  recipeImage: {
-    width: 92,
-    height: 100,
-    borderRadius: 11,
-    backgroundColor: COLORS.border,
-  },
-  recipeInfo: {
-    flex: 1,
-    paddingHorizontal: 11,
-  },
-  matchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  matchPercentage: {
-    color: COLORS.primary,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  matchCount: {
-    color: COLORS.muted,
-    fontSize: 10,
-  },
-  recipeName: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  recipeMeta: {
-    color: COLORS.muted,
-    fontSize: 11,
-    marginTop: 5,
-  },
-  missingText: {
-    color: COLORS.orange,
-    fontSize: 10,
-    marginTop: 7,
-    lineHeight: 15,
-  },
-});
+// DYNAMIC LIGHT AND DARK MODE STYLES
+function createStyles(COLORS: typeof LIGHT_COLORS) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 40,
+      backgroundColor: COLORS.background,
+    },
+    backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      marginTop: 12,
+      marginBottom: 20,
+    },
+    backText: {
+      color: COLORS.primary,
+      fontWeight: '700',
+      marginLeft: 5,
+    },
+    headingArea: {
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    headingIcon: {
+      width: 62,
+      height: 62,
+      borderRadius: 20,
+      backgroundColor: COLORS.lightGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 13,
+    },
+    heading: {
+      fontSize: 25,
+      fontWeight: '800',
+      color: COLORS.text,
+      textAlign: 'center',
+    },
+    subtitle: {
+      color: COLORS.muted,
+      fontSize: 13,
+      lineHeight: 20,
+      textAlign: 'center',
+      marginTop: 8,
+      maxWidth: 380,
+    },
+    inputCard: {
+      backgroundColor: COLORS.white,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: 17,
+    },
+    label: {
+      color: COLORS.muted,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1,
+      marginBottom: 10,
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    input: {
+      flex: 1,
+      height: 48,
+      backgroundColor: COLORS.inputBackground,
+      borderRadius: 11,
+      paddingHorizontal: 13,
+      color: COLORS.text,
+      fontSize: 13,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    addButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 11,
+      backgroundColor: COLORS.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 9,
+    },
+    helperText: {
+      color: COLORS.muted,
+      fontSize: 11,
+      marginTop: 8,
+      marginBottom: 20,
+    },
+    suggestions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 15,
+    },
+    suggestionChip: {
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.inputBackground,
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    selectedSuggestion: {
+      backgroundColor: COLORS.lightGreen,
+      borderColor: COLORS.primary,
+    },
+    suggestionText: {
+      fontSize: 12,
+      color: COLORS.text,
+      fontWeight: '600',
+    },
+    selectedSuggestionText: {
+      color: COLORS.primary,
+    },
+    ingredientHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    clearText: {
+      color: COLORS.orange,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    ingredientList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    ingredientChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.lightGreen,
+      borderRadius: 20,
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      gap: 6,
+    },
+    ingredientText: {
+      color: COLORS.primary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    resultsHeading: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 28,
+      marginBottom: 15,
+    },
+    resultsTitle: {
+      color: COLORS.text,
+      fontSize: 18,
+      fontWeight: '800',
+    },
+    resultsSubtitle: {
+      color: COLORS.muted,
+      fontSize: 12,
+      marginTop: 4,
+    },
+    emptyState: {
+      alignItems: 'center',
+      backgroundColor: COLORS.white,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: 28,
+      marginTop: 5,
+    },
+    emptyEmoji: {
+      fontSize: 38,
+      marginBottom: 10,
+    },
+    emptyTitle: {
+      color: COLORS.text,
+      fontSize: 16,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    emptyText: {
+      color: COLORS.muted,
+      fontSize: 12,
+      textAlign: 'center',
+      marginTop: 7,
+      lineHeight: 18,
+    },
+    recipeCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.white,
+      borderRadius: 15,
+      padding: 10,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    recipeImage: {
+      width: 92,
+      height: 100,
+      borderRadius: 11,
+      backgroundColor: COLORS.border,
+    },
+    recipeInfo: {
+      flex: 1,
+      paddingHorizontal: 11,
+    },
+    matchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    matchPercentage: {
+      color: COLORS.primary,
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    matchCount: {
+      color: COLORS.muted,
+      fontSize: 10,
+    },
+    recipeName: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    recipeMeta: {
+      color: COLORS.muted,
+      fontSize: 11,
+      marginTop: 5,
+    },
+    missingText: {
+      color: COLORS.orange,
+      fontSize: 10,
+      marginTop: 7,
+      lineHeight: 15,
+    },
+  });
+}

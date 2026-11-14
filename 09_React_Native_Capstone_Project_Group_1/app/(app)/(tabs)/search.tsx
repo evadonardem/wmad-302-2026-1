@@ -1,11 +1,7 @@
+
 /**
  * Search Screen - Cookbook
- * TODO: Students implement
- * - Search recipes by query (GET /recipes/search?q=)
- * - Filter by category, cuisine, difficulty
- * - Filter by meal type, prep time
- * - Sort by rating, time, calories
- * - Infinite scroll pagination
+ * Global Light/Dark Mode Support
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -19,8 +15,10 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';import { Chip, Button } from 'react-native-paper';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Chip, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useThemeMode } from '@/context/ThemeContext';
 
 import type { Recipe, RecipesResponse } from '@/types/recipe';
 
@@ -39,7 +37,6 @@ const categories = [
 ];
 
 const difficulties = ['Easy', 'Medium', 'Hard'];
-
 const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
 const prepTimes = [
@@ -57,7 +54,23 @@ const sortOptions = [
 
 export default function SearchScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ q?: string }>();
+  const params = useLocalSearchParams<{ q?: string; category?: string }>();
+  const { isDark } = useThemeMode();
+
+  const colors = {
+    background: isDark ? '#101C18' : '#F8F6EF',
+    surface: isDark ? '#1B2B24' : '#FFFFFF',
+    primary: isDark ? '#78C6A3' : '#315C43',
+    heading: isDark ? '#F3F7F2' : '#294B36',
+    text: isDark ? '#E5EDE6' : '#52634F',
+    muted: isDark ? '#A8B5AA' : '#858B7F',
+    border: isDark ? '#35483D' : '#E3E5D9',
+    searchBorder: isDark ? '#35483D' : '#E8E7DC',
+    selectedText: '#FFFFFF',
+    accent: isDark ? '#E4B77D' : '#D97736',
+    imageBackground: isDark ? '#293B32' : '#E9E8DE',
+  };
+
   const [query, setQuery] = useState(params.q ?? '');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +80,9 @@ export default function SearchScreen() {
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    params.category ?? null
+  );
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
@@ -100,7 +115,7 @@ export default function SearchScreen() {
           append ? [...previous, ...data.recipes] : data.recipes
         );
 
-        const nextSkip = data.skip + data.limit;
+        const nextSkip = data.skip + data.recipes.length;
         setSkip(nextSkip);
         setHasMore(nextSkip < data.total);
       } catch (err) {
@@ -114,12 +129,14 @@ export default function SearchScreen() {
     },
     []
   );
-// Read search keyword passed through the URL.
-useEffect(() => {
-  setQuery(params.q ?? '');
-}, [params.q]);
 
-  // Load recipes and search after a short delay.
+  // Read search keyword and category passed through the URL.
+  useEffect(() => {
+    setQuery(params.q ?? '');
+    setSelectedCategory(params.category ?? null);
+  }, [params.q, params.category]);
+
+  // Search after a short delay.
   useEffect(() => {
     const timer = setTimeout(() => {
       setSkip(0);
@@ -207,49 +224,73 @@ useEffect(() => {
   };
 
   const clearFilters = useCallback(() => {
-  setSelectedCategory(null);
-  setSelectedCuisine(null);
-  setSelectedDifficulty(null);
-  setSelectedMeal(null);
-  setSelectedPrepTime(0);
-  setSortBy('rating');
-}, []);
+    setSelectedCategory(null);
+    setSelectedCuisine(null);
+    setSelectedDifficulty(null);
+    setSelectedMeal(null);
+    setSelectedPrepTime(0);
+    setSortBy('rating');
+  }, []);
 
+  // RECIPE CARD
   const renderRecipe = ({ item }: { item: Recipe }) => {
     const totalTime = item.prepTimeMinutes + item.cookTimeMinutes;
 
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        style={styles.recipeCard}
+        style={[
+          styles.recipeCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
         onPress={() =>
           router.push(`/(app)/recipe/${item.id}` as any)
         }
       >
-        <Image source={{ uri: item.image }} style={styles.recipeImage} />
+        <Image
+          source={{ uri: item.image }}
+          style={[
+            styles.recipeImage,
+            { backgroundColor: colors.imageBackground },
+          ]}
+        />
 
         <View style={styles.recipeInfo}>
-          <Text style={styles.recipeName} numberOfLines={2}>
+          <Text
+            style={[styles.recipeName, { color: colors.heading }]}
+            numberOfLines={2}
+          >
             {item.name}
           </Text>
 
-          <Text style={styles.recipeCuisine}>
+          <Text style={[styles.recipeCuisine, { color: colors.muted }]}>
             {item.cuisine} · {item.difficulty}
           </Text>
 
           <View style={styles.recipeMeta}>
-            <Text style={styles.metaText}>
-              <MaterialCommunityIcons name="clock-outline" size={14} />
+            <Text style={[styles.metaText, { color: colors.text }]}>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={14}
+                color={colors.text}
+              />
               {' '}{totalTime} min
             </Text>
 
-            <Text style={styles.metaText}>
-              <MaterialCommunityIcons name="star" size={14} color="#E99A35" />
+            <Text style={[styles.metaText, { color: colors.text }]}>
+              <MaterialCommunityIcons
+                name="star"
+                size={14}
+                color="#E99A35"
+              />
               {' '}{item.rating}
             </Text>
           </View>
 
-          <Text style={styles.caloriesText}>
+          <Text style={[styles.caloriesText, { color: colors.muted }]}>
             {item.caloriesPerServing} calories per serving
           </Text>
         </View>
@@ -257,27 +298,43 @@ useEffect(() => {
         <MaterialCommunityIcons
           name="chevron-right"
           size={24}
-          color="#7B8D78"
+          color={colors.muted}
         />
       </TouchableOpacity>
     );
   };
 
-const renderHeader = () => (<View>
+  // SEARCH AND FILTER HEADER
+  const renderHeader = () => (
+    <View>
+      <Text style={[styles.heading, { color: colors.heading }]}>
+        Find a Recipe
+      </Text>
 
-      <Text style={styles.heading}>Find a Recipe</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: colors.muted }]}>
         Discover something delicious to cook today.
       </Text>
 
-      {/* Search bar */}
-      <View style={styles.searchBar}>
-        <MaterialCommunityIcons name="magnify" size={23} color="#71816D" />
+      {/* SEARCH BAR */}
+      <View
+        style={[
+          styles.searchBar,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.searchBorder,
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="magnify"
+          size={23}
+          color={colors.muted}
+        />
 
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.heading }]}
           placeholder="Search recipes..."
-          placeholderTextColor="#9A9A8E"
+          placeholderTextColor={colors.muted}
           value={query}
           onChangeText={setQuery}
           returnKeyType="search"
@@ -288,18 +345,23 @@ const renderHeader = () => (<View>
             <MaterialCommunityIcons
               name="close-circle"
               size={21}
-              color="#9A9A8E"
+              color={colors.muted}
             />
           </TouchableOpacity>
         )}
-          </View>
+      </View>
 
-      {/* Categories */}
+      {/* CATEGORIES */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Categories</Text>
+        <Text style={[styles.sectionTitle, { color: colors.heading }]}>
+          Categories
+        </Text>
+
         {selectedCategory && (
           <TouchableOpacity onPress={() => setSelectedCategory(null)}>
-            <Text style={styles.clearText}>Clear</Text>
+            <Text style={[styles.clearText, { color: colors.accent }]}>
+              Clear
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -318,20 +380,31 @@ const renderHeader = () => (<View>
             }
             style={[
               styles.filterChip,
-              selectedCategory === item && styles.selectedChip,
+              {
+                backgroundColor:
+                  selectedCategory === item
+                    ? colors.primary
+                    : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
-            textStyle={[
-              styles.chipText,
-              selectedCategory === item && styles.selectedChipText,
-            ]}
+            textStyle={{
+              color:
+                selectedCategory === item
+                  ? colors.selectedText
+                  : colors.text,
+            }}
           >
             {item}
           </Chip>
         )}
       />
 
-      {/* Cuisine */}
-      <Text style={styles.sectionTitle}>Cuisine</Text>
+      {/* CUISINE */}
+      <Text style={[styles.sectionTitle, { color: colors.heading }]}>
+        Cuisine
+      </Text>
+
       <View style={styles.wrapFilters}>
         {cuisines.map((cuisine) => (
           <Chip
@@ -344,20 +417,31 @@ const renderHeader = () => (<View>
             }
             style={[
               styles.filterChip,
-              selectedCuisine === cuisine && styles.selectedChip,
+              {
+                backgroundColor:
+                  selectedCuisine === cuisine
+                    ? colors.primary
+                    : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
-            textStyle={[
-              styles.chipText,
-              selectedCuisine === cuisine && styles.selectedChipText,
-            ]}
+            textStyle={{
+              color:
+                selectedCuisine === cuisine
+                  ? colors.selectedText
+                  : colors.text,
+            }}
           >
             {cuisine}
           </Chip>
         ))}
       </View>
 
-      {/* Difficulty */}
-      <Text style={styles.sectionTitle}>Difficulty</Text>
+      {/* DIFFICULTY */}
+      <Text style={[styles.sectionTitle, { color: colors.heading }]}>
+        Difficulty
+      </Text>
+
       <View style={styles.wrapFilters}>
         {difficulties.map((difficulty) => (
           <Chip
@@ -370,20 +454,31 @@ const renderHeader = () => (<View>
             }
             style={[
               styles.filterChip,
-              selectedDifficulty === difficulty && styles.selectedChip,
+              {
+                backgroundColor:
+                  selectedDifficulty === difficulty
+                    ? colors.primary
+                    : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
-            textStyle={[
-              styles.chipText,
-              selectedDifficulty === difficulty && styles.selectedChipText,
-            ]}
+            textStyle={{
+              color:
+                selectedDifficulty === difficulty
+                  ? colors.selectedText
+                  : colors.text,
+            }}
           >
             {difficulty}
           </Chip>
         ))}
       </View>
 
-      {/* Meal type */}
-      <Text style={styles.sectionTitle}>Meal Type</Text>
+      {/* MEAL TYPE */}
+      <Text style={[styles.sectionTitle, { color: colors.heading }]}>
+        Meal Type
+      </Text>
+
       <View style={styles.wrapFilters}>
         {mealTypes.map((meal) => (
           <Chip
@@ -394,20 +489,31 @@ const renderHeader = () => (<View>
             }
             style={[
               styles.filterChip,
-              selectedMeal === meal && styles.selectedChip,
+              {
+                backgroundColor:
+                  selectedMeal === meal
+                    ? colors.primary
+                    : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
-            textStyle={[
-              styles.chipText,
-              selectedMeal === meal && styles.selectedChipText,
-            ]}
+            textStyle={{
+              color:
+                selectedMeal === meal
+                  ? colors.selectedText
+                  : colors.text,
+            }}
           >
             {meal}
           </Chip>
         ))}
       </View>
 
-      {/* Preparation time */}
-      <Text style={styles.sectionTitle}>Preparation Time</Text>
+      {/* PREPARATION TIME */}
+      <Text style={[styles.sectionTitle, { color: colors.heading }]}>
+        Preparation Time
+      </Text>
+
       <View style={styles.wrapFilters}>
         {prepTimes.map((time) => (
           <Chip
@@ -416,20 +522,31 @@ const renderHeader = () => (<View>
             onPress={() => setSelectedPrepTime(time.value)}
             style={[
               styles.filterChip,
-              selectedPrepTime === time.value && styles.selectedChip,
+              {
+                backgroundColor:
+                  selectedPrepTime === time.value
+                    ? colors.primary
+                    : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
-            textStyle={[
-              styles.chipText,
-              selectedPrepTime === time.value && styles.selectedChipText,
-            ]}
+            textStyle={{
+              color:
+                selectedPrepTime === time.value
+                  ? colors.selectedText
+                  : colors.text,
+            }}
           >
             {time.label}
           </Chip>
         ))}
       </View>
 
-      {/* Sorting */}
-      <Text style={styles.sectionTitle}>Sort By</Text>
+      {/* SORTING */}
+      <Text style={[styles.sectionTitle, { color: colors.heading }]}>
+        Sort By
+      </Text>
+
       <View style={styles.wrapFilters}>
         {sortOptions.map((option) => (
           <Chip
@@ -438,28 +555,42 @@ const renderHeader = () => (<View>
             onPress={() => setSortBy(option.value)}
             style={[
               styles.filterChip,
-              sortBy === option.value && styles.selectedChip,
+              {
+                backgroundColor:
+                  sortBy === option.value
+                    ? colors.primary
+                    : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
-            textStyle={[
-              styles.chipText,
-              sortBy === option.value && styles.selectedChipText,
-            ]}
+            textStyle={{
+              color:
+                sortBy === option.value
+                  ? colors.selectedText
+                  : colors.text,
+            }}
           >
             {option.label}
           </Chip>
         ))}
       </View>
 
+      {/* RESULTS HEADER */}
       <View style={styles.resultsHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Recipes</Text>
-          <Text style={styles.resultCount}>
+          <Text style={[styles.sectionTitle, { color: colors.heading }]}>
+            Recipes
+          </Text>
+
+          <Text style={[styles.resultCount, { color: colors.muted }]}>
             {filteredRecipes.length} recipes shown
           </Text>
         </View>
 
         <TouchableOpacity onPress={clearFilters}>
-          <Text style={styles.clearText}>Clear filters</Text>
+          <Text style={[styles.clearText, { color: colors.accent }]}>
+            Clear filters
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -467,58 +598,75 @@ const renderHeader = () => (<View>
 
   return (
     <FlatList
-      style={styles.container}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
       contentContainerStyle={styles.content}
       data={filteredRecipes}
       renderItem={renderRecipe}
       keyExtractor={(item) => item.id.toString()}
       ListHeaderComponent={renderHeader()}
       ListEmptyComponent={
-      loading ? (
-      <View style={styles.emptyState}>
-      <ActivityIndicator size="large" color="#D97736" />
-      <Text style={styles.loadingText}>
-        Finding delicious recipes...
-      </Text>
-    </View>
-     ) : (
-    <View style={styles.emptyState}>
-      <MaterialCommunityIcons
-        name="food-off"
-        size={55}
-        color="#A6B09F"
-      />
-      <Text style={styles.emptyTitle}>
-        {error ? 'Something went wrong' : 'No recipes found'}
-      </Text>
-      <Text style={styles.emptySubtitle}>
-        {error || 'Try another search or change your filters.'}
-      </Text>
-      {error && (
-        <Button
-          mode="contained"
-          buttonColor="#315C43"
-          onPress={() => fetchRecipes(query, 0, false)}
-        >
-          Try Again
-        </Button>
-      )}
-    </View>
-  )
-}
+        loading ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.muted }]}>
+              Finding delicious recipes...
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons
+              name="food-off"
+              size={55}
+              color={colors.muted}
+            />
+
+            <Text style={[styles.emptyTitle, { color: colors.heading }]}>
+              {error ? 'Something went wrong' : 'No recipes found'}
+            </Text>
+
+            <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
+              {error || 'Try another search or change your filters.'}
+            </Text>
+
+            {error && (
+              <Button
+                mode="contained"
+                buttonColor={colors.primary}
+                textColor={isDark ? '#101C18' : '#FFFFFF'}
+                onPress={() => fetchRecipes(query, 0, false)}
+              >
+                Try Again
+              </Button>
+            )}
+          </View>
+        )
+      }
       ListFooterComponent={
         loadingMore ? (
           <ActivityIndicator
             style={styles.footerLoader}
             size="large"
-            color="#D97736"
+            color={colors.primary}
           />
         ) : hasMore && recipes.length > 0 ? (
-          <TouchableOpacity style={styles.loadMoreButton} onPress={loadMore}>
-            <Text style={styles.loadMoreText}>Load More Recipes</Text>
+          <TouchableOpacity
+            style={[
+              styles.loadMoreButton,
+              { backgroundColor: colors.primary },
+            ]}
+            onPress={loadMore}
+          >
+            <Text style={styles.loadMoreText}>
+              Load More Recipes
+            </Text>
           </TouchableOpacity>
         ) : recipes.length > 0 ? (
-          <Text style={styles.endText}>You have reached the end.</Text>
+          <Text style={[styles.endText, { color: colors.muted }]}>
+            You have reached the end.
+          </Text>
         ) : null
       }
       onEndReached={loadMore}
@@ -531,7 +679,6 @@ const renderHeader = () => (<View>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F6EF',
   },
   content: {
     padding: 20,
@@ -540,30 +687,25 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 29,
     fontWeight: '800',
-    color: '#294B36',
     marginTop: 12,
   },
   subtitle: {
     fontSize: 14,
-    color: '#7B8175',
     marginTop: 5,
     marginBottom: 22,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 15,
     paddingHorizontal: 15,
     height: 54,
     borderWidth: 1,
-    borderColor: '#E8E7DC',
     marginBottom: 25,
   },
   searchInput: {
     flex: 1,
     marginLeft: 10,
-    color: '#294B36',
     fontSize: 15,
   },
   sectionHeader: {
@@ -574,7 +716,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#294B36',
     marginBottom: 12,
     marginTop: 18,
   },
@@ -588,21 +729,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   filterChip: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E3E5D9',
     borderWidth: 1,
     marginRight: 7,
     marginBottom: 5,
-  },
-  selectedChip: {
-    backgroundColor: '#315C43',
-  },
-  chipText: {
-    color: '#52634F',
-    fontSize: 12,
-  },
-  selectedChipText: {
-    color: '#FFFFFF',
   },
   resultsHeader: {
     flexDirection: 'row',
@@ -612,30 +741,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   resultCount: {
-    color: '#858B7F',
     fontSize: 12,
     marginTop: -7,
   },
   clearText: {
-    color: '#D97736',
     fontWeight: '700',
     fontSize: 13,
   },
   recipeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 10,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#ECECE3',
   },
   recipeImage: {
     width: 100,
     height: 105,
     borderRadius: 12,
-    backgroundColor: '#E9E8DE',
   },
   recipeInfo: {
     flex: 1,
@@ -644,11 +768,9 @@ const styles = StyleSheet.create({
   recipeName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#294B36',
     marginBottom: 5,
   },
   recipeCuisine: {
-    color: '#858B7F',
     fontSize: 12,
     marginBottom: 10,
   },
@@ -658,11 +780,9 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#657260',
   },
   caloriesText: {
     fontSize: 11,
-    color: '#92968C',
     marginTop: 7,
   },
   emptyState: {
@@ -673,30 +793,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#294B36',
     marginTop: 12,
   },
   emptySubtitle: {
-    color: '#858B7F',
     textAlign: 'center',
     marginTop: 6,
     marginBottom: 15,
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F6EF',
-  },
   loadingText: {
-    color: '#657260',
     marginTop: 12,
   },
   footerLoader: {
     padding: 20,
   },
   loadMoreButton: {
-    backgroundColor: '#315C43',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -708,7 +818,6 @@ const styles = StyleSheet.create({
   },
   endText: {
     textAlign: 'center',
-    color: '#92968C',
     padding: 20,
   },
 });
