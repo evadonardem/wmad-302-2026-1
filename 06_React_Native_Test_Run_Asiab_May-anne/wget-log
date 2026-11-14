@@ -1,0 +1,9 @@
+--2026-10-17 12:38:55--  https://update.code.visualstudio.com/commit:6d62b1d5dace93a33b3a6d3eca1317bd5e15bcb1/server-linux-x64/stable
+Resolving update.code.visualstudio.com (update.code.visualstudio.com)... 150.171.110.70, 2603:1061:14:145::1
+Connecting to update.code.visualstudio.com (update.code.visualstudio.com)|150.171.110.70|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://vscode.download.prss.microsoft.com/dbazure/download/stable/6d62b1d5dace93a33b3a6d3eca1317bd5e15bcb1/vscode-server-linux-x64.tar.gz [following]
+--2026-10-17 12:38:56--  https://vscode.download.prss.microsoft.com/dbazure/download/stable/6d62b1d5dace93a33b3a6d3eca1317bd5e15bcb1/vscode-server-linux-x64.tar.gz
+Resolving vscode.download.prss.microsoft.com (vscode.download.prss.microsoft.com)... 23.49.104.167, 23.49.104.166, 23.49.104.168, ...
+Connecting to vscode.download.prss.microsoft.com (vscode.download.prss.microsoft.com)|23.49.104.167|:443... connected.
+Unable to establish SSL connection.
