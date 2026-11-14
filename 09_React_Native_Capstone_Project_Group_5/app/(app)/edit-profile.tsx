@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button, HelperText, Snackbar, TextInput } from 'react-native-paper';
+import { snackbarStyle } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { ProfileErrors, validateProfile } from '@/utils/validation';
 import { createStyles, useAppTheme } from '@/context/ThemeContext';
@@ -71,7 +72,7 @@ export default function EditProfileScreen() {
                     Save changes
                 </Button>
             </ScrollView>
-            <Snackbar visible={!!message} onDismiss={() => setMessage(null)} duration={4000}>
+            <Snackbar visible={!!message} onDismiss={() => setMessage(null)} duration={4000} style={snackbarStyle}>
                 {message}
             </Snackbar>
         </KeyboardAvoidingView>
