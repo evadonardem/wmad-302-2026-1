@@ -1,18 +1,24 @@
 /**
  * Favorites Screen - Cookbook
- * TODO: Students implement
- * - Store favorite recipe IDs in AsyncStorage or context
- * - Fetch favorite recipes by IDs (GET /recipes/{id})
- * - Remove from favorites
- * - Add notes to favorites
- * - Create collections/folders
+ * Loads and removes favorite recipes using AsyncStorage.
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Card, Title, Chip, Button, IconButton } from 'react-native-paper';
+
+import React, { useCallback, useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  StyleSheet,
+  Alert,
+  RefreshControl,
+} from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Card, Chip, IconButton, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { styles } from './favoritesStyles';
 
 interface Recipe {
   id: number;
@@ -26,96 +32,214 @@ interface Recipe {
   rating: number;
 }
 
+const COLORS = {
+  background: '#FFFDF7',
+  primary: '#24543D',
+  text: '#26372C',
+  muted: '#858B80',
+  white: '#FFFFFF',
+  border: '#EEECE4',
+  lightGreen: '#EAF2E9',
+  lightGold: '#F5ECD9',
+  red: '#D84343',
+};
+
+const STORAGE_KEY = 'favoriteRecipeIds';
+
 export default function FavoritesScreen() {
   const router = useRouter();
+
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // TODO: Student implementation
-  // 1. Load favorite IDs from AsyncStorage on mount
-  // 2. Fetch each recipe by ID (or batch if API supports)
-  // 3. Implement remove from favorites
-  // 4. Persist changes to AsyncStorage
-
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  const loadFavorites = async () => {
+  // LOAD FAVORITE RECIPES FROM ASYNC STORAGE
+  const loadFavorites = useCallback(async () => {
     try {
-      // TODO: Get favorite IDs from AsyncStorage
-      // const favoriteIds = await AsyncStorage.getItem('favoriteRecipeIds');
-      // const ids = favoriteIds ? JSON.parse(favoriteIds) : [];
-      //
-      // if (ids.length > 0) {
-      //   const recipes = await Promise.all(
-      //     ids.map((id: number) => fetch(`https://dummyjson.com/recipes/${id}`).then(r => r.json()))
-      //   );
-      //   setFavorites(recipes);
-      // }
+      const savedIds = await AsyncStorage.getItem(STORAGE_KEY);
+      const ids: number[] = savedIds ? JSON.parse(savedIds) : [];
 
-      // Mock data for demo
-      setFavorites([]);
+      if (ids.length === 0) {
+        setFavorites([]);
+        return;
+      }
+
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const response = await fetch(
+              `https://dummyjson.com/recipes/${id}`
+            );
+
+            if (!response.ok) {
+              return null;
+            }
+
+            return (await response.json()) as Recipe;
+          } catch (error) {
+            console.error(`Failed to fetch recipe ${id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      const validRecipes = results.filter(
+        (recipe): recipe is Recipe => recipe !== null
+      );
+
+      setFavorites(validRecipes);
     } catch (error) {
       console.error('Failed to load favorites:', error);
+      Alert.alert(
+        'Error',
+        'Unable to load your favorite recipes.'
+      );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
+  // REFRESH EVERY TIME FAVORITES TAB IS OPENED
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [loadFavorites])
+  );
+
+  // REMOVE FAVORITE
   const removeFavorite = (recipeId: number) => {
     Alert.alert(
       'Remove from Favorites',
       'Are you sure you want to remove this recipe?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Remove from AsyncStorage and update state
-            setFavorites((prev) => prev.filter((r) => r.id !== recipeId));
+          onPress: async () => {
+            try {
+              const savedIds = await AsyncStorage.getItem(STORAGE_KEY);
+              const ids: number[] = savedIds
+                ? JSON.parse(savedIds)
+                : [];
+
+              const updatedIds = ids.filter(
+                (id) => id !== recipeId
+              );
+
+              await AsyncStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(updatedIds)
+              );
+
+              setFavorites((previous) =>
+                previous.filter(
+                  (recipe) => recipe.id !== recipeId
+                )
+              );
+            } catch (error) {
+              console.error('Failed to remove favorite:', error);
+
+              Alert.alert(
+                'Error',
+                'Could not remove this recipe from Favorites.'
+              );
+            }
           },
         },
       ]
     );
   };
 
+  // OPEN RECIPE DETAILS
+  const openRecipe = (id: number) => {
+    router.push(`/(app)/recipe/${id}` as any);
+  };
+
+  // FAVORITE RECIPE CARD
   const renderFavorite = ({ item }: { item: Recipe }) => (
     <TouchableOpacity
+      activeOpacity={0.85}
       style={styles.favoriteCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
+      onPress={() => openRecipe(item.id)}
     >
-      <Card style={styles.card} elevation={1}>
+      <Card style={styles.card} mode="elevated">
         <View style={styles.cardContent}>
-          <Image source={{ uri: item.image }} style={styles.recipeImage} resizeMode="cover" />
+          <Image
+            source={{ uri: item.image }}
+            style={styles.recipeImage}
+            resizeMode="cover"
+          />
+
           <View style={styles.info}>
-            <Title style={styles.title} numberOfLines={1}>{item.name}</Title>
+            <Text style={styles.title} numberOfLines={2}>
+              {item.name}
+            </Text>
+
             <View style={styles.meta}>
-              <Chip style={styles.difficultyChip}>{item.difficulty}</Chip>
-              <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
+              <Chip
+                compact
+                style={styles.difficultyChip}
+                textStyle={styles.chipText}
+              >
+                {item.difficulty}
+              </Chip>
+
+              <Chip
+                compact
+                style={styles.cuisineChip}
+                textStyle={styles.chipText}
+              >
+                {item.cuisine}
+              </Chip>
             </View>
+
             <Text style={styles.details}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes}min · 👥 {item.servings} · ⭐ {item.rating}
+              ⏱ {item.prepTimeMinutes + item.cookTimeMinutes} min
+              {'  '}·{'  '}
+              👥 {item.servings}
+              {'  '}·{'  '}
+              ⭐ {item.rating}
             </Text>
           </View>
-          <IconButton
-            icon="heart"
-            size={24}
-            color="#C62828"
-            onPress={() => removeFavorite(item.id)}
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.removeButton}
+            onPress={(event) => {
+              event.stopPropagation();
+              removeFavorite(item.id);
+            }}
+            accessibilityRole="button"
             accessibilityLabel="Remove from favorites"
-          />
+          >
+            <MaterialCommunityIcons
+              name="heart"
+              size={25}
+              color={COLORS.red}
+            />
+          </TouchableOpacity>
         </View>
       </Card>
     </TouchableOpacity>
   );
 
+  // LOADING SCREEN
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
-        <Text style={styles.loadingText}>Loading favorites...</Text>
+        <ActivityIndicator
+          size="large"
+          color={COLORS.primary}
+        />
+
+        <Text style={styles.loadingText}>
+          Loading favorites...
+        </Text>
       </View>
     );
   }
@@ -123,48 +247,189 @@ export default function FavoritesScreen() {
   return (
     <View style={styles.container}>
       {favorites.length === 0 ? (
+        // EMPTY FAVORITES
         <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="heart-outline" size={80} color="#BCAAA4" />
-          <Text style={styles.emptyTitle}>No Favorites Yet</Text>
-          <Text style={styles.emptyText}>Recipes you love will appear here</Text>
+          <MaterialCommunityIcons
+            name="heart-outline"
+            size={76}
+            color={COLORS.muted}
+          />
+
+          <Text style={styles.emptyTitle}>
+            No Favorites Yet
+          </Text>
+
+          <Text style={styles.emptyText}>
+            Save recipes you love by tapping the heart icon.
+            {'\n'}
+            They will appear here.
+          </Text>
+
           <Button
             mode="contained"
-            onPress={() => router.push('/(app)/(tabs)/search')}
+            buttonColor={COLORS.primary}
+            textColor={COLORS.white}
+            onPress={() =>
+              router.push('/(app)/(tabs)/search')
+            }
             style={styles.browseButton}
             contentStyle={styles.buttonContent}
           >
-            <Text style={styles.buttonText}>Browse Recipes</Text>
+            Browse Recipes
           </Button>
         </View>
       ) : (
+        // FAVORITES LIST
         <FlatList
           data={favorites}
           renderItem={renderFavorite}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                loadFavorites();
+              }}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
           ListHeaderComponent={
             <View style={styles.header}>
-              <Title style={styles.headerTitle}>Your Favorites ({favorites.length})</Title>
+              <Text style={styles.headerTitle}>
+                My Favorites
+              </Text>
+
+              <Text style={styles.headerSubtitle}>
+                {favorites.length} saved{' '}
+                {favorites.length === 1 ? 'recipe' : 'recipes'}
+              </Text>
             </View>
           }
         />
       )}
-
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Complete the favorites functionality:\n
-          1. Store favorite IDs in AsyncStorage\n
-          2. Fetch recipes by ID on load\n
-          3. Add/remove with persistence\n
-          4. Add "Add to Favorites" on recipe detail\n
-          5. Create collections (Breakfast, Dinner, etc.)
-        </Text>
-      </View>
     </View>
   );
 }
 
-import { Image } from 'react-native';
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: COLORS.muted,
+    fontSize: 13,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    backgroundColor: COLORS.background,
+  },
+  emptyTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginTop: 18,
+  },
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: 8,
+  },
+  browseButton: {
+    marginTop: 22,
+    borderRadius: 10,
+  },
+  buttonContent: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 25,
+  },
+  header: {
+    paddingTop: 35,
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 25,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: COLORS.muted,
+    marginTop: 5,
+  },
+  favoriteCard: {
+    marginBottom: 13,
+  },
+  card: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+  },
+  recipeImage: {
+    width: 105,
+    height: 105,
+    borderRadius: 10,
+    backgroundColor: COLORS.border,
+  },
+  info: {
+    flex: 1,
+    paddingHorizontal: 11,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  meta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 7,
+    gap: 5,
+  },
+  difficultyChip: {
+    backgroundColor: COLORS.lightGreen,
+  },
+  cuisineChip: {
+    backgroundColor: COLORS.lightGold,
+  },
+  chipText: {
+    fontSize: 10,
+    color: COLORS.text,
+  },
+  details: {
+    color: COLORS.muted,
+    fontSize: 10,
+    marginTop: 8,
+  },
+  removeButton: {
+    width: 38,
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

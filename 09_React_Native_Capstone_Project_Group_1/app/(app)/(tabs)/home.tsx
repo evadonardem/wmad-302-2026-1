@@ -1,25 +1,36 @@
+
 /**
  * Home Screen - Cookbook Discover Tab
- * Students implement: Recipe grid, categories, featured recipes
  * API: https://dummyjson.com/docs/recipes
+ * Favorites: AsyncStorage
+ * Unique Feature: Smart Pantry Match
  */
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
-  FlatList,
   TouchableOpacity,
   Image,
   ActivityIndicator,
   RefreshControl,
+  StyleSheet,
+  FlatList,
+  useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Subtitle, Chip, Avatar, Button } from 'react-native-paper';
-import { styles } from './homeStyles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Searchbar,
+} from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Types for DummyJSON Recipes API
 interface Recipe {
   id: number;
   name: string;
@@ -46,106 +57,300 @@ interface RecipesResponse {
   limit: number;
 }
 
+const COLORS = {
+  background: '#FFFDF7',
+  primary: '#24543D',
+  secondary: '#E4C68E',
+  text: '#26372C',
+  muted: '#858B80',
+  white: '#FFFFFF',
+  border: '#EEECE4',
+  lightGreen: '#EAF2E9',
+  lightGold: '#F5ECD9',
+  red: '#D84343',
+};
+
+const STORAGE_KEY = 'favoriteRecipeIds';
+const LIMIT = 20;
+
+const CATEGORIES = [
+  { name: 'Breakfast', icon: '🍳' },
+  { name: 'Lunch', icon: '🥗' },
+  { name: 'Dinner', icon: '🍽️' },
+  { name: 'Dessert', icon: '🍰' },
+  { name: 'Chicken', icon: '🍗' },
+  { name: 'Seafood', icon: '🐟' },
+  { name: 'Vegetarian', icon: '🥦' },
+  { name: 'Pasta', icon: '🍝' },
+];
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { width: screenWidth } = useWindowDimensions();
+
+  const isMobile = screenWidth < 600;
+
+  const recipeCardWidth = isMobile
+    ? Math.min(220, screenWidth * 0.68)
+    : 280;
+
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [total, setTotal] = useState(0);
+  const [skip, setSkip] = useState(0);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
 
-  const fetchRecipes = async (isRefresh = false) => {
+  // LOAD FAVORITE IDS WHEN HOME SCREEN IS OPENED
+  const loadFavoriteIds = useCallback(async () => {
     try {
-      if (!isRefresh) setLoading(true);
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      const ids: number[] = saved ? JSON.parse(saved) : [];
+
+      setFavoriteIds(ids);
+    } catch (error) {
+      console.error('Failed to load favorite IDs:', error);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavoriteIds();
+    }, [loadFavoriteIds])
+  );
+
+  // ADD OR REMOVE FAVORITE
+  const toggleFavorite = async (recipeId: number) => {
+    try {
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      const currentIds: number[] = saved ? JSON.parse(saved) : [];
+
+      const isFavorite = currentIds.includes(recipeId);
+
+      const updatedIds = isFavorite
+        ? currentIds.filter((id) => id !== recipeId)
+        : [...currentIds, recipeId];
+
+      await AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(updatedIds)
+      );
+
+      setFavoriteIds(updatedIds);
+    } catch (error) {
+      console.error('Failed to update favorites:', error);
+    }
+  };
+
+  // FETCH RECIPES
+  const fetchRecipes = useCallback(async (refresh = false) => {
+    try {
+      if (refresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       setError(null);
 
-      const response = await fetch('https://dummyjson.com/recipes?limit=20');
-      if (!response.ok) throw new Error('Failed to fetch recipes');
+      const response = await fetch(
+        `https://dummyjson.com/recipes?limit=${LIMIT}&skip=0`
+      );
+
+      if (!response.ok) {
+        throw new Error('Unable to load recipes. Please try again.');
+      }
 
       const data: RecipesResponse = await response.json();
+
       setRecipes(data.recipes);
+      setTotal(data.total);
+      setSkip(data.skip + data.recipes.length);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load recipes');
+      setError(
+        err instanceof Error ? err.message : 'Something went wrong.'
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  }, []);
+
+  // LOAD MORE RECIPES
+  const loadMore = async () => {
+    if (loadingMore || recipes.length >= total) return;
+
+    try {
+      setLoadingMore(true);
+
+      const response = await fetch(
+        `https://dummyjson.com/recipes?limit=${LIMIT}&skip=${skip}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to load more recipes.');
+      }
+
+      const data: RecipesResponse = await response.json();
+
+      setRecipes((previous) => [...previous, ...data.recipes]);
+      setSkip(data.skip + data.recipes.length);
+    } catch {
+      setError('Could not load more recipes.');
+    } finally {
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
     fetchRecipes();
-  }, []);
+  }, [fetchRecipes]);
 
-  const onRefresh = () => fetchRecipes(true);
+  const openRecipe = (id: number) => {
+    router.push(`/(app)/recipe/${id}` as any);
+  };
 
-  const renderRecipe = ({ item }: { item: Recipe }) => (
-    <TouchableOpacity
-      style={styles.recipeCard}
-      onPress={() => router.push(`/(app)/(tabs)/recipe/${item.id}`)}
-      activeOpacity={0.8}
-    >
-      <Card style={styles.card} elevation={2}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: item.image }}
-            style={styles.recipeImage}
-            resizeMode="cover"
-          />
-          <View style={styles.difficultyBadge}>
-            <Chip
+  const searchRecipes = () => {
+    router.push({
+      pathname: '/(app)/(tabs)/search',
+      params: { q: searchQuery },
+    });
+  };
+
+  // RECIPE CARD
+  const renderRecipe = ({ item }: { item: Recipe }) => {
+    const isFavorite = favoriteIds.includes(item.id);
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => openRecipe(item.id)}
+        style={[
+          styles.recipeWrapper,
+          { width: recipeCardWidth },
+        ]}
+      >
+        <Card style={styles.recipeCard} mode="elevated">
+          <View>
+            <Image
+              source={{ uri: item.image }}
               style={[
-                styles.difficultyChip,
-                item.difficulty === 'Easy' && styles.easy,
-                item.difficulty === 'Medium' && styles.medium,
-                item.difficulty === 'Hard' && styles.hard,
+                styles.recipeImage,
+                isMobile && styles.mobileRecipeImage,
               ]}
-            >
-              {item.difficulty}
-            </Chip>
-          </View>
-        </View>
-        <Card.Content style={styles.cardContent}>
-          <Title style={styles.recipeTitle} numberOfLines={1}>
-            {item.name}
-          </Title>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
-            </Text>
-            <Text style={styles.metaText}>👥 {item.servings} servings</Text>
-            <Text style={styles.metaText}>🔥 {item.caloriesPerServing} cal</Text>
-          </View>
-          <View style={styles.cuisineRow}>
-            <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
-            {item.mealType.slice(0, 2).map((meal) => (
-              <Chip key={meal} style={styles.mealChip}>{meal}</Chip>
-            ))}
-          </View>
-          <View style={styles.ratingRow}>
-            <Text style={styles.ratingText}>
-              ⭐ {item.rating.toFixed(1)} ({item.reviewCount} reviews)
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
+              resizeMode="cover"
+            />
 
+            {/* DIFFICULTY */}
+            <View style={styles.difficultyPosition}>
+              <Chip
+                compact
+                style={[
+                  styles.difficultyChip,
+                  {
+                    backgroundColor:
+                      item.difficulty === 'Easy'
+                        ? '#E3F2E5'
+                        : item.difficulty === 'Medium'
+                        ? '#FFF0D8'
+                        : '#FCE4E4',
+                  },
+                ]}
+                textStyle={styles.difficultyText}
+              >
+                {item.difficulty}
+              </Chip>
+            </View>
+
+            {/* FAVORITE HEART BUTTON */}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              style={styles.favoriteButton}
+              onPress={(event) => {
+                event.stopPropagation();
+                toggleFavorite(item.id);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isFavorite
+                  ? 'Remove from favorites'
+                  : 'Add to favorites'
+              }
+            >
+              <MaterialCommunityIcons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={23}
+                color={isFavorite ? COLORS.red : COLORS.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <Card.Content
+            style={[
+              styles.recipeContent,
+              isMobile && styles.mobileRecipeContent,
+            ]}
+          >
+            <Text numberOfLines={1} style={styles.recipeName}>
+              {item.name}
+            </Text>
+
+            <Text style={styles.cuisine}>
+              {item.cuisine}
+            </Text>
+
+            <View style={styles.recipeMeta}>
+              <Text style={styles.metaText}>
+                ⭐ {item.rating.toFixed(1)}
+              </Text>
+
+              <Text style={styles.metaText}>
+                ⏱ {item.prepTimeMinutes + item.cookTimeMinutes} min
+              </Text>
+            </View>
+          </Card.Content>
+        </Card>
+      </TouchableOpacity>
+    );
+  };
+
+  // LOADING SCREEN
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
-        <Text style={styles.loadingText}>Loading recipes...</Text>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>
+          Preparing your recipes...
+        </Text>
       </View>
     );
   }
 
-  if (error) {
+  // ERROR SCREEN
+  if (error && recipes.length === 0) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={fetchRecipes} style={styles.retryButton}>
-          Retry
+      <View style={styles.center}>
+        <Text style={styles.errorIcon}>🍽️</Text>
+
+        <Text style={styles.errorTitle}>
+          Oops! Something went wrong.
+        </Text>
+
+        <Text style={styles.loadingText}>
+          {error}
+        </Text>
+
+        <Button
+          mode="contained"
+          buttonColor={COLORS.primary}
+          onPress={() => fetchRecipes()}
+          style={styles.retryButton}
+        >
+          Try Again
         </Button>
       </View>
     );
@@ -153,67 +358,598 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      style={styles.scrollView}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E85D04']} />
-      }
+      style={styles.container}
       contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => fetchRecipes(true)}
+          tintColor={COLORS.primary}
+          colors={[COLORS.primary]}
+        />
+      }
     >
-      {/* Welcome Header */}
-      <View style={styles.welcomeContainer}>
-        <View style={styles.welcomeTextContainer}>
-          <Text style={styles.welcomeGreeting}>
-            {user ? `Welcome back, ${user.firstName}!` : 'Welcome to Cookbook!'}
+      {/* HEADER */}
+      <View
+        style={[
+          styles.header,
+          isMobile && styles.mobileHeader,
+        ]}
+      >
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.hello}>
+            HELLO, CHEF 👋
           </Text>
-          <Text style={styles.welcomeSubtitle}>Discover delicious recipes</Text>
-        </View>
-        <Avatar.Icon size={56} icon="chef-hat" style={styles.welcomeAvatar} />
-      </View>
 
-      {/* Categories */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Categories</Title>
+          <Text style={styles.welcome}>
+            {user?.firstName
+              ? `Hi, ${user.firstName}!`
+              : 'Welcome to Cookbook!'}
+          </Text>
+
+          <Text style={styles.subtitle}>
+            What would you like to cook today?
+          </Text>
         </View>
-        <FlatList
-          data={[
-            'Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Vegetarian',
-          ]}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.categoryChip, { backgroundColor: '#FFF3E0' }]}
-              onPress={() => router.push(`/(app)/(tabs)/search?category=${item}`)}
-            >
-              <Text style={styles.categoryChipText}>{item}</Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item}
+
+        <Avatar.Icon
+          size={isMobile ? 46 : 54}
+          icon="chef-hat"
+          color={COLORS.white}
+          style={styles.avatar}
         />
       </View>
 
-      {/* Featured Recipes */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Featured Recipes</Title>
-          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/search')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
+      {/* SEARCH */}
+      <View style={styles.searchContainer}>
+        <Searchbar
+          placeholder="Search delicious recipes..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={searchRecipes}
+          style={styles.searchbar}
+          inputStyle={styles.searchInput}
+          iconColor={COLORS.primary}
+          elevation={0}
+        />
+      </View>
+
+      {/* BANNER */}
+      <View
+        style={[
+          styles.banner,
+          isMobile && styles.mobileBanner,
+        ]}
+      >
+        <View style={styles.bannerText}>
+          <Text style={styles.bannerLabel}>
+            COOK SOMETHING AMAZING
+          </Text>
+
+          <Text style={styles.bannerTitle}>
+            Delicious meals,{'\n'}made with love.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.bannerButton}
+            onPress={() =>
+              router.push('/(app)/(tabs)/search')
+            }
+          >
+            <Text style={styles.bannerButtonText}>
+              Explore Recipes →
+            </Text>
           </TouchableOpacity>
         </View>
+
+        <Text style={styles.bannerEmoji}>
+          🥘
+        </Text>
+      </View>
+
+      {/* SMART PANTRY MATCH */}
+      <TouchableOpacity
+        activeOpacity={0.88}
+        style={[
+          styles.pantryBanner,
+          isMobile && styles.mobilePantryBanner,
+        ]}
+        onPress={() => router.push('/(app)/pantry' as any)}
+      >
+        <View style={styles.pantryIcon}>
+          <MaterialCommunityIcons
+            name="fridge-outline"
+            size={28}
+            color={COLORS.primary}
+          />
+        </View>
+
+        <View style={styles.pantryText}>
+          <Text style={styles.pantryLabel}>
+            YOUR KITCHEN, YOUR RECIPES
+          </Text>
+
+          <Text style={styles.pantryTitle}>
+            What's in your pantry?
+          </Text>
+
+          <Text style={styles.pantrySubtitle}>
+            Find meals using ingredients you already have.
+          </Text>
+
+          <Text style={styles.pantryLink}>
+            Find Recipes →
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={25}
+          color={COLORS.primary}
+        />
+      </TouchableOpacity>
+
+      {/* CATEGORIES */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>
+              Categories
+            </Text>
+
+            <Text style={styles.sectionSubtitle}>
+              Find your favorite
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.categoryGrid}>
+          {CATEGORIES.map((category) => (
+            <TouchableOpacity
+              key={category.name}
+              style={styles.categoryItem}
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/(tabs)/search',
+                  params: { category: category.name },
+                })
+              }
+            >
+              <View style={styles.categoryIcon}>
+                <Text style={styles.categoryEmoji}>
+                  {category.icon}
+                </Text>
+              </View>
+
+              <Text style={styles.categoryName}>
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* FEATURED RECIPES */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.featuredHeading}>
+            <Text style={styles.sectionTitle}>
+              Featured Recipes
+            </Text>
+
+            <Text style={styles.sectionSubtitle}>
+              Delicious ideas for your next meal
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() =>
+              router.push('/(app)/(tabs)/search')
+            }
+          >
+            <Text style={styles.seeAll}>
+              See All →
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <FlatList
-          data={recipes.slice(0, 10)}
+          data={recipes}
           renderItem={renderRecipe}
           keyExtractor={(item) => item.id.toString()}
-          ItemSeparatorComponent={() => <View style={styles.cardSeparator} />}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No recipes found</Text>
-            </View>
-          }
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.recipeList}
         />
+
+        <Button
+          mode="outlined"
+          onPress={loadMore}
+          loading={loadingMore}
+          disabled={loadingMore || recipes.length >= total}
+          textColor={COLORS.primary}
+          style={styles.loadMoreButton}
+          contentStyle={styles.loadMoreContent}
+        >
+          {recipes.length >= total
+            ? 'All Recipes Loaded'
+            : 'Load More Recipes'}
+        </Button>
+
+        {error && (
+          <Text style={styles.errorMessage}>
+            {error}
+          </Text>
+        )}
+      </View>
+
+      {/* FOOTER */}
+      <View style={styles.footer}>
+        <Text style={styles.footerEmoji}>❤️</Text>
+
+        <Text style={styles.footerText}>
+          Good food brings people together.
+        </Text>
+
+        <Text style={styles.footerSmall}>
+          Made with love in Cookbook
+        </Text>
       </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    padding: 24,
+  },
+  header: {
+    paddingHorizontal: 28,
+    paddingTop: 55,
+    paddingBottom: 22,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mobileHeader: {
+    paddingHorizontal: 18,
+    paddingTop: 35,
+    paddingBottom: 18,
+  },
+  headerTextContainer: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  hello: {
+    fontSize: 11,
+    letterSpacing: 2,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  welcome: {
+    fontSize: 25,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginTop: 5,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: COLORS.muted,
+    marginTop: 5,
+  },
+  avatar: {
+    backgroundColor: COLORS.primary,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  searchbar: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchInput: {
+    fontSize: 13,
+  },
+  banner: {
+    marginHorizontal: 20,
+    padding: 22,
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  mobileBanner: {
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 17,
+  },
+  bannerText: {
+    flex: 1,
+  },
+  bannerLabel: {
+    fontSize: 9,
+    color: COLORS.secondary,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  bannerTitle: {
+    color: COLORS.white,
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 29,
+    marginTop: 10,
+  },
+  bannerButton: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignSelf: 'flex-start',
+    marginTop: 15,
+  },
+  bannerButtonText: {
+    color: COLORS.primary,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  bannerEmoji: {
+    fontSize: 55,
+    marginLeft: 5,
+  },
+
+  // SMART PANTRY MATCH STYLES
+  pantryBanner: {
+    marginHorizontal: 20,
+    marginTop: 22,
+    padding: 16,
+    backgroundColor: '#EAF2E9',
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: '#DCE8DA',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mobilePantryBanner: {
+    marginHorizontal: 16,
+    padding: 13,
+  },
+  pantryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 13,
+  },
+  pantryText: {
+    flex: 1,
+  },
+  pantryLabel: {
+    fontSize: 9,
+    letterSpacing: 1,
+    fontWeight: '800',
+    color: '#858B80',
+  },
+  pantryTitle: {
+    color: '#26372C',
+    fontSize: 17,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  pantrySubtitle: {
+    color: '#858B80',
+    fontSize: 11,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  pantryLink: {
+    color: '#24543D',
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 9,
+  },
+
+  section: {
+    marginTop: 28,
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  featuredHeading: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  sectionSubtitle: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  categoryGrid: {
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  categoryItem: {
+    width: '23%',
+    alignItems: 'center',
+    marginBottom: 17,
+  },
+  categoryIcon: {
+    width: 55,
+    height: 55,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.lightGreen,
+  },
+  categoryEmoji: {
+    fontSize: 25,
+  },
+  categoryName: {
+    color: COLORS.text,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  seeAll: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  recipeList: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  recipeWrapper: {
+    marginRight: 12,
+  },
+  recipeCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  recipeImage: {
+    width: '100%',
+    height: 165,
+    backgroundColor: COLORS.border,
+  },
+  mobileRecipeImage: {
+    height: 120,
+  },
+  difficultyPosition: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+  },
+  difficultyChip: {
+    height: 26,
+  },
+  difficultyText: {
+    fontSize: 10,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 20,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+  },
+  recipeContent: {
+    padding: 13,
+  },
+  mobileRecipeContent: {
+    padding: 10,
+  },
+  recipeName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  cuisine: {
+    fontSize: 11,
+    color: COLORS.muted,
+    marginTop: 5,
+  },
+  recipeMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 13,
+  },
+  metaText: {
+    color: COLORS.text,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  loadMoreButton: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderColor: COLORS.primary,
+    borderRadius: 12,
+  },
+  loadMoreContent: {
+    minHeight: 44,
+  },
+  loadingText: {
+    color: COLORS.muted,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  errorIcon: {
+    fontSize: 50,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 20,
+  },
+  errorMessage: {
+    color: '#C0392B',
+    textAlign: 'center',
+    margin: 12,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+  footerEmoji: {
+    fontSize: 24,
+  },
+  footerText: {
+    color: COLORS.text,
+    fontWeight: '700',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  footerSmall: {
+    color: COLORS.muted,
+    fontSize: 11,
+    marginTop: 5,
+  },
+});

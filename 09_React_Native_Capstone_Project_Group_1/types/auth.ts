@@ -1,6 +1,5 @@
 /**
- * Auth Types - Shared between both capstone projects
- * Based on DummyJSON Auth API: https://dummyjson.com/docs/auth
+ * Auth Types - Cookbook App
  */
 
 export interface AuthUser {
@@ -13,12 +12,13 @@ export interface AuthUser {
   image: string;
   token: string;
   refreshToken: string;
+  localAuth?: boolean;
 }
 
 export interface LoginCredentials {
   username: string;
   password: string;
-  expiresInMins?: number; // optional, default 60
+  expiresInMins?: number;
 }
 
 export interface RegisterData {
@@ -32,9 +32,7 @@ export interface RegisterData {
   image?: string;
 }
 
-export interface AuthResponse extends AuthUser {
-  // DummyJSON returns the user object with tokens on login/register
-}
+export interface AuthResponse extends AuthUser {}
 
 export interface RefreshTokenResponse {
   id: number;

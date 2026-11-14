@@ -1,17 +1,5 @@
-/**
- * Register Screen - SKELETON WITH TODOs
- * Students complete this screen to learn auth flow
- * 
- * TODO LIST:
- * 1. Wire form validation
- * 2. Call authApi.register() in handleRegister
- * 3. On success, call context.login() or navigate to login
- * 4. Add password confirmation field
- * 5. Add terms checkbox
- * 6. Handle loading/error states properly
- * 7. Test with DummyJSON /auth/register endpoint
- */
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,18 +7,34 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Button, TextInput as PaperTextInput, Checkbox } from 'react-native-paper';
-import { styles } from './styles';
+import {
+  Button,
+  TextInput as PaperTextInput,
+  Checkbox,
+} from 'react-native-paper';
+
+const COLORS = {
+  background: '#F8F7F1',
+  white: '#FFFFFF',
+  primary: '#24543D',
+  primaryLight: '#EAF1E9',
+  text: '#26372C',
+  muted: '#858B80',
+  border: '#E4E5DC',
+  gold: '#D8B66A',
+  error: '#C62828',
+};
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register, isLoading, error, clearError } = useAuth();
 
-  // Form state
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -43,289 +47,582 @@ export default function RegisterScreen() {
   });
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Validation helpers
   const validateForm = (): string | null => {
     if (!formData.firstName.trim()) return 'First name is required';
     if (!formData.lastName.trim()) return 'Last name is required';
     if (!formData.username.trim()) return 'Username is required';
-    if (formData.username.length < 3) return 'Username must be at least 3 characters';
-    if (!formData.email.trim()) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Invalid email format';
-    if (!formData.password) return 'Password is required';
-    if (formData.password.length < 6) return 'Password must be at least 6 characters';
-    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
-    if (formData.age && (parseInt(formData.age) < 13 || parseInt(formData.age) > 120)) {
-      return 'Age must be between 13 and 120';
+
+    if (formData.username.trim().length < 3) {
+      return 'Username must be at least 3 characters';
     }
-    if (!agreedToTerms) return 'You must agree to the Terms of Service';
+
+    if (!formData.email.trim()) return 'Email is required';
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      return 'Invalid email format';
+    }
+
+    if (!formData.password) return 'Password is required';
+
+    if (formData.password.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      return 'Passwords do not match';
+    }
+
+    if (
+      formData.age &&
+      (
+        !Number.isInteger(Number(formData.age)) ||
+        Number(formData.age) < 13 ||
+        Number(formData.age) > 120
+      )
+    ) {
+      return 'Age must be a whole number between 13 and 120';
+    }
+
+    if (!agreedToTerms) {
+      return 'You must agree to the Terms of Service';
+    }
+
     return null;
   };
 
   const handleRegister = async () => {
     const validationError = validateForm();
+
     if (validationError) {
-      Alert.alert('Validation Error', validationError);
+      setValidationMessage(validationError);
       return;
     }
 
-    // TODO: Student Implementation
-    // 1. Call authApi.register() with formData
-    //    - Import authApi from '@/services/authApi'
-    //    - Pass: firstName, lastName, username, password, email, age, gender
-    // 2. On success:
-    //    - Option A: Auto-login by calling context.login(username, password)
-    //    - Option B: Show success alert and navigate to login screen
-    // 3. On failure: Error is handled by context (shows in error state)
+    setValidationMessage('');
 
     try {
-      // TODO: Replace with actual implementation
-      // const user = await authApi.register({
-      //   firstName: formData.firstName.trim(),
-      //   lastName: formData.lastName.trim(),
-      //   username: formData.username.trim(),
-      //   password: formData.password,
-      //   email: formData.email.trim(),
-      //   age: formData.age ? parseInt(formData.age) : undefined,
-      //   gender: formData.gender,
-      // });
-      // 
-      // // Auto-login after registration
-      // await login(formData.username.trim(), formData.password);
-      // router.replace('/(app)/(tabs)/home');
+      const registrationData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        age: formData.age ? Number(formData.age) : undefined,
+        gender: formData.gender,
+      };
+
+      await register(registrationData);
 
       Alert.alert(
-        'TODO: Implement Register',
-        'Complete the register function by:\n1. Calling authApi.register()\n2. Auto-login or redirect to login\n3. Handle errors',
-        [{ text: 'OK' }]
+        'Registration Successful',
+        'Your account has been created. You can now log in.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(auth)/login'),
+          },
+        ]
       );
-    } catch (err) {
-      // Error handled by context
-      console.error('Registration error:', err);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Unable to create your account. Please try again.';
+
+      Alert.alert('Registration Failed', message);
     }
   };
 
   const handleFieldChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (error) clearError();
+    setFormData((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+
+    setValidationMessage('');
+
+    if (error) {
+      clearError();
+    }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
-      Alert.alert('Registration Failed', error, [{ text: 'OK', onPress: clearError }]);
+      Alert.alert(
+        'Registration Failed',
+        error,
+        [{ text: 'OK', onPress: clearError }]
+      );
     }
   }, [error, clearError]);
+
+  const inputTheme = {
+    colors: {
+      primary: COLORS.primary,
+      outline: COLORS.border,
+      background: COLORS.white,
+      onSurfaceVariant: COLORS.muted,
+    },
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Logo/Brand */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>🍳</Text>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Brand Header */}
+        <View style={styles.header}>
+          <View style={styles.logoCircle}>
+            <Text style={styles.logo}>🍳</Text>
+          </View>
+
           <Text style={styles.appName}>Cookbook</Text>
-          <Text style={styles.tagline}>Create Your Account</Text>
+          <Text style={styles.tagline}>
+            Your kitchen, your recipes, your story.
+          </Text>
         </View>
 
-        {/* Register Card */}
-        <Card style={styles.card} elevation={3}>
-          <Card.Content style={styles.cardContent}>
+        {/* Registration Form */}
+        <View style={styles.formContainer}>
+          <View style={styles.headingContainer}>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start building your recipe collection</Text>
+            <Text style={styles.subtitle}>
+              Join us and start your cooking journey.
+            </Text>
+          </View>
 
-            {/* Name Fields Row */}
-            <View style={styles.nameRow}>
+          {/* Personal Information */}
+          <Text style={styles.sectionTitle}>PERSONAL INFORMATION</Text>
+
+          <View style={styles.nameRow}>
+            <View style={styles.halfInput}>
               <PaperTextInput
                 label="First Name"
                 mode="outlined"
                 value={formData.firstName}
-                onChangeText={(v) => handleFieldChange('firstName', v)}
-                style={[styles.input, styles.halfInput]}
+                onChangeText={(value) => handleFieldChange('firstName', value)}
+                style={styles.input}
+                outlineStyle={styles.inputOutline}
+                theme={inputTheme}
+                left={<PaperTextInput.Icon icon="account-outline" />}
                 autoCapitalize="words"
-                autoCompleteType="given-name"
-                returnKeyType="next"
+                autoComplete="given-name"
                 disabled={isLoading}
               />
+            </View>
+
+            <View style={styles.halfInput}>
               <PaperTextInput
                 label="Last Name"
                 mode="outlined"
                 value={formData.lastName}
-                onChangeText={(v) => handleFieldChange('lastName', v)}
-                style={[styles.input, styles.halfInput]}
+                onChangeText={(value) => handleFieldChange('lastName', value)}
+                style={styles.input}
+                outlineStyle={styles.inputOutline}
+                theme={inputTheme}
+                left={<PaperTextInput.Icon icon="account-outline" />}
                 autoCapitalize="words"
-                autoCompleteType="family-name"
-                returnKeyType="next"
+                autoComplete="family-name"
                 disabled={isLoading}
               />
             </View>
+          </View>
 
-            {/* Username */}
-            <PaperTextInput
-              label="Username"
-              mode="outlined"
-              value={formData.username}
-              onChangeText={(v) => handleFieldChange('username', v)}
-              style={styles.input}
-              autoCapitalize="none"
-              autoCompleteType="username"
-              returnKeyType="next"
-              disabled={isLoading}
-            />
+          <PaperTextInput
+            label="Username"
+            mode="outlined"
+            value={formData.username}
+            onChangeText={(value) => handleFieldChange('username', value)}
+            style={styles.input}
+            outlineStyle={styles.inputOutline}
+            theme={inputTheme}
+            left={<PaperTextInput.Icon icon="at" />}
+            autoCapitalize="none"
+            autoComplete="username"
+            disabled={isLoading}
+          />
 
-            {/* Email */}
-            <PaperTextInput
-              label="Email"
-              mode="outlined"
-              value={formData.email}
-              onChangeText={(v) => handleFieldChange('email', v)}
-              style={styles.input}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoCompleteType="email"
-              returnKeyType="next"
-              disabled={isLoading}
-            />
+          <PaperTextInput
+            label="Email Address"
+            mode="outlined"
+            value={formData.email}
+            onChangeText={(value) => handleFieldChange('email', value)}
+            style={styles.input}
+            outlineStyle={styles.inputOutline}
+            theme={inputTheme}
+            left={<PaperTextInput.Icon icon="email-outline" />}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            disabled={isLoading}
+          />
 
-            {/* Password */}
-            <PaperTextInput
-              label="Password"
-              mode="outlined"
-              value={formData.password}
-              onChangeText={(v) => handleFieldChange('password', v)}
-              style={styles.input}
-              secureTextEntry={!showPassword}
-              autoCompleteType="new-password"
-              returnKeyType="next"
-              disabled={isLoading}
-              right={
-                <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowPassword(!showPassword)} style={styles.eyeText}>
-                    {showPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
-              }
-            />
+          {/* Account Security */}
+          <Text style={styles.sectionTitle}>ACCOUNT SECURITY</Text>
 
-            {/* Confirm Password */}
-            <PaperTextInput
-              label="Confirm Password"
-              mode="outlined"
-              value={formData.confirmPassword}
-              onChangeText={(v) => handleFieldChange('confirmPassword', v)}
-              style={styles.input}
-              secureTextEntry={!showConfirmPassword}
-              autoCompleteType="new-password"
-              returnKeyType="next"
-              disabled={isLoading}
-              right={
-                <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeText}>
-                    {showConfirmPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
-              }
-            />
+          <PaperTextInput
+            label="Password"
+            mode="outlined"
+            value={formData.password}
+            onChangeText={(value) => handleFieldChange('password', value)}
+            style={styles.input}
+            outlineStyle={styles.inputOutline}
+            theme={inputTheme}
+            left={<PaperTextInput.Icon icon="lock-outline" />}
+            secureTextEntry={!showPassword}
+            autoComplete="new-password"
+            disabled={isLoading}
+            right={
+              <PaperTextInput.Icon
+                icon={showPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
+          />
 
-            {/* Optional Fields */}
-            <View style={styles.optionalRow}>
+          <PaperTextInput
+            label="Confirm Password"
+            mode="outlined"
+            value={formData.confirmPassword}
+            onChangeText={(value) =>
+              handleFieldChange('confirmPassword', value)
+            }
+            style={styles.input}
+            outlineStyle={styles.inputOutline}
+            theme={inputTheme}
+            left={<PaperTextInput.Icon icon="lock-check-outline" />}
+            secureTextEntry={!showConfirmPassword}
+            autoComplete="new-password"
+            disabled={isLoading}
+            right={
+              <PaperTextInput.Icon
+                icon={showConfirmPassword ? 'eye-off' : 'eye'}
+                onPress={() =>
+                  setShowConfirmPassword(!showConfirmPassword)
+                }
+              />
+            }
+          />
+
+          {/* Additional Details */}
+          <Text style={styles.sectionTitle}>ADDITIONAL DETAILS</Text>
+
+          <View style={styles.optionalRow}>
+            <View style={styles.ageInput}>
               <PaperTextInput
                 label="Age (Optional)"
                 mode="outlined"
                 value={formData.age}
-                onChangeText={(v) => handleFieldChange('age', v)}
-                style={[styles.input, styles.halfInput]}
+                onChangeText={(value) => handleFieldChange('age', value)}
+                style={styles.input}
+                outlineStyle={styles.inputOutline}
+                theme={inputTheme}
+                left={<PaperTextInput.Icon icon="calendar-outline" />}
                 keyboardType="numeric"
-                returnKeyType="next"
                 disabled={isLoading}
               />
-              <View style={[styles.halfInput, styles.genderSelector]}>
-                <Text style={styles.genderLabel}>Gender</Text>
-                <View style={styles.genderOptions}>
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'male')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'male' && styles.genderOptionSelected,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'male' && styles.genderOptionTextSelected,
-                    ]}>♂ Male</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'female')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'female' && styles.genderOptionSelected,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'female' && styles.genderOptionTextSelected,
-                    ]}>♀ Female</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
             </View>
+          </View>
 
-            {/* Terms Checkbox */}
-            <View style={styles.termsContainer}>
-              <Checkbox
-                status={agreedToTerms ? 'checked' : 'unchecked'}
-                onPress={() => setAgreedToTerms(!agreedToTerms)}
-                style={styles.checkbox}
-              />
-              <Text style={styles.termsText}>
-                I agree to the{' '}
-                <Text style={styles.linkText}>Terms of Service</Text>{' '}
-                and{' '}
-                <Text style={styles.linkText}>Privacy Policy</Text>
-              </Text>
-            </View>
+          <Text style={styles.genderLabel}>Gender</Text>
 
-            {/* Register Button */}
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              loading={isLoading}
-              style={styles.registerButton}
+          <View style={styles.genderOptions}>
+            <TouchableOpacity
+              onPress={() => handleFieldChange('gender', 'male')}
               disabled={isLoading}
-              contentStyle={styles.buttonContent}
+              style={[
+                styles.genderOption,
+                formData.gender === 'male' && styles.genderSelected,
+              ]}
             >
-              {isLoading ? <ActivityIndicator color="white" size="small" /> : (
-                <Text style={styles.buttonText}>Create Account</Text>
-              )}
-            </Button>
+              <Text
+                style={[
+                  styles.genderText,
+                  formData.gender === 'male' && styles.genderTextSelected,
+                ]}
+              >
+                ♂  Male
+              </Text>
+            </TouchableOpacity>
 
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.replace('/(auth)/login')} style={styles.link}>
-                <Text style={styles.linkText}>Sign In</Text>
-              </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleFieldChange('gender', 'female')}
+              disabled={isLoading}
+              style={[
+                styles.genderOption,
+                formData.gender === 'female' && styles.genderSelected,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.genderText,
+                  formData.gender === 'female' && styles.genderTextSelected,
+                ]}
+              >
+                ♀  Female
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Terms */}
+          <View style={styles.termsContainer}>
+            <Checkbox
+              status={agreedToTerms ? 'checked' : 'unchecked'}
+              onPress={() => setAgreedToTerms(!agreedToTerms)}
+              color={COLORS.primary}
+              disabled={isLoading}
+            />
+
+            <Text style={styles.termsText}>
+              I agree to the{' '}
+              <Text style={styles.termsHighlight}>Terms of Service</Text>
+              {' and '}
+              <Text style={styles.termsHighlight}>Privacy Policy</Text>.
+            </Text>
+          </View>
+
+          {/* Validation */}
+          {validationMessage ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{validationMessage}</Text>
             </View>
-          </Card.Content>
-        </Card>
+          ) : null}
 
-        {/* Student Guide */}
-        <View style={styles.guideContainer}>
-          <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-          <Text style={styles.guideText}>
-            Complete the handleRegister function to:\n
-            1. Call authApi.register() with form data\n
-            2. Auto-login or redirect to login\n
-            3. Handle success/error states
-          </Text>
+          {/* Create Account */}
+          <Button
+            mode="contained"
+            onPress={handleRegister}
+            loading={isLoading}
+            disabled={isLoading}
+            style={styles.registerButton}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            buttonColor={COLORS.primary}
+          >
+            Create Account
+          </Button>
+
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+
+            <TouchableOpacity
+              onPress={() => router.replace('/(auth)/login')}
+              disabled={isLoading}
+            >
+              <Text style={styles.loginLink}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        <Text style={styles.footer}>
+          Made for food lovers ♡
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-// Need to import TouchableOpacity for gender options
-import { TouchableOpacity } from 'react-native';
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === 'android' ? 35 : 55,
+    paddingBottom: 30,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  logoCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  logo: {
+    fontSize: 36,
+  },
+  appName: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: -0.8,
+  },
+  tagline: {
+    fontSize: 13,
+    color: COLORS.muted,
+    marginTop: 5,
+  },
+  formContainer: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 21,
+    borderWidth: 1,
+    borderColor: '#ECEDE5',
+    elevation: 3,
+    shadowColor: '#26372C',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+  },
+  headingContainer: {
+    marginBottom: 25,
+  },
+  title: {
+    fontSize: 25,
+    fontWeight: '800',
+    color: COLORS.text,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: COLORS.muted,
+    marginTop: 6,
+    lineHeight: 19,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: 1.2,
+    marginTop: 8,
+    marginBottom: 13,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  halfInput: {
+    flex: 1,
+    minWidth: 0,
+  },
+  input: {
+    backgroundColor: COLORS.white,
+    marginBottom: 13,
+    fontSize: 14,
+  },
+  inputOutline: {
+    borderRadius: 13,
+    borderWidth: 1,
+  },
+  optionalRow: {
+    flexDirection: 'row',
+  },
+  ageInput: {
+    flex: 1,
+  },
+  genderLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 9,
+  },
+  genderOptions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  genderOption: {
+    flex: 1,
+    paddingVertical: 13,
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+  },
+  genderSelected: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  genderText: {
+    fontSize: 14,
+    color: COLORS.muted,
+    fontWeight: '600',
+  },
+  genderTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '800',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+    marginBottom: 12,
+    marginLeft: -8,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 19,
+    color: COLORS.muted,
+  },
+  termsHighlight: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  errorContainer: {
+    backgroundColor: '#FDECEC',
+    borderRadius: 10,
+    padding: 11,
+    marginBottom: 13,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  registerButton: {
+    borderRadius: 13,
+    marginTop: 5,
+  },
+  buttonContent: {
+    height: 52,
+  },
+  buttonLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 21,
+    flexWrap: 'wrap',
+  },
+  loginText: {
+    color: COLORS.muted,
+    fontSize: 13,
+  },
+  loginLink: {
+    color: COLORS.primary,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  footer: {
+    textAlign: 'center',
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 22,
+  },
+});

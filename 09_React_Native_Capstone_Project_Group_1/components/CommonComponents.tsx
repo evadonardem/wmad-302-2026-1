@@ -3,9 +3,19 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  DimensionValue,
+} from 'react-native';
 import { Card, Title, Chip, Badge, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface RecipeCardProps {
   recipe: {
@@ -38,31 +48,42 @@ export function RecipeCard({ recipe, onPress, style }: RecipeCardProps) {
             style={styles.recipeImage}
             resizeMode="cover"
           />
+
           <View style={styles.difficultyBadge}>
-            <Chip style={[
-              styles.difficultyChip,
-              recipe.difficulty === 'Easy' && styles.easy,
-              recipe.difficulty === 'Medium' && styles.medium,
-              recipe.difficulty === 'Hard' && styles.hard,
-            ]}>
+            <Chip
+              style={[
+                styles.difficultyChip,
+                recipe.difficulty === 'Easy' && styles.easy,
+                recipe.difficulty === 'Medium' && styles.medium,
+                recipe.difficulty === 'Hard' && styles.hard,
+              ]}
+            >
               {recipe.difficulty}
             </Chip>
           </View>
         </View>
+
         <Card.Content style={styles.cardContent}>
           <Title style={styles.recipeTitle} numberOfLines={1}>
             {recipe.name}
           </Title>
+
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>
               ⏱️ {recipe.prepTimeMinutes + recipe.cookTimeMinutes} min
             </Text>
-            <Text style={styles.metaText}>👥 {recipe.servings} servings</Text>
-            <Text style={styles.metaText}>🔥 {recipe.caloriesPerServing} cal</Text>
+
+            <Text style={styles.metaText}>
+              👥 {recipe.servings} servings
+            </Text>
           </View>
+
           <View style={styles.cuisineRow}>
-            <Chip style={styles.cuisineChip}>{recipe.cuisine}</Chip>
+            <Chip style={styles.cuisineChip}>
+              {recipe.cuisine}
+            </Chip>
           </View>
+
           <View style={styles.ratingRow}>
             <Text style={styles.ratingText}>
               ⭐ {recipe.rating.toFixed(1)} ({recipe.reviewCount} reviews)
@@ -90,7 +111,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onPress, style }: ProductCardProps) {
-  const discountedPrice = product.price * (1 - product.discountPercentage / 100);
+  const discountedPrice =
+    product.price * (1 - product.discountPercentage / 100);
 
   return (
     <TouchableOpacity
@@ -105,26 +127,39 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
             style={styles.productImage}
             resizeMode="contain"
           />
+
           {product.discountPercentage > 0 && (
-            <Badge style={styles.discountBadge} variant="primary">
-              -{Math.round(product.discountPercentage)}%
-            </Badge>
+            <Badge style={styles.discountBadge}>
+               {`${product.discountPercentage}% OFF`}
+             </Badge>
           )}
         </View>
+
         <Card.Content style={styles.cardContent}>
-          <Text style={styles.productCategory}>{product.category}</Text>
+          <Text style={styles.productCategory}>
+            {product.category}
+          </Text>
+
           <Title style={styles.productTitle} numberOfLines={2}>
             {product.title}
           </Title>
+
           <View style={styles.priceRow}>
-            <Text style={styles.currentPrice}>${discountedPrice.toFixed(2)}</Text>
+            <Text style={styles.currentPrice}>
+              ${discountedPrice.toFixed(2)}
+            </Text>
+
             {product.discountPercentage > 0 && (
-              <Text style={styles.originalPrice}>${product.price.toFixed(2)}</Text>
+              <Text style={styles.originalPrice}>
+                ${product.price.toFixed(2)}
+              </Text>
             )}
           </View>
+
           <View style={styles.ratingRow}>
             <Text style={styles.ratingText}>
-              ⭐ {product.rating.toFixed(1)} · {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+              ⭐ {product.rating.toFixed(1)} ·{' '}
+              {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
             </Text>
           </View>
         </Card.Content>
@@ -137,11 +172,17 @@ interface CategoryChipProps {
   label: string;
   selected?: boolean;
   onPress: () => void;
-  icon?: string;
+  icon?: IconName;
   style?: any;
 }
 
-export function CategoryChip({ label, selected, onPress, icon, style }: CategoryChipProps) {
+export function CategoryChip({
+  label,
+  selected,
+  onPress,
+  icon,
+  style,
+}: CategoryChipProps) {
   return (
     <TouchableOpacity
       style={[
@@ -159,10 +200,13 @@ export function CategoryChip({ label, selected, onPress, icon, style }: Category
           style={{ marginRight: 4 }}
         />
       )}
-      <Text style={[
-        styles.categoryChipText,
-        selected && styles.categoryChipTextSelected,
-      ]}>
+
+      <Text
+        style={[
+          styles.categoryChipText,
+          selected && styles.categoryChipTextSelected,
+        ]}
+      >
         {label}
       </Text>
     </TouchableOpacity>
@@ -174,7 +218,10 @@ interface LoadingOverlayProps {
   message?: string;
 }
 
-export function LoadingOverlay({ visible, message = 'Loading...' }: LoadingOverlayProps) {
+export function LoadingOverlay({
+  visible,
+  message = 'Loading...',
+}: LoadingOverlayProps) {
   if (!visible) return null;
 
   return (
@@ -186,21 +233,37 @@ export function LoadingOverlay({ visible, message = 'Loading...' }: LoadingOverl
 }
 
 interface EmptyStateProps {
-  icon: string;
+  icon: IconName;
   title: string;
   message: string;
   actionLabel?: string;
   onAction?: () => void;
 }
 
-export function EmptyState({ icon, title, message, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  message,
+  actionLabel,
+  onAction,
+}: EmptyStateProps) {
   return (
     <View style={styles.emptyState}>
-      <MaterialCommunityIcons name={icon} size={80} color="#BCAAA4" />
+      <MaterialCommunityIcons
+        name={icon}
+        size={80}
+        color="#BCAAA4"
+      />
+
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptyMessage}>{message}</Text>
+
       {actionLabel && onAction && (
-        <Button mode="contained" onPress={onAction} style={styles.actionButton}>
+        <Button
+          mode="contained"
+          onPress={onAction}
+          style={styles.actionButton}
+        >
           {actionLabel}
         </Button>
       )}
@@ -210,11 +273,15 @@ export function EmptyState({ icon, title, message, actionLabel, onAction }: Empt
 
 interface SkeletonProps {
   height?: number;
-  width?: number | string;
+  width?: DimensionValue;
   borderRadius?: number;
 }
 
-export function Skeleton({ height = 20, width = '100%', borderRadius = 8 }: SkeletonProps) {
+export function Skeleton({
+  height = 20,
+  width = '100%',
+  borderRadius = 8,
+}: SkeletonProps) {
   return (
     <View
       style={[

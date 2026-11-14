@@ -1,11 +1,24 @@
 /**
- * Auth API Service - DummyJSON Authentication
- * Docs: https://dummyjson.com/docs/auth
- * Base URL: https://dummyjson.com/auth
+ * Auth API Service
+ * Supports local registration + DummyJSON login.
  */
 
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
+import axios, {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from 'axios';
+
+import {
+  LoginCredentials,
+  RegisterData,
+  AuthUser,
+  RefreshTokenResponse,
+} from '@/types/auth';
+
+import {
+  authStorage,
+  localAccountsStorage,
+} from '@/utils/storage';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
 
@@ -22,37 +35,41 @@ class AuthApiService {
       },
     });
 
-    // Request interceptor to add auth token
     this.client.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        const token = this.getAccessToken();
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
+      async (config: InternalAxiosRequestConfig) => {
+        const user = await authStorage.getUser();
+
+        // Local accounts do not need a server token.
+        if (user && !user.localAuth && user.token && config.headers) {
+          config.headers.Authorization = `Bearer ${user.token}`;
         }
+
         return config;
-      },
-      (error) => Promise.reject(error)
+      }
     );
 
-    // Response interceptor for token refresh
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
-        // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+          error.response?.status === 401 &&
+          originalRequest &&
+          !originalRequest._retry
+        ) {
           originalRequest._retry = true;
 
           try {
             const tokens = await this.refreshAccessToken();
-            originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+
+            originalRequest.headers.Authorization =
+              `Bearer ${tokens.accessToken}`;
+
             return this.client(originalRequest);
           } catch (refreshError) {
-            // Refresh failed, redirect to login
-            this.clearTokens();
-            // TODO: Student to implement navigation redirect to login
-            console.warn('Token refresh failed, user logged out');
+            await this.clearTokens();
+            console.warn('Token refresh failed. User logged out.');
             return Promise.reject(refreshError);
           }
         }
@@ -62,111 +79,177 @@ class AuthApiService {
     );
   }
 
-  private getAccessToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || user.accessToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+  async setTokens(user: AuthUser): Promise<void> {
+    await authStorage.setUser(user);
   }
 
-  private getRefreshToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.refreshToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+  private async clearTokens(): Promise<void> {
+    await authStorage.clearUser();
   }
 
-  private setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
-  }
-
-  private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+  async getStoredUser(): Promise<AuthUser | null> {
+    return authStorage.getUser();
   }
 
   /**
-   * Login user with username/email and password
-   * POST /auth/login
+   * Register a new local account.
+   * DummyJSON does not provide a registration endpoint.
+   */
+  async register(data: RegisterData): Promise<AuthUser> {
+    const accounts = await localAccountsStorage.getAll();
+
+    const usernameExists = accounts.some(
+      (account) =>
+        account.username.toLowerCase() === data.username.toLowerCase()
+    );
+
+    if (usernameExists) {
+      throw new Error('Username is already registered.');
+    }
+
+    const emailExists = accounts.some(
+      (account) =>
+        account.email.toLowerCase() === data.email.toLowerCase()
+    );
+
+    if (emailExists) {
+      throw new Error('Email is already registered.');
+    }
+
+    const newAccount = {
+      ...data,
+      id: Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+
+    await localAccountsStorage.save(newAccount);
+
+    // Return a user-shaped object for the registration result.
+    // This does not automatically log the user in.
+    return {
+      id: newAccount.id,
+      username: newAccount.username,
+      email: newAccount.email,
+      firstName: newAccount.firstName,
+      lastName: newAccount.lastName,
+      gender: newAccount.gender ?? 'male',
+      image: newAccount.image ?? '',
+      token: '',
+      refreshToken: '',
+      localAuth: true,
+    };
+  }
+
+  /**
+   * Login using a local registered account or DummyJSON account.
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
+    const identifier = credentials.username.trim().toLowerCase();
+    const accounts = await localAccountsStorage.getAll();
+
+    const localAccount = accounts.find(
+      (account) =>
+        account.username.toLowerCase() === identifier ||
+        account.email.toLowerCase() === identifier
+    );
+
+    if (localAccount) {
+      if (localAccount.password !== credentials.password) {
+        throw new Error('Incorrect username/email or password.');
+      }
+
+      const user: AuthUser = {
+        id: localAccount.id,
+        username: localAccount.username,
+        email: localAccount.email,
+        firstName: localAccount.firstName,
+        lastName: localAccount.lastName,
+        gender: localAccount.gender ?? 'male',
+        image: localAccount.image ?? '',
+        token: `local-${localAccount.id}-${Date.now()}`,
+        refreshToken: `local-refresh-${localAccount.id}`,
+        localAuth: true,
+      };
+
+      await this.setTokens(user);
+      return user;
+    }
+
+    // Fallback: existing DummyJSON test accounts.
     const response = await this.client.post<AuthUser>('/login', {
       username: credentials.username,
       password: credentials.password,
       expiresInMins: credentials.expiresInMins || 60,
     });
-    this.setTokens(response.data);
-    return response.data;
+
+    const user: AuthUser = {
+      ...response.data,
+      token:
+        response.data.token ||
+        (response.data as AuthUser & { accessToken?: string }).accessToken ||
+        '',
+      localAuth: false,
+    };
+
+    await this.setTokens(user);
+    return user;
   }
 
   /**
-   * Register new user
-   * POST /auth/register
-   * TODO: Students to complete this implementation
-   */
-  async register(data: RegisterData): Promise<AuthUser> {
-    // TODO: Student implementation
-    // 1. Call POST /auth/register with data
-    // 2. On success, call login() to get tokens
-    // 3. Return user with tokens
-    throw new Error('TODO: Implement register - call /auth/register then login');
-  }
-
-  /**
-   * Get current user profile (requires valid token)
-   * GET /auth/me
+   * Get the current user profile.
    */
   async getMe(): Promise<AuthUser> {
+    const storedUser = await this.getStoredUser();
+
+    if (storedUser?.localAuth) {
+      return storedUser;
+    }
+
     const response = await this.client.get<AuthUser>('/me');
-    return response.data;
+
+    return {
+      ...response.data,
+      token: storedUser?.token ?? response.data.token,
+      refreshToken: storedUser?.refreshToken ?? response.data.refreshToken,
+      localAuth: false,
+    };
   }
 
   /**
-   * Refresh access token using refresh token
-   * POST /auth/refresh
+   * Refresh a DummyJSON access token.
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
-    // Prevent multiple simultaneous refresh calls
     if (this.refreshTokenPromise) {
       return this.refreshTokenPromise;
     }
 
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
+    const currentUser = await this.getStoredUser();
+
+    if (currentUser?.localAuth) {
+      throw new Error('Local accounts do not require token refresh.');
+    }
+
+    if (!currentUser?.refreshToken) {
+      throw new Error('No refresh token available.');
     }
 
     this.refreshTokenPromise = this.client
       .post<RefreshTokenResponse>('/refresh', {
-        refreshToken,
+        refreshToken: currentUser.refreshToken,
         expiresInMins: 60,
       })
-      .then((response) => {
-        // Update stored tokens with new ones
-        const currentUser = this.getStoredUser();
-        if (currentUser) {
-          const updatedUser = {
-            ...currentUser,
-            token: response.data.accessToken,
-            refreshToken: response.data.refreshToken,
-          };
-          this.setTokens(updatedUser);
-        }
+      .then(async (response) => {
+        const updatedUser: AuthUser = {
+          ...currentUser,
+          token: response.data.accessToken,
+          refreshToken: response.data.refreshToken,
+        };
+
+        await this.setTokens(updatedUser);
         return response.data;
       })
-      .catch((error) => {
-        this.clearTokens();
+      .catch(async (error) => {
+        await this.clearTokens();
         throw error;
       })
       .finally(() => {
@@ -176,37 +259,16 @@ class AuthApiService {
     return this.refreshTokenPromise;
   }
 
-  /**
-   * Get stored user data
-   */
-  getStoredUser(): AuthUser | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
+  async logout(): Promise<void> {
+    await this.clearTokens();
   }
 
-  /**
-   * Logout - clear local tokens
-   * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only
-   */
-  logout(): void {
-    this.clearTokens();
-  }
-
-  /**
-   * Check if user has valid tokens stored
-   */
-  hasValidTokens(): boolean {
-    const user = this.getStoredUser();
+  async hasValidTokens(): Promise<boolean> {
+    const user = await this.getStoredUser();
     return !!(user?.token && user?.refreshToken);
   }
 }
 
-// Export singleton instance
 export const authApi = new AuthApiService();
 
-// Export class for testing
 export { AuthApiService };

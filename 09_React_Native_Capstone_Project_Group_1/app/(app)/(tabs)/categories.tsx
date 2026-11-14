@@ -10,6 +10,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { recipeApi } from '@/services/recipeApi';
 import { styles } from './categoriesStyles';
 
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
 interface Category {
   name: string;
   count?: number;
@@ -120,23 +122,24 @@ export default function CategoriesScreen() {
   );
 }
 
-function getCategoryIcon(category: string): string {
-  const icons: Record<string, string> = {
+function getCategoryIcon(category: string): IconName {
+  const icons: Record<string, IconName> = {
     Beef: 'cow',
-    Chicken: 'chicken',
+    Chicken: 'food-drumstick',
     Dessert: 'cake',
     Lamb: 'sheep',
     Pasta: 'noodles',
     Pork: 'pig',
     Seafood: 'fish',
     Vegetarian: 'leaf',
-    Breakfast: 'sunrise',
+    Breakfast: 'weather-sunny',
     Appetizer: 'silverware-fork-knife',
-    'Side Dish': 'bowl',
-    'Main Course': 'plate',
-    Soup: 'bowl-outline',
-    Salad: 'leaf-circle',
+    'Side Dish': 'bowl-mix',
+    'Main Course': 'food',
+    Soup: 'bowl',
+    Salad: 'leaf',
     Drink: 'glass-mug',
   };
+
   return icons[category] || 'food';
 }
