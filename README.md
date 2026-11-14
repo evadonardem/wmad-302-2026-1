@@ -1,1 +1,0 @@
-# Mobile Systems and Technologies
