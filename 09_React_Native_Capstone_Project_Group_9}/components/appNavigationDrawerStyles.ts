@@ -1,0 +1,143 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  header: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE7E2',
+    zIndex: 1,
+  },
+  headerContent: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+  },
+  menuButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F3EF',
+  },
+  brand: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  brandName: {
+    color: '#3E2723',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  pageName: {
+    color: '#8D6E63',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(25, 20, 18, 0.42)',
+  },
+  drawer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: '82%',
+    maxWidth: 340,
+    backgroundColor: '#FFFDF8',
+    paddingHorizontal: 20,
+  },
+  drawerBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 18,
+    paddingBottom: 26,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE7E2',
+  },
+  drawerLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E85D04',
+  },
+  drawerBrandText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  drawerTitle: {
+    color: '#3E2723',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  drawerSubtitle: {
+    color: '#8D6E63',
+    fontSize: 12,
+    marginTop: 3,
+  },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1ECE7',
+  },
+  menuLabel: {
+    color: '#A09087',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    marginTop: 24,
+    marginBottom: 10,
+    marginLeft: 10,
+  },
+  destination: {
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 12,
+    borderRadius: 13,
+    marginBottom: 5,
+  },
+  destinationActive: {
+    backgroundColor: '#FFF0E8',
+  },
+  destinationText: {
+    flex: 1,
+    color: '#5D4037',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  destinationTextActive: {
+    color: '#E85D04',
+    fontWeight: '700',
+  },
+  activeMarker: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E85D04',
+  },
+  drawerFooter: {
+    marginTop: 'auto',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#EEE7E2',
+  },
+  drawerFooterText: {
+    color: '#A09087',
+    fontSize: 9,
+    letterSpacing: 1.1,
+    textAlign: 'center',
+  },
+});
