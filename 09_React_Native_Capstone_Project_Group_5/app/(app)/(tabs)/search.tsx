@@ -230,7 +230,7 @@ export default function SearchScreen() {
           </View>
         </View>
         <Pressable onPress={surpriseMe} style={styles.bannerButton} accessibilityRole="button" accessibilityLabel="Surprise me">
-          <MaterialCommunityIcons name="dice-multiple-outline" size={20} color={tc('#2B2320')} />
+          <MaterialCommunityIcons name="dice-multiple-outline" size={20} color={tc('#2A2124')} />
           <Text style={styles.bannerButtonText}>Surprise Me</Text>
         </Pressable>
       </View>
@@ -252,7 +252,7 @@ export default function SearchScreen() {
         {activeChips.map((c) => (
           <Pressable key={c.label} onPress={c.clear} style={styles.activeChip} accessibilityRole="button" accessibilityLabel={`Remove ${c.label}`}>
             <Text style={styles.activeChipText}>{c.label}</Text>
-            <MaterialCommunityIcons name="close" size={14} color={tc('#2B2320')} />
+            <MaterialCommunityIcons name="close" size={14} color={tc('#2A2124')} />
           </Pressable>
         ))}
         {hasFilters && (

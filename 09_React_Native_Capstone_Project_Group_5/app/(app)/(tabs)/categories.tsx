@@ -150,7 +150,7 @@ export default function CategoriesScreen() {
           keyExtractor={(item) => item.name}
           columnWrapperStyle={styles.gridWrapper}
           contentContainerStyle={styles.gridContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} colors={['#E85D04']} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} colors={['#D81B60']} />}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.categoryCard}
@@ -166,7 +166,7 @@ export default function CategoriesScreen() {
                 {/* Dark tint keeps the white text readable on any photo */}
                 <View style={styles.tileShade} />
                 <View style={styles.tileIcon}>
-                  <MaterialCommunityIcons name={ICONS[item.name] ?? FALLBACK_ICON[kind]} size={28} color="#E85D04" />
+                  <MaterialCommunityIcons name={ICONS[item.name] ?? FALLBACK_ICON[kind]} size={28} color="#D81B60" />
                 </View>
                 <View>
                   <Text style={styles.tileName} numberOfLines={1}>{item.name}</Text>

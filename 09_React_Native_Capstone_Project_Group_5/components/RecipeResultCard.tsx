@@ -12,7 +12,7 @@ import { createStyles, tc, useAppTheme } from '@/context/ThemeContext';
 import { useCardScale } from '@/components';
 
 const HATS: Record<Recipe['difficulty'], number> = { Easy: 1, Medium: 2, Hard: 3 };
-const HAT_COLOR: Record<Recipe['difficulty'], string> = { Easy: '#2E7D32', Medium: '#EF6C00', Hard: '#C62828' };
+const HAT_COLOR: Record<Recipe['difficulty'], string> = { Easy: '#2E7D32', Medium: '#C2185B', Hard: '#C62828' };
 
 interface Props {
     recipe: Recipe;
@@ -45,7 +45,7 @@ export function RecipeResultCard({ recipe, onPress, isFavorite, onToggleFavorite
                     <Image source={{ uri: recipe.image }} style={styles.image} resizeMode="cover" />
                     {recipe.rating >= 4.8 && (
                         <View style={styles.topBadge}>
-                            <MaterialCommunityIcons name="trophy-outline" size={13} color={tc('#EF6C00')} />
+                            <MaterialCommunityIcons name="trophy-outline" size={13} color={tc('#C2185B')} />
                             <Text style={[styles.topBadgeText, { fontSize: sz(11) }]}>Top rated</Text>
                         </View>
                     )}
@@ -63,11 +63,11 @@ export function RecipeResultCard({ recipe, onPress, isFavorite, onToggleFavorite
                         <Text style={[styles.chipText, { fontSize: sz(12) }]}>{recipe.mealType[0] ?? 'Dish'}</Text>
                     </View>
                     <View style={styles.chip}>
-                        <MaterialCommunityIcons name="fire" size={13} color={tc('#8D6E63')} />
+                        <MaterialCommunityIcons name="fire" size={13} color={tc('#8A6673')} />
                         <Text style={[styles.chipText, { fontSize: sz(12) }]}>{recipe.caloriesPerServing} kcal</Text>
                     </View>
                     <View style={styles.chip}>
-                        <MaterialCommunityIcons name="clock-outline" size={13} color={tc('#8D6E63')} />
+                        <MaterialCommunityIcons name="clock-outline" size={13} color={tc('#8A6673')} />
                         <Text style={[styles.chipText, { fontSize: sz(12) }]}>{formatMinutes(totalTime(recipe))}</Text>
                     </View>
                 </View>
@@ -80,7 +80,7 @@ export function RecipeResultCard({ recipe, onPress, isFavorite, onToggleFavorite
                         <Text style={[styles.levelText, { fontSize: sz(12), color }]}>{recipe.difficulty}</Text>
                     </View>
                     <View style={styles.rating}>
-                        <MaterialCommunityIcons name="star" size={sz(16)} color="#F9A825" />
+                        <MaterialCommunityIcons name="star" size={sz(16)} color="#FF5C93" />
                         <Text style={[styles.ratingText, { fontSize: sz(13) }]}>{recipe.rating.toFixed(1)}</Text>
                         <Text style={[styles.ratingCount, { fontSize: sz(12) }]}>({recipe.reviewCount})</Text>
                     </View>
@@ -90,8 +90,8 @@ export function RecipeResultCard({ recipe, onPress, isFavorite, onToggleFavorite
                 <IconButton
                     icon={isFavorite ? 'heart' : 'heart-outline'}
                     size={20}
-                    iconColor={isFavorite ? '#E53935' : tc('#3E2723')}
-                    containerColor={tc('rgba(255,255,255,0.95)', 'containerColor')}
+                    iconColor={isFavorite ? '#D81B60' : '#3C252D'}
+                    containerColor="rgba(255,255,255,0.95)"
                     style={styles.heart}
                     onPress={onToggleFavorite}
                     accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
@@ -108,15 +108,15 @@ const styles = createStyles({
         borderRadius: 24,
         padding: 12,
         borderWidth: 1,
-        borderColor: '#EBDDCC',
-        shadowColor: '#5D2E00',
+        borderColor: '#E9CED8',
+        shadowColor: '#5A0F2E',
         shadowOpacity: 0.1,
         shadowRadius: 14,
         shadowOffset: { width: 0, height: 5 },
         elevation: 3,
     },
     pressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
-    imageWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', backgroundColor: '#EFEBE9' },
+    imageWrap: { position: 'relative', borderRadius: 18, overflow: 'hidden', backgroundColor: '#EFE9EB' },
     image: { width: '100%', aspectRatio: 1.45 },
     topBadge: {
         position: 'absolute',
@@ -130,17 +130,17 @@ const styles = createStyles({
         paddingHorizontal: 8,
         paddingVertical: 4,
     },
-    topBadgeText: { fontSize: 11, fontWeight: '800', color: '#EF6C00' },
-    title: { fontSize: 17, fontWeight: '800', color: '#2B2320', marginTop: 12, paddingHorizontal: 4 },
-    desc: { fontSize: 13, lineHeight: 19, color: '#8D6E63', marginTop: 4, minHeight: 38, paddingHorizontal: 4 },
+    topBadgeText: { fontSize: 11, fontWeight: '800', color: '#C2185B' },
+    title: { fontSize: 17, fontWeight: '800', color: '#2A2124', marginTop: 12, paddingHorizontal: 4 },
+    desc: { fontSize: 13, lineHeight: 19, color: '#8A6673', marginTop: 4, minHeight: 38, paddingHorizontal: 4 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingHorizontal: 4 },
-    chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F6F1EA', borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5 },
-    chipText: { fontSize: 12, fontWeight: '600', color: '#6D4C41' },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F5EBEF', borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5 },
+    chipText: { fontSize: 12, fontWeight: '600', color: '#6A4452' },
     footer: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 6, alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingHorizontal: 4 },
     level: { flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4 },
     levelText: { fontSize: 12, fontWeight: '800', marginLeft: 4 },
     rating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-    ratingText: { fontSize: 13, fontWeight: '800', color: '#2B2320' },
-    ratingCount: { fontSize: 12, color: '#8D6E63' },
+    ratingText: { fontSize: 13, fontWeight: '800', color: '#2A2124' },
+    ratingCount: { fontSize: 12, color: '#8A6673' },
     heart: { position: 'absolute', top: 18, right: 18, margin: 0 },
 });

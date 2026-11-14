@@ -281,7 +281,7 @@ export default function RecipeDetailScreen() {
                             accessibilityLabel="Fewer servings"
                             style={({ pressed }) => [styles.stepBtn, servings <= 1 && styles.stepBtnOff, pressed && styles.stepBtnPressed]}
                         >
-                            <MaterialCommunityIcons name="minus" size={22} color={servings <= 1 ? tc('#BCAAA4') : '#E85D04'} />
+                            <MaterialCommunityIcons name="minus" size={22} color={servings <= 1 ? tc('#BAA6AD') : '#D81B60'} />
                         </Pressable>
                         <Animated.View style={[styles.stepValue, { transform: [{ scale: bump }] }]}>
                             <Text style={styles.stepNumber2} accessibilityLiveRegion="polite">
@@ -296,7 +296,7 @@ export default function RecipeDetailScreen() {
                             accessibilityLabel="More servings"
                             style={({ pressed }) => [styles.stepBtn, styles.stepBtnOn, servings >= MAX_SERVINGS && styles.stepBtnOff, pressed && styles.stepBtnPressed]}
                         >
-                            <MaterialCommunityIcons name="plus" size={22} color={servings >= MAX_SERVINGS ? tc('#BCAAA4') : '#FFFFFF'} />
+                            <MaterialCommunityIcons name="plus" size={22} color={servings >= MAX_SERVINGS ? tc('#BAA6AD') : '#FFFFFF'} />
                         </Pressable>
                     </View>
                 </View>
@@ -319,7 +319,7 @@ export default function RecipeDetailScreen() {
                     })}
                     {changed && (
                         <Pressable onPress={() => setServings(recipe.servings)} accessibilityRole="button" style={styles.resetBtn}>
-                            <MaterialCommunityIcons name="restore" size={15} color="#E85D04" />
+                            <MaterialCommunityIcons name="restore" size={15} color="#D81B60" />
                             <Text style={styles.resetText}>Reset</Text>
                         </Pressable>
                     )}
@@ -341,7 +341,7 @@ export default function RecipeDetailScreen() {
                                 <MaterialCommunityIcons
                                     name={done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
                                     size={22}
-                                    color={done ? '#43A047' : tc('#BCAAA4')}
+                                    color={done ? '#43A047' : tc('#BAA6AD')}
                                 />
                                 <Text style={[styles.ingredientLabel, done && styles.ingredientDone]}>
                                     {parts.scalable ? (
@@ -414,7 +414,7 @@ export default function RecipeDetailScreen() {
                 <View style={styles.darkButton}>
                     <Text style={styles.darkButtonText}>Start Cooking Mode</Text>
                     <View style={styles.darkButtonIcon}>
-                        <MaterialCommunityIcons name="play" size={18} color={tc('#3E2723')} />
+                        <MaterialCommunityIcons name="play" size={18} color={tc('#3C252D')} />
                     </View>
                 </View>
             </View>
@@ -460,8 +460,8 @@ export default function RecipeDetailScreen() {
                                 <IconButton
                                     icon={favorite ? 'heart' : 'heart-outline'}
                                     size={22}
-                                    iconColor={favorite ? '#E53935' : tc('#3E2723')}
-                                    containerColor={tc('rgba(255,255,255,0.95)', 'containerColor')}
+                                    iconColor={favorite ? '#D81B60' : '#3C252D'}
+                                    containerColor="rgba(255,255,255,0.95)"
                                     style={styles.heroHeart}
                                     onPress={() => toggleFavorite(recipe.id)}
                                     accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'}
@@ -477,7 +477,7 @@ export default function RecipeDetailScreen() {
                                         accessibilityRole="button"
                                         accessibilityLabel={`Previous recipe: ${neighbors.prev.name}`}
                                     >
-                                        <MaterialCommunityIcons name="chevron-left" size={30} color={tc('#2B2320')} />
+                                        <MaterialCommunityIcons name="chevron-left" size={30} color={tc('#2A2124')} />
                                     </Pressable>
                                     <Pressable
                                         onPress={() => openRecipe(neighbors.next)}
@@ -485,7 +485,7 @@ export default function RecipeDetailScreen() {
                                         accessibilityRole="button"
                                         accessibilityLabel={`Next recipe: ${neighbors.next.name}`}
                                     >
-                                        <MaterialCommunityIcons name="chevron-right" size={30} color={tc('#2B2320')} />
+                                        <MaterialCommunityIcons name="chevron-right" size={30} color={tc('#2A2124')} />
                                     </Pressable>
                                 </>
                             )}
@@ -519,7 +519,7 @@ export default function RecipeDetailScreen() {
                                     >
                                         <Text style={styles.darkButtonText}>Share Recipe</Text>
                                         <View style={styles.darkButtonIcon}>
-                                            <MaterialCommunityIcons name="share-variant" size={16} color={tc('#3E2723')} />
+                                            <MaterialCommunityIcons name="share-variant" size={16} color={tc('#3C252D')} />
                                         </View>
                                     </Pressable>
                                 </View>
@@ -582,22 +582,22 @@ export default function RecipeDetailScreen() {
 }
 
 const styles = createStyles({
-    container: { flex: 1, backgroundColor: '#FFFDF8' },
+    container: { flex: 1, backgroundColor: '#FEF9FB' },
     scrollContent: { paddingBottom: 80 },
     page: { width: '100%', maxWidth: 1240, alignSelf: 'center', paddingHorizontal: 16 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFDF8' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FEF9FB' },
     floatingBack: { position: 'absolute', left: 8, zIndex: 10 },
-    accent: { color: '#E85D04' },
+    accent: { color: '#D81B60' },
     topBar: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8, marginLeft: -8 },
-    crumb: { flex: 1, fontSize: 13, color: '#8D6E63' },
-    hero: { backgroundColor: '#F6F1EA', borderRadius: 28, overflow: 'hidden' },
+    crumb: { flex: 1, fontSize: 13, color: '#8A6673' },
+    hero: { backgroundColor: '#F5EBEF', borderRadius: 28, overflow: 'hidden' },
     heroWide: { flexDirection: 'row', alignItems: 'stretch', minHeight: 320 },
     heroText: { padding: 24, paddingBottom: 8 },
     heroTextWide: { flex: 1, justifyContent: 'center', padding: 40 },
-    letsCook: { fontSize: 15, color: '#6D4C41', marginBottom: 6 },
-    title: { fontSize: 34, fontWeight: '800', color: '#2B2320', lineHeight: 42 },
+    letsCook: { fontSize: 15, color: '#6A4452', marginBottom: 6 },
+    title: { fontSize: 34, fontWeight: '800', color: '#2A2124', lineHeight: 42 },
     titleWide: { fontSize: 52, lineHeight: 62 },
-    heroImageWrap: { position: 'relative', backgroundColor: '#EFEBE9' },
+    heroImageWrap: { position: 'relative', backgroundColor: '#EFE9EB' },
     heroImageWide: { width: '55%' },
     heroImageNarrow: { width: '100%', height: 240 },
     heroImage: { width: '100%', height: '100%' },
@@ -625,28 +625,28 @@ const styles = createStyles({
     summaryRow: { gap: 16 },
     summaryRowWide: { flexDirection: 'row', alignItems: 'flex-start', gap: 32 },
     summaryText: { flex: 1 },
-    summary: { fontSize: 15, lineHeight: 24, color: '#4E342E' },
+    summary: { fontSize: 15, lineHeight: 24, color: '#4C303A' },
     tagsBlock: { marginTop: 16 },
-    tagsLabel: { fontSize: 12, color: '#8D6E63', marginBottom: 2 },
-    tagsList: { fontSize: 13, fontWeight: '600', color: '#E85D04' },
+    tagsLabel: { fontSize: 12, color: '#8A6673', marginBottom: 2 },
+    tagsList: { fontSize: 13, fontWeight: '600', color: '#D81B60' },
     actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
     ratingCard: {
         alignItems: 'center',
         gap: 4,
-        backgroundColor: '#FFE9C7',
+        backgroundColor: '#FBCBDD',
         borderRadius: 22,
         paddingVertical: 20,
         paddingHorizontal: 24,
     },
     ratingCardWide: { width: 260 },
-    ratingScore: { fontSize: 44, fontWeight: '800', color: '#2B2320' },
-    ratingCount: { fontSize: 13, color: '#6D4C41', marginTop: 2 },
+    ratingScore: { fontSize: 44, fontWeight: '800', color: '#2A2124' },
+    ratingCount: { fontSize: 13, color: '#6A4452', marginTop: 2 },
     ratingLevel: { fontSize: 13, fontWeight: '700' },
     darkButtonInline: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 14,
-        backgroundColor: '#2B2320',
+        backgroundColor: '#2A2124',
         borderRadius: 26,
         paddingLeft: 20,
         paddingRight: 6,
@@ -656,7 +656,7 @@ const styles = createStyles({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#2B2320',
+        backgroundColor: '#2A2124',
         borderRadius: 26,
         paddingLeft: 20,
         paddingRight: 6,
@@ -665,8 +665,8 @@ const styles = createStyles({
     },
     darkButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
     darkButtonIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-    outlineButton: { borderWidth: 1, borderColor: '#2B2320', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
-    outlineButtonText: { fontSize: 13, fontWeight: '600', color: '#2B2320' },
+    outlineButton: { borderWidth: 1, borderColor: '#2A2124', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
+    outlineButtonText: { fontSize: 13, fontWeight: '600', color: '#2A2124' },
     twoCol: { gap: 16, marginTop: 28 },
     twoColWide: { flexDirection: 'row', alignItems: 'flex-start', gap: 24 },
     panel: {
@@ -674,67 +674,67 @@ const styles = createStyles({
         borderRadius: 22,
         padding: 20,
         borderWidth: 1,
-        borderColor: '#F0E6DC',
+        borderColor: '#EEDEE4',
         shadowColor: '#000',
         shadowOpacity: 0.06,
         shadowRadius: 12,
         shadowOffset: { width: 0, height: 4 },
         elevation: 2,
     },
-    panelSoft: { backgroundColor: '#F6F1EA', shadowOpacity: 0, elevation: 0 },
+    panelSoft: { backgroundColor: '#F5EBEF', shadowOpacity: 0, elevation: 0 },
     panelGrow: { flex: 1 },
     nutritionWide: { width: 300 },
-    panelTitle: { fontSize: 19, fontWeight: '800', color: '#2B2320', marginBottom: 10 },
+    panelTitle: { fontSize: 19, fontWeight: '800', color: '#2A2124', marginBottom: 10 },
     ingredientGrid: { flexDirection: 'row', flexWrap: 'wrap' },
     ingredientCell: { width: '100%' },
     ingredientCellHalf: { width: '50%' },
     ingredientRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingRight: 8 },
-    ingredientLabel: { flex: 1, textAlign: 'left', fontSize: 14.5, lineHeight: 20, color: '#3E2723' },
-    ingredientQty: { fontWeight: '800', color: '#2B2320' },
-    ingredientQtyChanged: { color: '#E85D04' },
-    calc: { backgroundColor: '#FFF3E0', borderRadius: 20, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#F3E5D8' },
+    ingredientLabel: { flex: 1, textAlign: 'left', fontSize: 14.5, lineHeight: 20, color: '#3C252D' },
+    ingredientQty: { fontWeight: '800', color: '#2A2124' },
+    ingredientQtyChanged: { color: '#D81B60' },
+    calc: { backgroundColor: '#FDE7EF', borderRadius: 20, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#F1DAE2' },
     calcTop: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
-    calcIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#E85D04', alignItems: 'center', justifyContent: 'center' },
+    calcIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#D81B60', alignItems: 'center', justifyContent: 'center' },
     calcInfo: { flex: 1, minWidth: 130 },
-    calcTitle: { fontSize: 16, fontWeight: '800', color: '#2B2320' },
-    calcSub: { fontSize: 12.5, color: '#8D6E63', marginTop: 2 },
-    stepper: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFFFFF', borderRadius: 26, padding: 5, borderWidth: 1, borderColor: '#F3E5D8' },
-    stepBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF3E0' },
-    stepBtnOn: { backgroundColor: '#E85D04' },
+    calcTitle: { fontSize: 16, fontWeight: '800', color: '#2A2124' },
+    calcSub: { fontSize: 12.5, color: '#8A6673', marginTop: 2 },
+    stepper: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFFFFF', borderRadius: 26, padding: 5, borderWidth: 1, borderColor: '#F1DAE2' },
+    stepBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDE7EF' },
+    stepBtnOn: { backgroundColor: '#D81B60' },
     stepBtnOff: { opacity: 0.5 },
     stepBtnPressed: { opacity: 0.8 },
     stepValue: { minWidth: 70, alignItems: 'center' },
-    stepNumber2: { fontSize: 24, fontWeight: '800', color: '#2B2320', lineHeight: 28 },
-    stepUnit: { fontSize: 11, fontWeight: '600', color: '#8D6E63' },
+    stepNumber2: { fontSize: 24, fontWeight: '800', color: '#2A2124', lineHeight: 28 },
+    stepUnit: { fontSize: 11, fontWeight: '600', color: '#8A6673' },
     presetRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 12 },
-    preset: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6D6C4' },
-    presetActive: { backgroundColor: '#E85D04', borderColor: '#E85D04' },
-    presetText: { fontSize: 12.5, fontWeight: '700', color: '#5D4037' },
+    preset: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E3C7D1' },
+    presetActive: { backgroundColor: '#D81B60', borderColor: '#D81B60' },
+    presetText: { fontSize: 12.5, fontWeight: '700', color: '#5A3A46' },
     presetTextActive: { color: '#FFFFFF' },
     resetBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto', paddingHorizontal: 6 },
-    resetText: { fontSize: 12.5, fontWeight: '700', color: '#E85D04' },
-    calcNote: { fontSize: 12, color: '#8D6E63', marginTop: 12, lineHeight: 17 },
-    ingredientDone: { textDecorationLine: 'line-through', color: '#BCAAA4' },
+    resetText: { fontSize: 12.5, fontWeight: '700', color: '#D81B60' },
+    calcNote: { fontSize: 12, color: '#8A6673', marginTop: 12, lineHeight: 17 },
+    ingredientDone: { textDecorationLine: 'line-through', color: '#BAA6AD' },
     stepsCol: { flex: 1, gap: 12, alignSelf: 'stretch' },
     stepCard: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 18,
-        backgroundColor: '#F6F1EA',
+        backgroundColor: '#F5EBEF',
         borderRadius: 18,
         paddingVertical: 18,
         paddingHorizontal: 20,
     },
-    stepNumber: { fontSize: 26, fontWeight: '800', color: '#E85D04', minWidth: 40 },
-    stepText: { flex: 1, fontSize: 15, lineHeight: 23, color: '#3E2723' },
-    promo: { borderRadius: 24, overflow: 'hidden', backgroundColor: '#3E2723', justifyContent: 'flex-end' },
+    stepNumber: { fontSize: 26, fontWeight: '800', color: '#D81B60', minWidth: 40 },
+    stepText: { flex: 1, fontSize: 15, lineHeight: 23, color: '#3C252D' },
+    promo: { borderRadius: 24, overflow: 'hidden', backgroundColor: '#3C252D', justifyContent: 'flex-end' },
     promoWide: { width: 300, minHeight: 380, alignSelf: 'stretch' },
     promoNarrow: { width: '100%', height: 280 },
-    promoShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(30,15,5,0.45)' },
+    promoShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(34,10,22,0.45)' },
     promoBody: { padding: 20 },
     promoTitle: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', lineHeight: 34 },
     skelFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, paddingVertical: 24, paddingHorizontal: 8 },
-    skelPanel: { backgroundColor: '#F6F1EA', borderRadius: 22, padding: 20 },
+    skelPanel: { backgroundColor: '#F5EBEF', borderRadius: 22, padding: 20 },
     relatedHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
     relatedGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8, marginTop: 16 },
     relatedCell: { padding: 8 },

@@ -80,7 +80,7 @@ export default function EditProfileScreen() {
 }
 
 const styles = createStyles({
-    flex: { flex: 1, backgroundColor: '#FFFDF8' },
+    flex: { flex: 1, backgroundColor: '#FEF9FB' },
     content: { padding: 16, maxWidth: 560, width: '100%', alignSelf: 'center' },
     button: { marginTop: 16, borderRadius: 12 },
 });

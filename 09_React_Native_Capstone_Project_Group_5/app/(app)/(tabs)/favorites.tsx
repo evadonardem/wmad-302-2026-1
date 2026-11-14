@@ -188,7 +188,7 @@ export default function FavoritesScreen() {
                 accessibilityState={{ selected: view === key }}
                 style={[styles.viewBtn, view === key && styles.viewBtnActive]}
               >
-                <MaterialCommunityIcons name={icon} size={20} color={view === key ? '#FFFFFF' : tc('#3E2723')} />
+                <MaterialCommunityIcons name={icon} size={20} color={view === key ? '#FFFFFF' : tc('#3C252D')} />
               </Pressable>
             ))}
           </View>
@@ -198,7 +198,7 @@ export default function FavoritesScreen() {
             onDismiss={() => setSortOpen(false)}
             anchor={
               <Pressable onPress={() => setSortOpen(true)} style={styles.sortButton} accessibilityRole="button" accessibilityLabel="Sort">
-                <MaterialCommunityIcons name="sort" size={20} color={tc('#3E2723')} />
+                <MaterialCommunityIcons name="sort" size={20} color={tc('#3C252D')} />
                 <Text style={styles.sortText}>{currentSort.label}</Text>
               </Pressable>
             }
@@ -227,7 +227,7 @@ export default function FavoritesScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cats}>
         <Pressable onPress={() => setMeal(null)} style={styles.cat} accessibilityRole="button" accessibilityState={{ selected: meal === null }}>
           <View style={[styles.catIcon, meal === null && styles.catIconActive]}>
-            <MaterialCommunityIcons name="book-open-page-variant-outline" size={30} color={meal === null ? '#E85D04' : tc('#3E2723')} />
+            <MaterialCommunityIcons name="book-open-page-variant-outline" size={30} color={meal === null ? '#D81B60' : tc('#3C252D')} />
           </View>
           <Text style={[styles.catLabel, meal === null && styles.catLabelActive]}>All Recipes</Text>
         </Pressable>
@@ -243,7 +243,7 @@ export default function FavoritesScreen() {
               accessibilityLabel={`${name}, ${count} saved`}
             >
               <View style={[styles.catIcon, active && styles.catIconActive]}>
-                <MaterialCommunityIcons name={MEAL_ICONS[name] ?? 'food'} size={30} color={active ? '#E85D04' : tc('#3E2723')} />
+                <MaterialCommunityIcons name={MEAL_ICONS[name] ?? 'food'} size={30} color={active ? '#D81B60' : tc('#3C252D')} />
                 <View style={[styles.catCount, active && styles.catCountActive]}>
                   <Text style={[styles.catCountText, active && styles.catCountTextActive]}>{count}</Text>
                 </View>

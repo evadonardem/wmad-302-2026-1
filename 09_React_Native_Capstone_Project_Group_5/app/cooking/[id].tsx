@@ -156,7 +156,7 @@ export default function CookingModeScreen() {
         return (
             <View style={styles.center}>
                 <Stack.Screen options={{ headerShown: false }} />
-                <ActivityIndicator size="large" color="#E85D04" />
+                <ActivityIndicator size="large" color="#D81B60" />
             </View>
         );
     }
@@ -179,7 +179,7 @@ export default function CookingModeScreen() {
             {/* Top bar */}
             <View style={styles.topBar}>
                 <Pressable onPress={close} style={styles.roundButton} accessibilityRole="button" accessibilityLabel="Exit cooking mode">
-                    <MaterialCommunityIcons name="close" size={24} color={tc('#3E2723')} />
+                    <MaterialCommunityIcons name="close" size={24} color={tc('#3C252D')} />
                 </Pressable>
                 <View style={styles.topTitleWrap}>
                     <Text style={styles.topTitle} numberOfLines={1}>
@@ -195,7 +195,7 @@ export default function CookingModeScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={showPhoto ? 'Hide photo' : 'Show photo'}
                 >
-                    <MaterialCommunityIcons name="image-outline" size={22} color={showPhoto ? '#FFFFFF' : tc('#3E2723')} />
+                    <MaterialCommunityIcons name="image-outline" size={22} color={showPhoto ? '#FFFFFF' : tc('#3C252D')} />
                 </Pressable>
             </View>
 
@@ -223,7 +223,7 @@ export default function CookingModeScreen() {
                     <Text style={styles.doneText}>You finished all {total} steps of {recipe.name}.</Text>
                     <View style={styles.doneButtons}>
                         <Pressable style={[styles.navButton, styles.navPrev]} onPress={() => goTo(0)} accessibilityRole="button">
-                            <MaterialCommunityIcons name="restart" size={24} color={tc('#3E2723')} />
+                            <MaterialCommunityIcons name="restart" size={24} color={tc('#3C252D')} />
                             <Text style={styles.navPrevText}>Start over</Text>
                         </Pressable>
                         <Pressable style={[styles.navButton, styles.navNext]} onPress={close} accessibilityRole="button">
@@ -287,7 +287,7 @@ export default function CookingModeScreen() {
                                         <Text style={styles.timerMainText}>{running ? 'Pause' : 'Start'}</Text>
                                     </Pressable>
                                     <Pressable onPress={resetTimer} style={styles.timerReset} accessibilityRole="button" accessibilityLabel="Reset timer">
-                                        <MaterialCommunityIcons name="restart" size={24} color={tc('#3E2723')} />
+                                        <MaterialCommunityIcons name="restart" size={24} color={tc('#3C252D')} />
                                     </Pressable>
                                 </View>
                             </View>
@@ -303,7 +303,7 @@ export default function CookingModeScreen() {
                             accessibilityRole="button"
                             accessibilityLabel="Previous step"
                         >
-                            <MaterialCommunityIcons name="arrow-left" size={26} color={tc('#3E2723')} />
+                            <MaterialCommunityIcons name="arrow-left" size={26} color={tc('#3C252D')} />
                             <Text style={styles.navPrevText}>Previous</Text>
                         </Pressable>
                         <Pressable
@@ -323,8 +323,8 @@ export default function CookingModeScreen() {
 }
 
 const styles = createStyles({
-    container: { flex: 1, backgroundColor: '#FFFDF8', width: '100%', maxWidth: 1100, alignSelf: 'center', paddingHorizontal: 16 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFDF8' },
+    container: { flex: 1, backgroundColor: '#FEF9FB', width: '100%', maxWidth: 1100, alignSelf: 'center', paddingHorizontal: 16 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FEF9FB' },
     disabled: { opacity: 0.4 },
 
     topBar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -332,61 +332,61 @@ const styles = createStyles({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: '#F6F1EA',
+        backgroundColor: '#F5EBEF',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    roundButtonActive: { backgroundColor: '#E85D04' },
+    roundButtonActive: { backgroundColor: '#D81B60' },
     topTitleWrap: { flex: 1, alignItems: 'center' },
-    topTitle: { fontSize: 17, fontWeight: '800', color: '#2B2320' },
-    topSub: { fontSize: 13, color: '#8D6E63', marginTop: 2 },
+    topTitle: { fontSize: 17, fontWeight: '800', color: '#2A2124' },
+    topSub: { fontSize: 13, color: '#8A6673', marginTop: 2 },
 
     progress: { flexDirection: 'row', gap: 6, marginTop: 16, marginBottom: 4 },
     segmentHit: { flex: 1, paddingVertical: 8 },
-    segment: { height: 8, borderRadius: 4, backgroundColor: '#EADFD3' },
-    segmentDone: { backgroundColor: '#F5A56B' },
-    segmentCurrent: { backgroundColor: '#E85D04' },
+    segment: { height: 8, borderRadius: 4, backgroundColor: '#E8D5DC' },
+    segmentDone: { backgroundColor: '#F48FB1' },
+    segmentCurrent: { backgroundColor: '#D81B60' },
 
     body: { flexGrow: 1, justifyContent: 'center', paddingVertical: 16 },
     content: { gap: 24 },
     contentWide: { flexDirection: 'row', alignItems: 'center', gap: 48 },
     stepCol: { flex: 1 },
-    photo: { width: '100%', height: 200, borderRadius: 22, marginBottom: 16, backgroundColor: '#EFEBE9' },
-    bigNumber: { fontSize: 110, lineHeight: 120, fontWeight: '800', color: '#E85D04' },
-    stepText: { fontSize: 26, lineHeight: 38, fontWeight: '600', color: '#2B2320' },
+    photo: { width: '100%', height: 200, borderRadius: 22, marginBottom: 16, backgroundColor: '#EFE9EB' },
+    bigNumber: { fontSize: 110, lineHeight: 120, fontWeight: '800', color: '#D81B60' },
+    stepText: { fontSize: 26, lineHeight: 38, fontWeight: '600', color: '#2A2124' },
     stepTextWide: { fontSize: 34, lineHeight: 48 },
     tip: { flexDirection: 'row', gap: 12, marginTop: 20 },
-    tipBar: { width: 4, borderRadius: 2, backgroundColor: '#E85D04' },
-    tipText: { flex: 1, fontSize: 16, lineHeight: 24, fontStyle: 'italic', color: '#6D4C41' },
+    tipBar: { width: 4, borderRadius: 2, backgroundColor: '#D81B60' },
+    tipText: { flex: 1, fontSize: 16, lineHeight: 24, fontStyle: 'italic', color: '#6A4452' },
 
     timerCard: {
         alignItems: 'center',
-        backgroundColor: '#F6F1EA',
+        backgroundColor: '#F5EBEF',
         borderRadius: 28,
         paddingVertical: 24,
         paddingHorizontal: 20,
         gap: 14,
     },
     timerCardWide: { width: 340 },
-    timerCardDone: { backgroundColor: '#FFE0B2' },
-    timerLabel: { fontSize: 14, fontWeight: '700', letterSpacing: 0.5, color: '#8D6E63', textTransform: 'uppercase' },
-    timerClock: { fontSize: 72, fontWeight: '800', color: '#2B2320', fontVariant: ['tabular-nums'] },
-    timerClockDone: { color: '#E85D04' },
+    timerCardDone: { backgroundColor: '#F8BBD0' },
+    timerLabel: { fontSize: 14, fontWeight: '700', letterSpacing: 0.5, color: '#8A6673', textTransform: 'uppercase' },
+    timerClock: { fontSize: 72, fontWeight: '800', color: '#2A2124', fontVariant: ['tabular-nums'] },
+    timerClockDone: { color: '#D81B60' },
     timerAdjust: { flexDirection: 'row', gap: 12 },
     adjustButton: { minWidth: 96, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-    adjustText: { fontSize: 16, fontWeight: '700', color: '#3E2723' },
+    adjustText: { fontSize: 16, fontWeight: '700', color: '#3C252D' },
     timerActions: { flexDirection: 'row', alignItems: 'center', gap: 12, alignSelf: 'stretch' },
     timerMain: {
         flex: 1,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#2B2320',
+        backgroundColor: '#2A2124',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
     },
-    timerMainPause: { backgroundColor: '#E85D04' },
+    timerMainPause: { backgroundColor: '#D81B60' },
     timerMainText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
     timerReset: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
 
@@ -400,14 +400,14 @@ const styles = createStyles({
         justifyContent: 'center',
         gap: 10,
     },
-    navPrev: { backgroundColor: '#F6F1EA' },
-    navPrevText: { fontSize: 19, fontWeight: '700', color: '#3E2723' },
-    navNext: { backgroundColor: '#E85D04', flex: 1.4 },
+    navPrev: { backgroundColor: '#F5EBEF' },
+    navPrevText: { fontSize: 19, fontWeight: '700', color: '#3C252D' },
+    navNext: { backgroundColor: '#D81B60', flex: 1.4 },
     navNextText: { fontSize: 19, fontWeight: '800', color: '#FFFFFF' },
 
     doneWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 12 },
     doneIcon: { width: 104, height: 104, borderRadius: 52, backgroundColor: '#43A047', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    doneTitle: { fontSize: 36, fontWeight: '800', color: '#2B2320', textAlign: 'center' },
-    doneText: { fontSize: 18, color: '#6D4C41', textAlign: 'center' },
+    doneTitle: { fontSize: 36, fontWeight: '800', color: '#2A2124', textAlign: 'center' },
+    doneText: { fontSize: 18, color: '#6A4452', textAlign: 'center' },
     doneButtons: { flexDirection: 'row', gap: 12, alignSelf: 'stretch', maxWidth: 520, marginTop: 20 },
 });

@@ -235,10 +235,10 @@ export default function PlannerScreen() {
                             accessibilityLabel="Previous week"
                             style={({ pressed }) => [styles.navBtn, pressed && styles.pressed]}
                         >
-                            <MaterialCommunityIcons name="chevron-left" size={22} color={tc('#3E2723')} />
+                            <MaterialCommunityIcons name="chevron-left" size={22} color={tc('#3C252D')} />
                         </Pressable>
                         <View style={styles.weekCenter}>
-                            <MaterialCommunityIcons name="calendar-month-outline" size={20} color="#E85D04" />
+                            <MaterialCommunityIcons name="calendar-month-outline" size={20} color="#D81B60" />
                             <Text style={styles.weekText}>{formatWeekRange(weekStart)}</Text>
                             {!isThisWeek && (
                                 <Pressable onPress={() => {
@@ -255,20 +255,20 @@ export default function PlannerScreen() {
                             accessibilityLabel="Next week"
                             style={({ pressed }) => [styles.navBtn, pressed && styles.pressed]}
                         >
-                            <MaterialCommunityIcons name="chevron-right" size={22} color={tc('#3E2723')} />
+                            <MaterialCommunityIcons name="chevron-right" size={22} color={tc('#3C252D')} />
                         </Pressable>
                     </View>
 
                     {/* Quick stats */}
                     <View style={styles.statRow}>
                         <View style={styles.stat}>
-                            <MaterialCommunityIcons name="check-circle-outline" size={16} color="#E85D04" />
+                            <MaterialCommunityIcons name="check-circle-outline" size={16} color="#D81B60" />
                             <Text style={styles.statText}>
                                 {planned.length} of {totalSlots} meals planned
                             </Text>
                         </View>
                         <View style={styles.stat}>
-                            <MaterialCommunityIcons name="fire" size={16} color="#E85D04" />
+                            <MaterialCommunityIcons name="fire" size={16} color="#D81B60" />
                             <Text style={styles.statText}>{avgCalories > 0 ? `Avg ${avgCalories} cal / day` : 'No calories yet'}</Text>
                         </View>
                     </View>
@@ -295,7 +295,7 @@ export default function PlannerScreen() {
                                 <View key={meal} style={styles.gridRow}>
                                     <View style={styles.labelCol}>
                                         <View style={styles.mealBadge}>
-                                            <MaterialCommunityIcons name={MEAL_ICON[meal]} size={18} color="#E85D04" />
+                                            <MaterialCommunityIcons name={MEAL_ICON[meal]} size={18} color="#D81B60" />
                                         </View>
                                         <Text style={styles.mealLabel}>{meal}</Text>
                                     </View>
@@ -400,14 +400,14 @@ export default function PlannerScreen() {
                     </View>
                     <View style={styles.headerButtons}>
                         {planned.length > 0 && (
-                            <Button mode="text" icon="trash-can-outline" textColor={tc('#8D6E63')} onPress={() => setConfirmClear(true)} compact>
+                            <Button mode="text" icon="trash-can-outline" textColor={tc('#8A6673')} onPress={() => setConfirmClear(true)} compact>
                                 Clear week
                             </Button>
                         )}
                         <Button
                             mode="contained"
                             icon="auto-fix"
-                            buttonColor="#E85D04"
+                            buttonColor="#D81B60"
                             textColor="#FFFFFF"
                             onPress={onGenerate}
                             disabled={!recipes}
@@ -454,9 +454,9 @@ const styles = createStyles({
     pressed: { opacity: 0.85 },
     header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 },
     headerText: { flexShrink: 1, minWidth: 240 },
-    title: { fontSize: 30, fontWeight: '800', color: '#2B2320' },
-    titleAccent: { color: '#E85D04' },
-    subtitle: { fontSize: 14, color: '#8D6E63', marginTop: 4 },
+    title: { fontSize: 30, fontWeight: '800', color: '#2A2124' },
+    titleAccent: { color: '#D81B60' },
+    subtitle: { fontSize: 14, color: '#8A6673', marginTop: 4 },
     headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     generate: { borderRadius: 14 },
     generateContent: { paddingVertical: 4, paddingHorizontal: 6 },
@@ -465,47 +465,47 @@ const styles = createStyles({
         borderRadius: 28,
         padding: 20,
         borderWidth: 1,
-        borderColor: '#EBDDCC',
-        shadowColor: '#5D2E00',
+        borderColor: '#E9CED8',
+        shadowColor: '#5A0F2E',
         shadowOpacity: 0.1,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 6 },
         elevation: 3,
     },
     weekNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-    navBtn: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6F1EA', borderWidth: 1, borderColor: '#EBDDCC' },
+    navBtn: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EBEF', borderWidth: 1, borderColor: '#E9CED8' },
     weekCenter: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, flexWrap: 'wrap', justifyContent: 'center' },
-    weekText: { fontSize: 18, fontWeight: '800', color: '#2B2320' },
-    todayLink: { fontSize: 13, fontWeight: '700', color: '#E85D04', textDecorationLine: 'underline' },
+    weekText: { fontSize: 18, fontWeight: '800', color: '#2A2124' },
+    todayLink: { fontSize: 13, fontWeight: '700', color: '#D81B60', textDecorationLine: 'underline' },
     statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 18 },
-    stat: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF3E0', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 },
-    statText: { fontSize: 13, fontWeight: '600', color: '#5D4037' },
+    stat: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDE7EF', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 },
+    statText: { fontSize: 13, fontWeight: '600', color: '#5A3A46' },
     grid: { gap: 10 },
     gridRow: { flexDirection: 'row', gap: 10 },
     labelCol: { width: 74, alignItems: 'center', justifyContent: 'center', gap: 6 },
-    mealBadge: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFF3E0', alignItems: 'center', justifyContent: 'center' },
-    mealLabel: { fontSize: 12, fontWeight: '700', color: '#5D4037' },
+    mealBadge: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FDE7EF', alignItems: 'center', justifyContent: 'center' },
+    mealLabel: { fontSize: 12, fontWeight: '700', color: '#5A3A46' },
     dayHead: { flex: 1, alignItems: 'center', gap: 4 },
     dayPill: { alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14, minWidth: 80 },
-    dayPillToday: { backgroundColor: '#E85D04' },
-    dayName: { fontSize: 16, fontWeight: '800', color: '#2B2320' },
+    dayPillToday: { backgroundColor: '#D81B60' },
+    dayName: { fontSize: 16, fontWeight: '800', color: '#2A2124' },
     dayNameToday: { color: '#FFFFFF' },
-    dayDate: { fontSize: 12, color: '#8D6E63' },
+    dayDate: { fontSize: 12, color: '#8A6673' },
     dayDateToday: { color: 'rgba(255,255,255,0.9)' },
-    dayCal: { fontSize: 11, fontWeight: '600', color: '#8D6E63' },
+    dayCal: { fontSize: 11, fontWeight: '600', color: '#8A6673' },
     cellWrap: { flex: 1 },
     dayStrip: { flexDirection: 'row', gap: 6, marginBottom: 16 },
-    stripDay: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 14, backgroundColor: '#F6F1EA', borderWidth: 1, borderColor: '#EBDDCC', gap: 2 },
-    stripDayActive: { backgroundColor: '#E85D04', borderColor: '#E85D04' },
-    stripDayToday: { borderColor: '#E85D04' },
-    stripName: { fontSize: 11, fontWeight: '700', color: '#8D6E63' },
-    stripDate: { fontSize: 16, fontWeight: '800', color: '#2B2320' },
+    stripDay: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 14, backgroundColor: '#F5EBEF', borderWidth: 1, borderColor: '#E9CED8', gap: 2 },
+    stripDayActive: { backgroundColor: '#D81B60', borderColor: '#D81B60' },
+    stripDayToday: { borderColor: '#D81B60' },
+    stripName: { fontSize: 11, fontWeight: '700', color: '#8A6673' },
+    stripDate: { fontSize: 16, fontWeight: '800', color: '#2A2124' },
     stripTextActive: { color: '#FFFFFF' },
     dots: { flexDirection: 'row', gap: 3, marginTop: 2 },
-    dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#E6D6C4' },
-    dotOn: { backgroundColor: '#E85D04' },
+    dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#E3C7D1' },
+    dotOn: { backgroundColor: '#D81B60' },
     dotOnActive: { backgroundColor: '#FFFFFF' },
-    dayHeading: { fontSize: 16, fontWeight: '800', color: '#2B2320', marginBottom: 12 },
+    dayHeading: { fontSize: 16, fontWeight: '800', color: '#2A2124', marginBottom: 12 },
     skelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     skelCell: { width: '31%', flexGrow: 1 },
 });

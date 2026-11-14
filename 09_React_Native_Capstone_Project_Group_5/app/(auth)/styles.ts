@@ -7,6 +7,7 @@ export const styles = createStyles({
   container: {
     flex: 1,
     backgroundColor: '#FFFDF8',
+    overflow: 'hidden',
   },
   scrollContent: {
     flexGrow: 1,
@@ -22,13 +23,12 @@ export const styles = createStyles({
     marginBottom: 40,
   },
   logoText: {
-    fontSize: 64,
-    marginBottom: 8,
+    fontSize: 54,
   },
   appName: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#E85D04',
+    fontSize: 38,
+    fontWeight: '800',
+    color: '#3E2723',
     letterSpacing: -0.5,
   },
   tagline: {
@@ -37,8 +37,12 @@ export const styles = createStyles({
     marginTop: 4,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 28,
     padding: 0,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3E3D3',
   },
   cardContent: {
     padding: 28,
@@ -117,6 +121,43 @@ export const styles = createStyles({
     textAlign: 'center',
     lineHeight: 18,
   },
+
+  /* ---- Login screen extras ---- */
+  lgBadgeArea: { width: 190, height: 150, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  lgBadgeRing: { width: 124, height: 124, borderRadius: 62, backgroundColor: '#FFE3C7', alignItems: 'center', justifyContent: 'center' },
+  lgBadge: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#E85D04',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lgFloater: { position: 'absolute', fontSize: 30 },
+  lgFloatTL: { top: 6, left: 8, transform: [{ rotate: '-14deg' }] },
+  lgFloatTR: { top: 0, right: 10 },
+  lgFloatBL: { bottom: 6, left: 14 },
+  lgFloatBR: { bottom: 10, right: 6 },
+  lgAppNameAccent: { color: '#E85D04' },
+  lgPerks: { flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' },
+  lgPerk: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3E3D3',
+  },
+  lgPerkText: { fontSize: 12, fontWeight: '700', color: '#6D4C41' },
+  lgCardStripe: { height: 6, backgroundColor: '#E85D04' },
+  lgInputOutline: { borderRadius: 16 },
+  lgLoginButton: { marginTop: 8, marginBottom: 8, borderRadius: 26, height: 54, justifyContent: 'center' },
+  lgFooterEmoji: { fontSize: 22, letterSpacing: 6, marginBottom: 10 },
 
   /* ---- Register screen ---- */
   nameRow: {

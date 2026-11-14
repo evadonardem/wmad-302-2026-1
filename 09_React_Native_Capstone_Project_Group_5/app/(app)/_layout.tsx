@@ -22,9 +22,9 @@ import { routes } from '@/utils/routes';
 /** Built on each render so the header follows light / dark mode. */
 const getHeaderOptions = () => ({
   headerShown: true,
-  headerTintColor: '#E85D04',
-  headerStyle: { backgroundColor: tc('#FFFDF8', 'backgroundColor') },
-  headerTitleStyle: { color: tc('#3E2723'), fontWeight: '700' as const },
+  headerTintColor: '#D81B60',
+  headerStyle: { backgroundColor: tc('#FEF9FB', 'backgroundColor') },
+  headerTitleStyle: { color: tc('#3C252D'), fontWeight: '700' as const },
   headerShadowVisible: false,
   // Works on web too, where there may be no history to go back to
   headerLeft: () => <BackButton />,
@@ -129,7 +129,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
               <MaterialCommunityIcons
                 name={heart && active ? 'heart' : item.icon}
                 size={24}
-                color={active ? '#E85D04' : tc('#8D6E63')}
+                color={active ? '#D81B60' : tc('#8A6673')}
               />
               {heart && count > 0 && (
                 <View style={styles.tabBadge}>
@@ -144,7 +144,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         );
       })}
       <Pressable onPress={openMenu} accessibilityRole="button" accessibilityLabel="Open menu" style={styles.tab}>
-        <MaterialCommunityIcons name="menu" size={24} color={inMenu ? '#E85D04' : tc('#8D6E63')} />
+        <MaterialCommunityIcons name="menu" size={24} color={inMenu ? '#D81B60' : tc('#8A6673')} />
         <Text style={[styles.tabLabel, inMenu && styles.tabLabelActive]} numberOfLines={1}>
           Menu
         </Text>
@@ -167,11 +167,11 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                 accessibilityLabel="Open menu"
                 style={({ pressed }) => [styles.menuBtn, pressed && styles.pressed]}
               >
-                <MaterialCommunityIcons name="menu" size={26} color={tc('#3E2723')} />
+                <MaterialCommunityIcons name="menu" size={26} color={tc('#3C252D')} />
                 {count > 0 && <View style={styles.menuDot} />}
               </Pressable>
               <View style={styles.brand}>
-                <MaterialCommunityIcons name="chef-hat" size={22} color="#E85D04" />
+                <MaterialCommunityIcons name="chef-hat" size={22} color="#D81B60" />
                 <Text style={styles.brandText}>Cookbook</Text>
               </View>
               <Text style={styles.section} numberOfLines={1}>
@@ -204,11 +204,11 @@ function AppChrome({ children }: { children: React.ReactNode }) {
             >
               <View style={styles.drawerHead}>
                 <View style={styles.drawerBrand}>
-                  <MaterialCommunityIcons name="chef-hat" size={26} color="#E85D04" />
+                  <MaterialCommunityIcons name="chef-hat" size={26} color="#D81B60" />
                   <Text style={styles.drawerBrandText}>Cookbook</Text>
                 </View>
                 <Pressable onPress={closeMenu} accessibilityRole="button" accessibilityLabel="Close menu" style={styles.closeBtn}>
-                  <MaterialCommunityIcons name="close" size={22} color={tc('#3E2723')} />
+                  <MaterialCommunityIcons name="close" size={22} color={tc('#3C252D')} />
                 </Pressable>
               </View>
 
@@ -226,7 +226,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                   </Text>
                   <Text style={styles.userSub}>View profile</Text>
                 </View>
-                <MaterialCommunityIcons name="chevron-right" size={20} color={tc('#8D6E63')} />
+                <MaterialCommunityIcons name="chevron-right" size={20} color={tc('#8A6673')} />
               </Pressable>
 
               <View style={styles.items}>
@@ -240,7 +240,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                       accessibilityState={{ selected: active }}
                       style={({ pressed }) => [styles.item, active && styles.itemActive, pressed && styles.pressed]}
                     >
-                      <MaterialCommunityIcons name={item.icon} size={24} color={active ? '#FFFFFF' : tc('#5D4037')} />
+                      <MaterialCommunityIcons name={item.icon} size={24} color={active ? '#FFFFFF' : tc('#5A3A46')} />
                       <Text style={[styles.itemText, active && styles.itemTextActive]}>{item.label}</Text>
                       {item.match === '/favorites' && count > 0 && (
                         <View style={[styles.badge, active && styles.badgeActive]}>
@@ -254,13 +254,13 @@ function AppChrome({ children }: { children: React.ReactNode }) {
 
               <View style={styles.footer}>
                 <Pressable onPress={() => go(routes.settings)} accessibilityRole="button" style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
-                  <MaterialCommunityIcons name="cog-outline" size={24} color={tc('#5D4037')} />
+                  <MaterialCommunityIcons name="cog-outline" size={24} color={tc('#5A3A46')} />
                   <Text style={styles.itemText}>Settings</Text>
                 </Pressable>
                 <View style={styles.item}>
-                  <MaterialCommunityIcons name={dark ? 'weather-night' : 'white-balance-sunny'} size={24} color={tc('#5D4037')} />
+                  <MaterialCommunityIcons name={dark ? 'weather-night' : 'white-balance-sunny'} size={24} color={tc('#5A3A46')} />
                   <Text style={styles.itemText}>Dark mode</Text>
-                  <Switch value={dark} onValueChange={toggle} color="#E85D04" />
+                  <Switch value={dark} onValueChange={toggle} color="#D81B60" />
                 </View>
               </View>
             </Animated.View>
@@ -280,8 +280,8 @@ export default function AppLayout() {
   // Show loading while checking auth
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: tc('#FFFDF8', 'backgroundColor') }}>
-        <ActivityIndicator size="large" color="#E85D04" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: tc('#FEF9FB', 'backgroundColor') }}>
+        <ActivityIndicator size="large" color="#D81B60" />
       </View>
     );
   }
@@ -297,7 +297,7 @@ export default function AppLayout() {
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
-          contentStyle: { backgroundColor: tc('#FFFDF8', 'backgroundColor') },
+          contentStyle: { backgroundColor: tc('#FEF9FB', 'backgroundColor') },
         }}
       >
         <Stack.Screen name="(tabs)" />
@@ -313,31 +313,31 @@ export default function AppLayout() {
 }
 
 const styles = createStyles({
-  root: { flex: 1, backgroundColor: '#FFFDF8' },
+  root: { flex: 1, backgroundColor: '#FEF9FB' },
   content: { flex: 1 },
   pressed: { opacity: 0.8 },
   fill: { flex: 1 },
 
   // Top bar
-  bar: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EADFD3', zIndex: 5 },
+  bar: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E8D5DC', zIndex: 5 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 58, paddingHorizontal: 12 },
-  menuBtn: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6F1EA', borderWidth: 1, borderColor: '#EBDDCC' },
-  menuDot: { position: 'absolute', top: 8, right: 8, width: 9, height: 9, borderRadius: 5, backgroundColor: '#E85D04', borderWidth: 1.5, borderColor: '#FFFFFF' },
+  menuBtn: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EBEF', borderWidth: 1, borderColor: '#E9CED8' },
+  menuDot: { position: 'absolute', top: 8, right: 8, width: 9, height: 9, borderRadius: 5, backgroundColor: '#D81B60', borderWidth: 1.5, borderColor: '#FFFFFF' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  brandText: { fontSize: 19, fontWeight: '800', color: '#2B2320' },
-  section: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '700', color: '#8D6E63' },
+  brandText: { fontSize: 19, fontWeight: '800', color: '#2A2124' },
+  section: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '700', color: '#8A6673' },
 
   // Bottom tabs (phones)
-  tabBar: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#EADFD3', paddingTop: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: -2 }, elevation: 12 },
+  tabBar: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E8D5DC', paddingTop: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: -2 }, elevation: 12 },
   tab: { flex: 1, minWidth: 0, alignItems: 'center', gap: 3, paddingHorizontal: 2 },
-  tabLabel: { fontSize: 11, fontWeight: '700', color: '#8D6E63' },
-  tabLabelActive: { color: '#E85D04' },
-  tabBadge: { position: 'absolute', top: -6, right: -12, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: '#E85D04', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FFFFFF' },
+  tabLabel: { fontSize: 11, fontWeight: '700', color: '#8A6673' },
+  tabLabelActive: { color: '#D81B60' },
+  tabBadge: { position: 'absolute', top: -6, right: -12, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: '#D81B60', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FFFFFF' },
   tabBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
 
   // Menu
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, elevation: 1000 },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,10,5,0.55)' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(28,8,20,0.55)' },
   drawer: {
     position: 'absolute',
     top: 0,
@@ -355,22 +355,22 @@ const styles = createStyles({
   },
   drawerHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   drawerBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  drawerBrandText: { fontSize: 22, fontWeight: '800', color: '#2B2320' },
-  closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6F1EA' },
-  userCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: '#FFF3E0', marginBottom: 14 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EFE3D6' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#E85D04' },
+  drawerBrandText: { fontSize: 22, fontWeight: '800', color: '#2A2124' },
+  closeBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EBEF' },
+  userCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: '#FDE7EF', marginBottom: 14 },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EDD8E0' },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#D81B60' },
   avatarText: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
-  userName: { fontSize: 15, fontWeight: '800', color: '#2B2320' },
-  userSub: { fontSize: 12, color: '#8D6E63', marginTop: 1 },
+  userName: { fontSize: 15, fontWeight: '800', color: '#2A2124' },
+  userSub: { fontSize: 12, color: '#8A6673', marginTop: 1 },
   items: { gap: 4, flex: 1 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 52, paddingHorizontal: 14, borderRadius: 16 },
-  itemActive: { backgroundColor: '#E85D04' },
-  itemText: { flex: 1, fontSize: 16, fontWeight: '700', color: '#3E2723' },
+  itemActive: { backgroundColor: '#D81B60' },
+  itemText: { flex: 1, fontSize: 16, fontWeight: '700', color: '#3C252D' },
   itemTextActive: { color: '#FFFFFF' },
-  badge: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E85D04' },
+  badge: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D81B60' },
   badgeActive: { backgroundColor: '#FFFFFF' },
   badgeText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-  badgeTextActive: { color: '#E85D04' },
-  footer: { borderTopWidth: 1, borderTopColor: '#EADFD3', paddingTop: 10, gap: 4 },
+  badgeTextActive: { color: '#D81B60' },
+  footer: { borderTopWidth: 1, borderTopColor: '#E8D5DC', paddingTop: 10, gap: 4 },
 });

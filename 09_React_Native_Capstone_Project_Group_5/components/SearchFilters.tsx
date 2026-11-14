@@ -56,9 +56,9 @@ function Section({ section }: { section: FilterSection }) {
         accessibilityState={{ expanded: open }}
         accessibilityLabel={section.title}
       >
-        <MaterialCommunityIcons name={section.icon} size={22} color={tc('#3E2723')} />
+        <MaterialCommunityIcons name={section.icon} size={22} color={tc('#3C252D')} />
         <Text style={styles.sectionTitle}>{section.title}</Text>
-        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={tc('#3E2723')} />
+        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={tc('#3C252D')} />
       </Pressable>
 
       {open && (
@@ -73,7 +73,7 @@ function Section({ section }: { section: FilterSection }) {
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
               >
-                <MaterialCommunityIcons name="subdirectory-arrow-right" size={18} color={selected ? tc('#3E2723') : tc('#BCAAA4')} />
+                <MaterialCommunityIcons name="subdirectory-arrow-right" size={18} color={selected ? tc('#3C252D') : tc('#BAA6AD')} />
                 <Text style={[styles.optionText, selected && styles.optionTextSelected]} numberOfLines={1}>
                   {o.label}
                 </Text>
@@ -104,12 +104,12 @@ export function SearchFilters({ query, onQueryChange, sections, showSections = t
   return (
     <View>
       <View style={styles.searchBox}>
-        <MaterialCommunityIcons name="magnify" size={22} color={tc('#8D6E63')} />
+        <MaterialCommunityIcons name="magnify" size={22} color={tc('#8A6673')} />
         <TextInput
           value={query}
           onChangeText={onQueryChange}
           placeholder="Search recipes, ingredients..."
-          placeholderTextColor={tc('#A1887F')}
+          placeholderTextColor={tc('#9E828C')}
           style={styles.input}
           returnKeyType="search"
           autoCorrect={false}
@@ -117,7 +117,7 @@ export function SearchFilters({ query, onQueryChange, sections, showSections = t
         />
         {query.length > 0 && (
           <Pressable onPress={() => onQueryChange('')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Clear search">
-            <MaterialCommunityIcons name="close-circle" size={18} color={tc('#BCAAA4')} />
+            <MaterialCommunityIcons name="close-circle" size={18} color={tc('#BAA6AD')} />
           </Pressable>
         )}
         <Pressable
@@ -127,7 +127,7 @@ export function SearchFilters({ query, onQueryChange, sections, showSections = t
           accessibilityRole="button"
           accessibilityLabel={filterButton.label}
         >
-          <MaterialCommunityIcons name={filterButton.icon} size={22} color={tc('#3E2723')} />
+          <MaterialCommunityIcons name={filterButton.icon} size={22} color={tc('#3C252D')} />
           {!!filterButton.badge && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{filterButton.badge}</Text>
@@ -146,7 +146,7 @@ const styles = createStyles({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F1EBE3',
+    backgroundColor: '#F0E4E8',
     borderRadius: 26,
     paddingHorizontal: 16,
     height: 52,
@@ -154,7 +154,7 @@ const styles = createStyles({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#3E2723',
+    color: '#3C252D',
     height: '100%',
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
@@ -167,7 +167,7 @@ const styles = createStyles({
     height: 18,
     borderRadius: 9,
     paddingHorizontal: 4,
-    backgroundColor: '#E85D04',
+    backgroundColor: '#D81B60',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -182,17 +182,17 @@ const styles = createStyles({
     borderRadius: 26,
     paddingHorizontal: 16,
   },
-  sectionHeaderActive: { backgroundColor: '#FFE082' },
-  sectionTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: '#2B2320' },
+  sectionHeaderActive: { backgroundColor: '#F8BBD0' },
+  sectionTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: '#2A2124' },
   options: { paddingLeft: 14, paddingTop: 4 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 42, paddingHorizontal: 6, borderRadius: 12 },
-  optionPressed: { backgroundColor: '#F6F1EA' },
-  optionText: { flex: 1, fontSize: 15, color: '#5D4037' },
-  optionTextSelected: { color: '#2B2320', fontWeight: '800' },
-  count: { minWidth: 28, paddingHorizontal: 8, height: 24, borderRadius: 12, backgroundColor: '#F1E7DC', alignItems: 'center', justifyContent: 'center' },
-  countSelected: { backgroundColor: '#FFE082' },
-  countText: { fontSize: 12, fontWeight: '700', color: '#8D6E63' },
-  countTextSelected: { color: '#2B2320' },
+  optionPressed: { backgroundColor: '#F5EBEF' },
+  optionText: { flex: 1, fontSize: 15, color: '#5A3A46' },
+  optionTextSelected: { color: '#2A2124', fontWeight: '800' },
+  count: { minWidth: 28, paddingHorizontal: 8, height: 24, borderRadius: 12, backgroundColor: '#EFDEE4', alignItems: 'center', justifyContent: 'center' },
+  countSelected: { backgroundColor: '#F8BBD0' },
+  countText: { fontSize: 12, fontWeight: '700', color: '#8A6673' },
+  countTextSelected: { color: '#2A2124' },
   showAll: { paddingVertical: 8, paddingHorizontal: 8 },
-  showAllText: { fontSize: 13, fontWeight: '700', color: '#E85D04' },
+  showAllText: { fontSize: 13, fontWeight: '700', color: '#D81B60' },
 });

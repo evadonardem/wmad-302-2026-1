@@ -47,11 +47,11 @@ export function SavedCard({ recipe, onOpen, onRemove }: { recipe: Recipe; onOpen
                 <View style={styles.photoWrap}>
                     <Image source={{ uri: recipe.image }} style={styles.photo} resizeMode="cover" />
                     <View style={styles.timeTag}>
-                        <MaterialCommunityIcons name="pot-steam-outline" size={sz(16)} color={tc('#3E2723')} />
+                        <MaterialCommunityIcons name="pot-steam-outline" size={sz(16)} color={tc('#3C252D')} />
                         <Text style={[styles.timeText, { fontSize: sz(13) }]}>{formatMinutes(totalTime(recipe))}</Text>
                     </View>
                     <View style={styles.ratingTag}>
-                        <MaterialCommunityIcons name="star" size={sz(14)} color="#F9A825" />
+                        <MaterialCommunityIcons name="star" size={sz(14)} color="#FF5C93" />
                         <Text style={[styles.ratingText, { fontSize: sz(12) }]}>{recipe.rating.toFixed(1)}</Text>
                     </View>
                 </View>
@@ -68,7 +68,7 @@ export function SavedCard({ recipe, onOpen, onRemove }: { recipe: Recipe; onOpen
             <IconButton
                 icon="heart"
                 size={sz(22)}
-                iconColor="#E85D04"
+                iconColor={tc('#D81B60')}
                 style={styles.heart}
                 onPress={onRemove}
                 accessibilityLabel="Remove from favorites"
@@ -245,7 +245,7 @@ export function ArcCarousel({
                             <Image source={{ uri: r.image }} style={styles.arcImage} resizeMode="cover" />
                             {isActive && (
                                 <View style={styles.arcRating}>
-                                    <MaterialCommunityIcons name="star" size={12} color="#FFC107" />
+                                    <MaterialCommunityIcons name="star" size={12} color="#FF5C93" />
                                     <Text style={styles.arcRatingText}>{r.rating.toFixed(1)}</Text>
                                 </View>
                             )}
@@ -269,7 +269,7 @@ export function ArcCarousel({
                             accessibilityLabel="Previous recipe"
                             style={[styles.arcRound, n < 2 && styles.arcRoundOff]}
                         >
-                            <MaterialCommunityIcons name="chevron-left" size={24} color={tc('#3E2723')} />
+                            <MaterialCommunityIcons name="chevron-left" size={24} color={tc('#3C252D')} />
                         </Pressable>
                         <Pressable onPress={() => onOpen(active)} accessibilityRole="button" style={styles.arcOpen}>
                             <Text style={styles.arcOpenText}>Open recipe</Text>
@@ -282,7 +282,7 @@ export function ArcCarousel({
                             accessibilityLabel="Next recipe"
                             style={[styles.arcRound, n < 2 && styles.arcRoundOff]}
                         >
-                            <MaterialCommunityIcons name="chevron-right" size={24} color={tc('#3E2723')} />
+                            <MaterialCommunityIcons name="chevron-right" size={24} color={tc('#3C252D')} />
                         </Pressable>
                         <Pressable
                             onPress={() => onRemove(active)}
@@ -309,15 +309,15 @@ const styles = createStyles({
         borderRadius: 22,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#EBDDCC',
-        shadowColor: '#7A3E00',
+        borderColor: '#E9CED8',
+        shadowColor: '#71092F',
         shadowOpacity: 0.1,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 6 },
         elevation: 4,
     },
     cardPressed: { opacity: 0.93, transform: [{ scale: 0.99 }] },
-    photoWrap: { position: 'relative', backgroundColor: '#EFEBE9' },
+    photoWrap: { position: 'relative', backgroundColor: '#EFE9EB' },
     photo: { width: '100%', aspectRatio: 1.3 },
     timeTag: {
         position: 'absolute',
@@ -331,7 +331,7 @@ const styles = createStyles({
         paddingHorizontal: 10,
         paddingVertical: 6,
     },
-    timeText: { fontSize: 13, fontWeight: '700', color: '#3E2723' },
+    timeText: { fontSize: 13, fontWeight: '700', color: '#3C252D' },
     ratingTag: {
         position: 'absolute',
         right: 12,
@@ -344,10 +344,10 @@ const styles = createStyles({
         paddingHorizontal: 9,
         paddingVertical: 5,
     },
-    ratingText: { fontSize: 12, fontWeight: '800', color: '#3E2723' },
+    ratingText: { fontSize: 12, fontWeight: '800', color: '#3C252D' },
     cardBody: { padding: 16, paddingRight: 52, minHeight: 92 },
-    cardTitle: { fontSize: 17, fontWeight: '700', lineHeight: 23, color: '#2B2320' },
-    cardSub: { fontSize: 13, color: '#8D6E63', marginTop: 6 },
+    cardTitle: { fontSize: 17, fontWeight: '700', lineHeight: 23, color: '#2A2124' },
+    cardSub: { fontSize: 13, color: '#8A6673', marginTop: 6 },
     heart: { position: 'absolute', right: 4, bottom: 28, margin: 0 },
     arcOuter: { marginTop: 8 },
     arcStage: { position: 'relative', width: '100%', overflow: 'hidden' },
@@ -357,8 +357,8 @@ const styles = createStyles({
         overflow: 'hidden',
         borderWidth: 4,
         borderColor: '#FFFFFF',
-        backgroundColor: '#EFE3D6',
-        shadowColor: '#5D2E00',
+        backgroundColor: '#EDD8E0',
+        shadowColor: '#5A0F2E',
         shadowOpacity: 0.28,
         shadowRadius: 14,
         shadowOffset: { width: 0, height: 8 },
@@ -366,15 +366,15 @@ const styles = createStyles({
     },
     arcImage: { width: '100%', height: '100%' },
     arcRating: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
-    arcRatingText: { fontSize: 11, fontWeight: '800', color: '#3E2723' },
+    arcRatingText: { fontSize: 11, fontWeight: '800', color: '#3C252D' },
     arcCenter: { position: 'absolute', alignItems: 'center', zIndex: 200 },
-    arcTitle: { fontSize: 28, fontWeight: '800', color: '#2B2320', textAlign: 'center', lineHeight: 34 },
+    arcTitle: { fontSize: 28, fontWeight: '800', color: '#2A2124', textAlign: 'center', lineHeight: 34 },
     arcTitleNarrow: { fontSize: 21, lineHeight: 26 },
-    arcMeta: { fontSize: 14, color: '#8D6E63', marginTop: 6, textAlign: 'center' },
+    arcMeta: { fontSize: 14, color: '#8A6673', marginTop: 6, textAlign: 'center' },
     arcButtons: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 },
-    arcRound: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E6D6C4' },
+    arcRound: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E3C7D1' },
     arcRoundOff: { opacity: 0.4 },
-    arcOpen: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingHorizontal: 22, borderRadius: 23, backgroundColor: '#2B2320' },
+    arcOpen: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingHorizontal: 22, borderRadius: 23, backgroundColor: '#2A2124' },
     arcOpenText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-    arcHint: { textAlign: 'center', fontSize: 12, color: '#8D6E63', marginTop: 4 },
+    arcHint: { textAlign: 'center', fontSize: 12, color: '#8A6673', marginTop: 4 },
 });

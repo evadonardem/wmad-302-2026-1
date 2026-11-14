@@ -52,13 +52,13 @@ const FADE_STOPS = Array.from({ length: 72 }, (_, i) => {
 function FadeScrim() {
   if (Platform.OS === 'web') {
     const css =
-      'linear-gradient(to right, rgba(20,10,5,0.82) 0%, rgba(20,10,5,0.62) 25%, rgba(20,10,5,0.3) 50%, rgba(20,10,5,0.1) 72%, rgba(20,10,5,0) 100%)';
+      'linear-gradient(to right, rgba(28,8,20,0.82) 0%, rgba(28,8,20,0.62) 25%, rgba(28,8,20,0.3) 50%, rgba(28,8,20,0.1) 72%, rgba(28,8,20,0) 100%)';
     return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: css } as object]} />;
   }
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { flexDirection: 'row' }]}>
       {FADE_STOPS.map((alpha, i) => (
-        <View key={i} style={{ flex: 1, backgroundColor: `rgba(20,10,5,${alpha})` }} />
+        <View key={i} style={{ flex: 1, backgroundColor: `rgba(28,8,20,${alpha})` }} />
       ))}
     </View>
   );
@@ -180,7 +180,7 @@ export default function HomeScreen() {
         </View>
         <IconButton
           icon={dark ? 'white-balance-sunny' : 'weather-night'}
-          iconColor={tc('#3E2723')}
+          iconColor={tc('#3C252D')}
           containerColor={tc('rgba(255,255,255,0.94)', 'containerColor')}
           size={20}
           onPress={toggle}
@@ -204,7 +204,7 @@ export default function HomeScreen() {
               accessibilityLabel={`Open recipe ${heroCurrent.name}`}
               style={styles.heroDish}
             >
-              <MaterialCommunityIcons name="silverware-fork-knife" size={18} color="#FFA726" />
+              <MaterialCommunityIcons name="silverware-fork-knife" size={18} color="#F48FB1" />
               <View style={styles.heroDishText}>
                 <Text style={styles.heroDishName} numberOfLines={1}>
                   {heroCurrent.name}
@@ -230,7 +230,7 @@ export default function HomeScreen() {
           accessibilityRole="button"
           accessibilityState={{ selected: selected === null }}
         >
-          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={selected === null ? '#FFFFFF' : '#E85D04'} />
+          <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={selected === null ? '#FFFFFF' : '#D81B60'} />
           <Text style={[styles.pillText, selected === null && styles.pillTextSelected]}>All Types</Text>
         </TouchableOpacity>
         {categories.map((c) => {
@@ -243,7 +243,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
             >
-              <MaterialCommunityIcons name={ICONS[c.name] ?? 'food'} size={16} color={active ? '#FFFFFF' : '#E85D04'} />
+              <MaterialCommunityIcons name={ICONS[c.name] ?? 'food'} size={16} color={active ? '#FFFFFF' : '#D81B60'} />
               <Text style={[styles.pillText, active && styles.pillTextSelected]}>{c.name}</Text>
             </TouchableOpacity>
           );
@@ -307,7 +307,7 @@ export default function HomeScreen() {
                   accessibilityLabel="Previous page"
                   style={[styles.pageBtn, (page === 1 || loading) && styles.pageBtnOff]}
                 >
-                  <MaterialCommunityIcons name="chevron-left" size={22} color={tc('#3E2723')} />
+                  <MaterialCommunityIcons name="chevron-left" size={22} color={tc('#3C252D')} />
                 </TouchableOpacity>
                 {pageNumbers.map((p, i) =>
                   p === '…' ? (
@@ -335,7 +335,7 @@ export default function HomeScreen() {
                   accessibilityLabel="Next page"
                   style={[styles.pageBtn, (page === totalPages || loading) && styles.pageBtnOff]}
                 >
-                  <MaterialCommunityIcons name="chevron-right" size={22} color={tc('#3E2723')} />
+                  <MaterialCommunityIcons name="chevron-right" size={22} color={tc('#3C252D')} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -348,7 +348,7 @@ export default function HomeScreen() {
               setRefreshing(true);
               setReloadKey((k) => k + 1);
             }}
-            colors={['#E85D04']}
+            colors={['#D81B60']}
           />
         }
       />

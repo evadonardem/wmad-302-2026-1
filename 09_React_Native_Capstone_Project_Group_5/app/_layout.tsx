@@ -28,7 +28,7 @@ function RootStack() {
       screenOptions={{
         headerShown: false,
         animation: 'fade',
-        contentStyle: { backgroundColor: tc('#FFFDF8', 'backgroundColor') },
+        contentStyle: { backgroundColor: tc('#FEF9FB', 'backgroundColor') },
       }}
     >
       <Stack.Screen name="(auth)" />

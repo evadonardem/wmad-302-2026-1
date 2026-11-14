@@ -38,8 +38,8 @@ function MenuItem({
     <List.Item
       title={title}
       description={description}
-      left={() => <MaterialCommunityIcons name={icon} size={24} color="#E85D04" style={styles.menuIcon} />}
-      right={() => <MaterialCommunityIcons name="chevron-right" size={24} color={tc('#8D6E63')} style={styles.menuIcon} />}
+      left={() => <MaterialCommunityIcons name={icon} size={24} color="#D81B60" style={styles.menuIcon} />}
+      right={() => <MaterialCommunityIcons name="chevron-right" size={24} color={tc('#8A6673')} style={styles.menuIcon} />}
       onPress={onPress}
     />
   );

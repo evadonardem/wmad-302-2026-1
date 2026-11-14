@@ -41,7 +41,7 @@ export default function MyRecipesScreen() {
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#E85D04" />
+                <ActivityIndicator size="large" color="#D81B60" />
             </View>
         );
     }
@@ -81,7 +81,7 @@ export default function MyRecipesScreen() {
 }
 
 const styles = createStyles({
-    container: { flex: 1, backgroundColor: '#FFFDF8' },
+    container: { flex: 1, backgroundColor: '#FEF9FB' },
     content: { padding: 16, flexGrow: 1 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFDF8' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FEF9FB' },
 });

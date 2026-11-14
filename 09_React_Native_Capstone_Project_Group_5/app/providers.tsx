@@ -10,7 +10,7 @@ import { ThemeProvider, useAppTheme } from '@/context/ThemeContext';
 import { theme } from '@/constants/theme';
 
 /**
- * Dark twin of your constants/theme: same fonts and roundness, same orange / brown / green accents,
+ * Dark twin of your constants/theme: same fonts and roundness, same berry / plum / green accents,
  * with the surfaces and text swapped for warm dark colours.
  */
 const darkTheme = {
@@ -19,35 +19,35 @@ const darkTheme = {
   fonts: theme.fonts,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: theme.colors.primary, // warm orange
-    onPrimary: '#FFFFFF',
-    primaryContainer: '#4A2A14',
-    onPrimaryContainer: '#FFDBC7',
-    secondary: '#D7B9A8', // brown, lightened to read on dark
-    onSecondary: '#2B2320',
-    secondaryContainer: '#3B2F2A',
-    onSecondaryContainer: '#EFE0D6',
+    primary: '#FF6F9F', // lighter berry pink so labels, switches and links read clearly on dark
+    onPrimary: '#3B0A1D',
+    primaryContainer: '#461829',
+    onPrimaryContainer: '#FBCBDD',
+    secondary: '#D3ACBA', // brown, lightened to read on dark
+    onSecondary: '#2A2124',
+    secondaryContainer: '#3A2B31',
+    onSecondaryContainer: '#EDD8E0',
     tertiary: '#81C784', // green (fresh ingredients)
     onTertiary: '#0F2A12',
     tertiaryContainer: '#1F3A22',
     onTertiaryContainer: '#C8E6C9',
-    background: '#14100E',
-    onBackground: '#F1E6DA',
-    surface: '#231D1A',
-    onSurface: '#F1E6DA',
-    surfaceVariant: '#332A26',
-    onSurfaceVariant: '#C4AC9D',
+    background: '#140E10',
+    onBackground: '#EFDCE3',
+    surface: '#221B1D',
+    onSurface: '#EFDCE3',
+    surfaceVariant: '#32272B',
+    onSurfaceVariant: '#C1A0AC',
     error: '#EF5350',
     errorContainer: '#3A1F1F',
-    outline: '#6B5A50',
-    outlineVariant: '#3B302A',
+    outline: '#69525A',
+    outlineVariant: '#3A2B31',
     elevation: {
       level0: 'transparent',
-      level1: '#1E1815',
-      level2: '#261F1B',
-      level3: '#2C2420',
+      level1: '#1D1618',
+      level2: '#251C1F',
+      level3: '#2B2125',
       level4: '#30272B',
-      level5: '#352C28',
+      level5: '#34292D',
     },
   },
 };

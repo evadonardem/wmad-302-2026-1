@@ -4,7 +4,7 @@
  * How it works (kept deliberately small so the existing screens didn't need rewriting):
  *  - Every style file declares its colours once, in the light palette, using `createStyles()`.
  *  - In dark mode `createStyles()` hands back the same styles with each colour swapped for its
- *    dark twin (see `themeColor`). Colours written inline use `tc('#3E2723')` the same way.
+ *    dark twin (see `themeColor`). Colours written inline use `tc('#3C252D')` the same way.
  *  - Components call `useAppTheme()` so they re-render when the mode changes.
  *  - The chosen mode is saved with AsyncStorage so it survives restarts.
  */
@@ -25,40 +25,41 @@ export const isDark = () => DARK;
 /* ------------------------------------------------------------------ */
 
 const TEXT: Record<string, string> = {
-    '#2B2320': '#F7EEE4',
-    '#3E2723': '#F1E6DA',
-    '#4E342E': '#E3D2C3',
-    '#5D4037': '#D2BDAE',
-    '#6D4C41': '#C4AC9D',
-    '#8D6E63': '#B09C90',
-    '#A1887F': '#9A867C',
-    '#BCAAA4': '#8E7C73',
+    '#2A2124': '#F6E5EB',
+    '#3C252D': '#EFDCE3',
+    '#4C303A': '#E1C5CF',
+    '#5A3A46': '#CFB1BC',
+    '#6A4452': '#C1A0AC',
+    '#8A6673': '#C4A7B3',
+    '#9E828C': '#B49CA7',
+    '#BAA6AD': '#A68F9A',
     '#C62828': '#EF5350',
-    '#D4500A': '#FF8A4C',
-    '#EF6C00': '#FFA040',
-    '#E65100': '#FFB066',
+    '#D81B60': '#FF6F9F', // main berry accent used as text / icon colour
+    '#AD1457': '#FF8AB4',
+    '#C2185B': '#FF7AA8',
+    '#880E4F': '#F48FB1',
     '#2E7D32': '#81C784',
 };
 
 const BG: Record<string, string> = {
-    '#F6F1EA': '#14100E', // page
-    '#FFFDF8': '#1A1512', // page (alt)
-    '#FFFBF5': '#1A1512',
-    '#FFFFFF': '#231D1A', // cards / surfaces
-    '#EFEBE9': '#2C2420',
-    '#F1EBE3': '#2C2420',
-    '#F1E7DC': '#2C2420',
-    '#F3E9DE': '#2C2420',
-    '#EADFD3': '#332A26', // skeletons
-    '#2B2320': '#4A3A32', // dark bars / selected pills (white text on top)
+    '#F5EBEF': '#140E10', // page
+    '#FEF9FB': '#191315', // page (alt)
+    '#FEF6F9': '#191315',
+    '#FFFFFF': '#221B1D', // cards / surfaces
+    '#EFE9EB': '#2B2125',
+    '#F0E4E8': '#2B2125',
+    '#EFDEE4': '#2B2125',
+    '#F1E0E6': '#2B2125',
+    '#E8D5DC': '#32272B', // skeletons
+    '#2A2124': '#48343B', // dark bars / selected pills (white text on top)
     '#FDEDED': '#3A1F1F',
-    '#FFB74D': '#7A4A12', // search banner
+    '#F8BBD0': '#721A3A', // search banner
 };
 
 const BORDER: Record<string, string> = {
-    '#2B2320': '#4A3A32',
-    '#BCAAA4': '#5A4A42',
-    '#E0E0E0': '#3B302A',
+    '#2A2124': '#48343B',
+    '#BAA6AD': '#58444B',
+    '#E0E0E0': '#3A2B31',
 };
 
 function lum(hex: string): number {
@@ -99,24 +100,24 @@ export function themeColor(prop: string, value: string, dark: boolean = DARK): s
     if (white) {
         const alpha = Number(white[1]);
         if (isBg && alpha === 0.45) return 'rgba(255,255,255,0.14)'; // translucent tags on the search banner
-        return isBg && alpha >= 0.8 ? `rgba(35,29,26,${alpha})` : value;
+        return isBg && alpha >= 0.8 ? `rgba(34,27,29,${alpha})` : value;
     }
     if (!HEX.test(v)) return value;
 
     if (isBorder) {
         if (BORDER[v]) return BORDER[v];
-        if (v === '#FFFFFF' || v === '#E85D04' || v === '#C62828') return value;
-        return lum(v) > 0.75 ? '#3B302A' : value; // every pale beige hairline -> dark hairline
+        if (v === '#FFFFFF' || v === '#D81B60' || v === '#C62828') return value;
+        return lum(v) > 0.75 ? '#3A2B31' : value; // every pale beige hairline -> dark hairline
     }
     if (isBg) {
         if (BG[v]) return BG[v];
         // Pale tints (cream, peach, light yellow/green) -> deep tints; strong colours are left alone.
-        return lum(v) > 0.8 ? mix(v, '#1D1512', 0.84) : value;
+        return lum(v) > 0.8 ? mix(v, '#1C1316', 0.84) : value;
     }
-    return TEXT[v] ?? value; // text / icon colours: white and orange stay as they are
+    return TEXT[v] ?? value; // text / icon colours: white and the berry accent stay as they are
 }
 
-/** Themed colour for inline use: `style={{ color: tc('#3E2723') }}` or `tc(c, 'backgroundColor')`. */
+/** Themed colour for inline use: `style={{ color: tc('#3C252D') }}` or `tc(c, 'backgroundColor')`. */
 export function tc(value: string, prop: string = 'color'): string {
     return themeColor(prop, value);
 }
