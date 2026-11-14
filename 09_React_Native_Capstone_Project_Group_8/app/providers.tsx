@@ -1,6 +1,8 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { PaperProvider } from 'react-native-paper';
+import * as SplashScreen from 'expo-splash-screen';
+
 import { AuthProvider } from '@/context/AuthContext';
 import { SettingsProvider, useSettings } from '@/context/SettingsContext';
 import { lightTheme, darkTheme } from '@/constants/theme';
@@ -8,7 +10,16 @@ import { lightTheme, darkTheme } from '@/constants/theme';
 function ThemedProviders({ children }: { children: ReactNode }) {
   const { isDarkMode, isSettingsLoaded } = useSettings();
 
-  // Avoid briefly displaying the wrong theme while settings load.
+  // Hide the splash screen after settings have finished loading.
+  useEffect(() => {
+    if (isSettingsLoaded) {
+      SplashScreen.hideAsync().catch((error) => {
+        console.warn('Unable to hide splash screen:', error);
+      });
+    }
+  }, [isSettingsLoaded]);
+
+  // Avoid displaying the wrong theme while settings load.
   if (!isSettingsLoaded) {
     return null;
   }

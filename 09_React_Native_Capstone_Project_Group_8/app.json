@@ -1,31 +1,23 @@
+
 {
   "expo": {
     "name": "Cookbook Capstone",
     "slug": "09-cookbook-capstone",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.wmad302.cookbook"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "com.wmad302.cookbook"
     },
     "web": {
-      "bundler": "metro",
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",
@@ -37,9 +29,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "cookbook-capstone"
+        "projectId": "c15ad7a6-fbb6-43b1-a709-a6ce9d9181ac"
       }
     },
-    "owner": "wmad302"
+    "owner": "mavz8"
   }
 }

@@ -2,6 +2,7 @@
 /**
  * Tabs Layout - Cookbook App Navigation
  * Supports Light Mode, Dark Mode, and System Default.
+ * Displays exactly five main navigation tabs.
  */
 
 import React from 'react';
@@ -40,6 +41,8 @@ export default function TabsLayout() {
         },
       }}
     >
+      {/* Main navigation tabs */}
+
       <Tabs.Screen
         name="home"
         options={{
@@ -109,6 +112,15 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      {/* Hide routes that should not appear in bottom navigation */}
+
+      <Tabs.Screen name="categories" options={{ href: null }} />
+      <Tabs.Screen name="categoriesStyles" options={{ href: null }} />
+      <Tabs.Screen name="favoritesStyles" options={{ href: null }} />
+      <Tabs.Screen name="homeStyles" options={{ href: null }} />
+      <Tabs.Screen name="profileStyles" options={{ href: null }} />
+      <Tabs.Screen name="searchStyles" options={{ href: null }} />
     </Tabs>
   );
 }
