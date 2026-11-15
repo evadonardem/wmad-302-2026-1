@@ -1,0 +1,369 @@
+/**
+ * Pure helpers for filtering, sorting and paginating recipes.
+ * DummyJSON can only search by text, so category / cuisine / difficulty
+ * filters, sorting and pagination are applied on the client.
+ */
+import { Category, PagedRecipes, Recipe, RecipeFilters, SortOption } from '@/types/recipe';
+
+export function totalTime(recipe: Pick<Recipe, 'prepTimeMinutes' | 'cookTimeMinutes'>): number {
+    return recipe.prepTimeMinutes + recipe.cookTimeMinutes;
+}
+
+export function formatMinutes(minutes: number): string {
+    if (minutes < 60) return `${minutes} min`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m === 0 ? `${h} h` : `${h} h ${m} min`;
+}
+
+/**
+ * DummyJSON writes some meal types two ways ("Snack" and "Snacks"). They are the same category,
+ * so every place that lists or filters by meal type goes through these helpers.
+ */
+const MEAL_ALIASES: Record<string, string> = {
+    snacks: 'Snack',
+    desserts: 'Dessert',
+    appetizers: 'Appetizer',
+    beverages: 'Beverage',
+    drinks: 'Beverage',
+};
+
+export function canonicalMealType(name: string): string {
+    const trimmed = name.trim();
+    return MEAL_ALIASES[trimmed.toLowerCase()] ?? trimmed;
+}
+
+/** A recipe's meal types, canonical and without duplicates. */
+export function mealTypesOf(recipe: Pick<Recipe, 'mealType'>): string[] {
+    return Array.from(new Set(recipe.mealType.map(canonicalMealType)));
+}
+
+export function hasMealType(recipe: Pick<Recipe, 'mealType'>, name: string): boolean {
+    const wanted = canonicalMealType(name).toLowerCase();
+    return mealTypesOf(recipe).some((m) => m.toLowerCase() === wanted);
+}
+
+export function filterRecipes(recipes: Recipe[], filters: RecipeFilters): Recipe[] {
+    const category = filters.category?.toLowerCase();
+    const cuisine = filters.cuisine?.toLowerCase();
+    const tag = filters.tag?.toLowerCase();
+    return recipes.filter((r) => {
+        if (category && !hasMealType(r, category)) return false;
+        if (cuisine && r.cuisine.toLowerCase() !== cuisine) return false;
+        if (tag && !r.tags.some((t) => t.toLowerCase() === tag)) return false;
+        if (filters.difficulty && r.difficulty !== filters.difficulty) return false;
+        return true;
+    });
+}
+
+export function sortRecipes(recipes: Recipe[], sort: SortOption = 'relevance'): Recipe[] {
+    const copy = [...recipes];
+    switch (sort) {
+        case 'rating':
+            return copy.sort((a, b) => b.rating - a.rating);
+        case 'time':
+            return copy.sort((a, b) => totalTime(a) - totalTime(b));
+        case 'calories':
+            return copy.sort((a, b) => a.caloriesPerServing - b.caloriesPerServing);
+        default:
+            return copy;
+    }
+}
+
+export function paginate(items: Recipe[], skip: number, limit: number): PagedRecipes {
+    return {
+        data: items.slice(skip, skip + limit),
+        total: items.length,
+        hasMore: skip + limit < items.length,
+    };
+}
+
+/** Categories are the meal types found in the data, with recipe counts. */
+export function getCategories(recipes: Recipe[]): Category[] {
+    const counts = new Map<string, number>();
+    recipes.forEach((r) => mealTypesOf(r).forEach((m) => counts.set(m, (counts.get(m) ?? 0) + 1)));
+    return Array.from(counts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+export function getCuisines(recipes: Recipe[]): string[] {
+    return Array.from(new Set(recipes.map((r) => r.cuisine))).sort((a, b) => a.localeCompare(b));
+}
+
+function countBy(values: string[]): Category[] {
+    const counts = new Map<string, number>();
+    values.forEach((v) => counts.set(v, (counts.get(v) ?? 0) + 1));
+    return Array.from(counts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/** Cuisines (Italian, Asian, ...) with recipe counts. */
+export function getCuisineCounts(recipes: Recipe[]): Category[] {
+    return countBy(recipes.map((r) => r.cuisine));
+}
+
+/** Tags (Pizza, Vegetarian, Pasta, ...) with recipe counts. */
+export function getTagCounts(recipes: Recipe[]): Category[] {
+    return countBy(recipes.flatMap((r) => r.tags));
+}
+
+/* ------------------------------------------------------------------ */
+/* Meal planner helpers                                                */
+/* ------------------------------------------------------------------ */
+
+export const PLAN_MEALS = ['Breakfast', 'Lunch', 'Dinner'] as const;
+export type PlanMeal = (typeof PLAN_MEALS)[number];
+/** Planned meals: "2025-06-23|Dinner" -> the recipe ids picked for that meal (one or more) */
+export type MealPlan = Record<string, number[]>;
+
+/**
+ * Reads a saved plan. Older versions saved a single recipe id per meal, so a plain number is turned
+ * into a one-recipe list. Anything unreadable is skipped.
+ */
+export function normalizePlan(raw: unknown): MealPlan {
+    const plan: MealPlan = {};
+    if (!raw || typeof raw !== 'object') return plan;
+    Object.entries(raw as Record<string, unknown>).forEach(([key, value]) => {
+        const ids = (Array.isArray(value) ? value : [value]).filter((v): v is number => typeof v === 'number');
+        if (ids.length > 0) plan[key] = Array.from(new Set(ids));
+    });
+    return plan;
+}
+
+export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Monday of the week that contains `date` (local time, midnight). */
+export function startOfWeek(date: Date): Date {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d;
+}
+
+export function addDays(date: Date, days: number): Date {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+export function dateKey(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function slotKey(date: Date, meal: PlanMeal): string {
+    return `${dateKey(date)}|${meal}`;
+}
+
+export function formatShortDate(date: Date): string {
+    return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+/** "Jun 23 - Jun 29" for the week starting at `start`. */
+export function formatWeekRange(start: Date): string {
+    return `${formatShortDate(start)} - ${formatShortDate(addDays(start, 6))}`;
+}
+
+/**
+ * Fills every empty breakfast / lunch / dinner slot of the week with a recipe of that meal type
+ * (slots that already have one or more recipes are left alone).
+ * Recipes are not repeated within the week while there are unused ones left. Existing slots are kept.
+ */
+export function generatePlan(
+    recipes: Recipe[],
+    weekStart: Date,
+    existing: MealPlan,
+    random: () => number = Math.random
+): { plan: MealPlan; added: number } {
+    const plan: MealPlan = { ...existing };
+    const used = new Set<number>(Object.values(existing).flat());
+    let added = 0;
+    for (let i = 0; i < 7; i++) {
+        for (const meal of PLAN_MEALS) {
+            const key = slotKey(addDays(weekStart, i), meal);
+            if ((plan[key]?.length ?? 0) > 0) continue;
+            const matching = recipes.filter((r) => hasMealType(r, meal));
+            const pool = matching.length > 0 ? matching : recipes;
+            if (pool.length === 0) continue;
+            const fresh = pool.filter((r) => !used.has(r.id));
+            const choices = fresh.length > 0 ? fresh : pool;
+            const pick = choices[Math.floor(random() * choices.length)];
+            plan[key] = [pick.id];
+            used.add(pick.id);
+            added += 1;
+        }
+    }
+    return { plan, added };
+}
+
+/* ------------------------------------------------------------------ */
+/* Flavor profile - what the person likes, learned from their favorites */
+/* ------------------------------------------------------------------ */
+
+export interface TasteShare {
+    name: string;
+    count: number;
+    /** Share of the favorites that have it (0-100). */
+    pct: number;
+}
+
+export interface TasteProfile {
+    total: number;
+    ids: number[];
+    cuisines: TasteShare[];
+    tags: TasteShare[];
+    mealTypes: TasteShare[];
+    difficulties: TasteShare[];
+    avgCalories: number;
+    avgTime: number;
+    avgRating: number;
+    /** A short nickname such as "Italian Hearty Eater". */
+    title: string;
+}
+
+function tally(values: string[][], total: number): TasteShare[] {
+    const counts = new Map<string, number>();
+    values.forEach((list) => new Set(list).forEach((v) => counts.set(v, (counts.get(v) ?? 0) + 1)));
+    return Array.from(counts, ([name, count]) => ({ name, count, pct: Math.round((count / total) * 100) })).sort(
+        (a, b) => b.count - a.count || a.name.localeCompare(b.name)
+    );
+}
+
+/** Looks at the favorite recipes and works out the cuisines, flavors, meal types and size the person likes. */
+export function buildTasteProfile(favorites: Recipe[]): TasteProfile {
+    const total = favorites.length;
+    if (total === 0) {
+        return { total: 0, ids: [], cuisines: [], tags: [], mealTypes: [], difficulties: [], avgCalories: 0, avgTime: 0, avgRating: 0, title: '' };
+    }
+    const avg = (f: (r: Recipe) => number) => favorites.reduce((n, r) => n + f(r), 0) / total;
+    const avgCalories = Math.round(avg((r) => r.caloriesPerServing));
+    const avgTime = Math.round(avg(totalTime));
+    const avgRating = Math.round(avg((r) => r.rating) * 10) / 10;
+    const cuisines = tally(favorites.map((r) => [r.cuisine]), total);
+    const vibe = avgTime <= 35 ? 'Speedy Cook' : avgCalories <= 300 ? 'Light Eater' : avgCalories >= 450 ? 'Hearty Eater' : 'Food Explorer';
+    return {
+        total,
+        ids: favorites.map((r) => r.id),
+        cuisines,
+        tags: tally(favorites.map((r) => r.tags), total),
+        mealTypes: tally(favorites.map(mealTypesOf), total),
+        difficulties: tally(favorites.map((r) => [r.difficulty]), total),
+        avgCalories,
+        avgTime,
+        avgRating,
+        title: `${cuisines[0].name} ${vibe}`,
+    };
+}
+
+/** How well a recipe fits a taste profile (higher is better). */
+export function tasteScore(recipe: Recipe, taste: TasteProfile): number {
+    if (taste.total === 0) return 0;
+    const share = (list: TasteShare[], name: string) => (list.find((s) => s.name === name)?.pct ?? 0) / 100;
+    let score = share(taste.cuisines, recipe.cuisine) * 3;
+    score += recipe.tags.reduce((n, t) => n + share(taste.tags, t), 0) * 0.5;
+    score += share(taste.difficulties, recipe.difficulty);
+    if (taste.avgCalories > 0) {
+        score += Math.max(0, 1 - Math.abs(recipe.caloriesPerServing - taste.avgCalories) / taste.avgCalories) * 0.5;
+    }
+    score += (recipe.rating / 5) * 0.5;
+    if (taste.ids.includes(recipe.id)) score += 1; // they already love this one
+    return score;
+}
+
+/**
+ * Like generatePlan, but each empty slot is filled with a recipe that fits the taste profile.
+ * It picks at random among the 4 best matches so the week still has variety, and avoids repeats.
+ */
+export function generateTastePlan(
+    recipes: Recipe[],
+    weekStart: Date,
+    existing: MealPlan,
+    taste: TasteProfile,
+    random: () => number = Math.random
+): { plan: MealPlan; added: number } {
+    const plan: MealPlan = { ...existing };
+    const used = new Set<number>(Object.values(existing).flat());
+    let added = 0;
+    for (let i = 0; i < 7; i++) {
+        for (const meal of PLAN_MEALS) {
+            const key = slotKey(addDays(weekStart, i), meal);
+            if ((plan[key]?.length ?? 0) > 0) continue;
+            const matching = recipes.filter((r) => hasMealType(r, meal));
+            const pool = matching.length > 0 ? matching : recipes;
+            if (pool.length === 0) continue;
+            const fresh = pool.filter((r) => !used.has(r.id));
+            const choices = (fresh.length > 0 ? fresh : pool)
+                .map((r) => ({ r, score: tasteScore(r, taste) }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 4);
+            const pick = choices[Math.floor(random() * choices.length)].r;
+            plan[key] = [pick.id];
+            used.add(pick.id);
+            added += 1;
+        }
+    }
+    return { plan, added };
+}
+
+export interface ShoppingGroup {
+    aisle: string;
+    items: { name: string; count: number }[];
+}
+
+const AISLES: [string, RegExp][] = [
+    ['Pantry', /\b(salt|black pepper|ground pepper|pepper to taste|peppercorn|sauce|paste|stock|broth|oil|vinegar|powder|syrup|honey|sugar|canned)\b/],
+    ['Meat & Seafood', /chicken|beef|pork|lamb|turkey|bacon|sausage|\bham\b|steak|fish|salmon|tuna|shrimp|prawn|crab|lobster|\bcod\b|mince|meat|duck|brisket|\bribs?\b/],
+    ['Dairy & Eggs', /milk|cheese|butter|cream|yogh?urt|\beggs?\b|mozzarella|parmesan|cheddar|ricotta|feta/],
+    ['Bakery & Grains', /bread|flour|dough|\brice\b|pasta|noodle|tortilla|\boats?\b|\bbuns?\b|spaghetti|couscous|quinoa|cracker|pita|naan|bagel|crust|macaroni|penne|lasagna/],
+    ['Produce', /tomato|onion|garlic|lettuce|spinach|carrot|potato|pepper|cucumber|avocado|lemon|lime|apple|banana|berr|mushroom|broccoli|celery|cabbage|basil|parsley|cilantro|mint|ginger|herb|zucchini|corn|\bpeas?\b|scallion|chive|fruit|orange|mango|pineapple|eggplant|kale|cauliflower|asparagus|squash|pumpkin|radish|beet|leek|shallot|jalape|chil[il]|thyme|rosemary|dill|oregano|cherr|peach|grape/],
+    ['Pantry', /spice|mustard|ketchup|mayo|vanilla|baking|cumin|paprika|cinnamon|\bnuts?\b|almond|walnut|seed|beans?\b|lentil|chickpea|coconut|cocoa|chocolate|jam|water|wine|extract|seasoning|flakes|curry|turmeric|nutmeg/],
+];
+export const AISLE_ORDER = ['Produce', 'Meat & Seafood', 'Dairy & Eggs', 'Bakery & Grains', 'Pantry', 'Other'];
+
+export function aisleFor(ingredient: string): string {
+    const text = ingredient.toLowerCase();
+    const hit = AISLES.find(([, re]) => re.test(text));
+    return hit ? hit[0] : 'Other';
+}
+
+/** Combines the ingredients of the given meals (repeat meals count twice) and sorts them by aisle. */
+export function buildShoppingList(meals: Recipe[]): ShoppingGroup[] {
+    const counts = new Map<string, { name: string; count: number }>();
+    meals.forEach((r) =>
+        r.ingredients.forEach((raw) => {
+            const name = raw.trim();
+            if (!name) return;
+            const key = name.toLowerCase();
+            const entry = counts.get(key);
+            if (entry) entry.count += 1;
+            else counts.set(key, { name, count: 1 });
+        })
+    );
+    const groups = new Map<string, ShoppingGroup['items']>();
+    counts.forEach((item) => {
+        const aisle = aisleFor(item.name);
+        groups.set(aisle, [...(groups.get(aisle) ?? []), item]);
+    });
+    return AISLE_ORDER.filter((a) => groups.has(a)).map((aisle) => ({
+        aisle,
+        items: (groups.get(aisle) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+}
+
+/**
+ * Page buttons to show under a list: 1 … 4 5 6 … 9. Always includes the first, last and current
+ * page; "…" stands for skipped pages.
+ */
+export function getPageNumbers(current: number, totalPages: number): (number | '…')[] {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | '…')[] = [1];
+    const start = Math.max(2, Math.min(current - 1, totalPages - 4));
+    const end = Math.min(totalPages - 1, Math.max(current + 1, 5));
+    if (start > 2) pages.push('…');
+    for (let p = start; p <= end; p++) pages.push(p);
+    if (end < totalPages - 1) pages.push('…');
+    pages.push(totalPages);
+    return pages;
+}
