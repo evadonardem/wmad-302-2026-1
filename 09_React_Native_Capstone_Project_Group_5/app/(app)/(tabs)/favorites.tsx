@@ -62,6 +62,7 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const columns = width >= 1000 ? 4 : width >= 700 ? 3 : width >= 420 ? 2 : 1;
+  const compact = width < 600; // phone: the toggle, sort and share buttons get their own full-width row
   const { ids, isLoaded, addFavorite, removeFavorite } = useFavorites();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,7 +173,7 @@ export default function FavoritesScreen() {
             {saved.length} {saved.length === 1 ? 'recipe' : 'recipes'}
           </Text>
         </View>
-        <View style={styles.actions}>
+        <View style={[styles.actions, compact && styles.actionsCompact]}>
           <View style={styles.viewToggle}>
             {(
               [
@@ -197,9 +198,11 @@ export default function FavoritesScreen() {
             contentStyle={menuContentStyle}
             onDismiss={() => setSortOpen(false)}
             anchor={
-              <Pressable onPress={() => setSortOpen(true)} style={styles.sortButton} accessibilityRole="button" accessibilityLabel="Sort">
+              <Pressable onPress={() => setSortOpen(true)} style={[styles.sortButton, compact && styles.sortButtonCompact]} accessibilityRole="button" accessibilityLabel="Sort">
                 <MaterialCommunityIcons name="sort" size={20} color={tc('#3C252D')} />
-                <Text style={styles.sortText}>{currentSort.label}</Text>
+                <Text style={[styles.sortText, compact && styles.sortTextCompact]} numberOfLines={1}>
+                  {currentSort.label}
+                </Text>
               </Pressable>
             }
           >

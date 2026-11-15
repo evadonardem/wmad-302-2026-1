@@ -16,14 +16,15 @@ import { Recipe } from '@/types/recipe';
 import {
     addDays,
     buildShoppingList,
-    buildTasteProfile,
     DAY_NAMES,
     dateKey,
     formatShortDate,
     formatWeekRange,
+    buildTasteProfile,
     generatePlan,
     generateTastePlan,
     MealPlan,
+    normalizePlan,
     PLAN_MEALS,
     PlanMeal,
     slotKey,
@@ -77,8 +78,8 @@ export default function PlannerScreen() {
         AsyncStorage.getItem(STORAGE_KEY)
             .then((raw) => {
                 if (!raw) return;
-                const saved = JSON.parse(raw) as { slots?: MealPlan; checked?: Record<string, boolean> };
-                setSlots(saved.slots ?? {});
+                const saved = JSON.parse(raw) as { slots?: unknown; checked?: Record<string, boolean> };
+                setSlots(normalizePlan(saved.slots)); // older saves held one recipe per meal
                 setChecked(saved.checked ?? {});
             })
             .catch(() => { })
@@ -94,26 +95,22 @@ export default function PlannerScreen() {
     const todayKey = dateKey(new Date());
     const isThisWeek = dateKey(weekStart) === dateKey(startOfWeek(new Date()));
 
-    const recipeAt = (date: Date, meal: PlanMeal): Recipe | undefined => {
-        const id = slots[slotKey(date, meal)];
-        return id === undefined ? undefined : byId.get(id);
-    };
+    /** Every recipe picked for one meal of one day (a meal can have several). */
+    const recipesAt = useCallback(
+        (date: Date, meal: PlanMeal): Recipe[] =>
+            (slots[slotKey(date, meal)] ?? []).map((id) => byId.get(id)).filter((r): r is Recipe => !!r),
+        [slots, byId]
+    );
 
     // Everything planned this week
     const planned = useMemo(() => {
         const list: Recipe[] = [];
-        days.forEach((d) =>
-            PLAN_MEALS.forEach((m) => {
-                const id = slots[slotKey(d, m)];
-                const r = id === undefined ? undefined : byId.get(id);
-                if (r) list.push(r);
-            })
-        );
+        days.forEach((d) => PLAN_MEALS.forEach((m) => list.push(...recipesAt(d, m))));
         return list;
-    }, [days, slots, byId]);
+    }, [days, recipesAt]);
 
     const dayCalories = (date: Date) =>
-        PLAN_MEALS.reduce((sum, m) => sum + (recipeAt(date, m)?.caloriesPerServing ?? 0), 0);
+        PLAN_MEALS.reduce((sum, m) => sum + recipesAt(date, m).reduce((n, r) => n + r.caloriesPerServing, 0), 0);
     const daysWithMeals = days.filter((d) => dayCalories(d) > 0).length;
     const avgCalories = daysWithMeals > 0 ? Math.round(planned.reduce((s, r) => s + r.caloriesPerServing, 0) / daysWithMeals) : 0;
 
@@ -121,19 +118,15 @@ export default function PlannerScreen() {
     const [scope, setScope] = useState<'week' | 'day'>('week');
     const [shopDay, setShopDay] = useState(dayIndex);
     const dayCounts = useMemo(
-        () => days.map((d) => PLAN_MEALS.filter((m) => slots[slotKey(d, m)] !== undefined && byId.has(slots[slotKey(d, m)])).length),
-        [days, slots, byId]
+        () => days.map((d) => PLAN_MEALS.reduce((n, m) => n + recipesAt(d, m).length, 0)),
+        [days, recipesAt]
     );
     const listRecipes = useMemo(() => {
         if (scope === 'week') return planned;
         const list: Recipe[] = [];
-        PLAN_MEALS.forEach((m) => {
-            const id = slots[slotKey(days[shopDay], m)];
-            const r = id === undefined ? undefined : byId.get(id);
-            if (r) list.push(r);
-        });
+        PLAN_MEALS.forEach((m) => list.push(...recipesAt(days[shopDay], m)));
         return list;
-    }, [scope, planned, slots, days, shopDay, byId]);
+    }, [scope, planned, recipesAt, days, shopDay]);
     const listDate = scope === 'day' ? days[shopDay] : weekStart; // ticks are saved per list
     const groups = useMemo(() => buildShoppingList(listRecipes), [listRecipes]);
 
@@ -148,11 +141,24 @@ export default function PlannerScreen() {
         setDayIndex(dateKey(next) === dateKey(startOfWeek(new Date())) ? (new Date().getDay() + 6) % 7 : 0);
     };
 
-    const setSlot = (slot: Slot, recipe?: Recipe) =>
+    // Add a recipe to a meal, or take it off again if it is already there
+    const toggleInSlot = (slot: Slot, recipe: Recipe) =>
         setSlots((prev) => {
             const next = { ...prev };
             const key = slotKey(slot.date, slot.meal);
-            if (recipe) next[key] = recipe.id;
+            const current = prev[key] ?? [];
+            const updated = current.includes(recipe.id) ? current.filter((id) => id !== recipe.id) : [...current, recipe.id];
+            if (updated.length > 0) next[key] = updated;
+            else delete next[key];
+            return next;
+        });
+
+    const removeFromSlot = (slot: Slot, recipe: Recipe) =>
+        setSlots((prev) => {
+            const next = { ...prev };
+            const key = slotKey(slot.date, slot.meal);
+            const updated = (prev[key] ?? []).filter((id) => id !== recipe.id);
+            if (updated.length > 0) next[key] = updated;
             else delete next[key];
             return next;
         });
@@ -161,7 +167,7 @@ export default function PlannerScreen() {
         if (!recipes) return;
         const { plan, added } = generatePlan(recipes, weekStart, slots);
         setSlots(plan);
-        setSnack(added > 0 ? `Planned ${added} meal${added === 1 ? '' : 's'} for this week` : 'Every meal this week is already planned');
+        setSnack(added > 0 ? `Planned ${added} meal${added === 1 ? '' : 's'} for this week` : 'Every meal this week already has a recipe');
         if (added > 0) setListOpen(false);
     };
 
@@ -178,7 +184,7 @@ export default function PlannerScreen() {
         setSnack(
             added > 0
                 ? `Planned ${added} meal${added === 1 ? '' : 's'} for your taste: ${taste.title}`
-                : 'Every meal this week is already planned'
+                : 'Every meal this week already has a recipe'
         );
         if (added > 0) setListOpen(false);
     };
@@ -229,7 +235,6 @@ export default function PlannerScreen() {
         });
 
     const open = (r: Recipe) => router.push(routes.recipe(r.id));
-    const totalSlots = 21;
 
     /* ---------- body ---------- */
 
@@ -288,7 +293,7 @@ export default function PlannerScreen() {
                         <View style={styles.stat}>
                             <MaterialCommunityIcons name="check-circle-outline" size={16} color="#D81B60" />
                             <Text style={styles.statText}>
-                                {planned.length} of {totalSlots} meals planned
+                                {planned.length} {planned.length === 1 ? 'recipe' : 'recipes'} planned
                             </Text>
                         </View>
                         <View style={styles.stat}>
@@ -329,14 +334,10 @@ export default function PlannerScreen() {
                                             <View key={i} style={styles.cellWrap}>
                                                 <SlotCell
                                                     meal={meal}
-                                                    recipe={recipeAt(d, meal)}
+                                                    recipes={recipesAt(d, meal)}
                                                     onAdd={() => setPicker(slot)}
-                                                    onSwap={() => setPicker(slot)}
-                                                    onRemove={() => setSlot(slot)}
-                                                    onOpen={() => {
-                                                        const r = recipeAt(d, meal);
-                                                        if (r) open(r);
-                                                    }}
+                                                    onRemove={(r) => removeFromSlot(slot, r)}
+                                                    onOpen={open}
                                                 />
                                             </View>
                                         );
@@ -364,7 +365,7 @@ export default function PlannerScreen() {
                                                 {PLAN_MEALS.map((m) => (
                                                     <View
                                                         key={m}
-                                                        style={[styles.dot, recipeAt(d, m) && styles.dotOn, active && recipeAt(d, m) && styles.dotOnActive]}
+                                                        style={[styles.dot, recipesAt(d, m).length > 0 && styles.dotOn, active && recipesAt(d, m).length > 0 && styles.dotOnActive]}
                                                     />
                                                 ))}
                                             </View>
@@ -382,14 +383,10 @@ export default function PlannerScreen() {
                                     <SlotRow
                                         key={meal}
                                         meal={meal}
-                                        recipe={recipeAt(slot.date, meal)}
+                                        recipes={recipesAt(slot.date, meal)}
                                         onAdd={() => setPicker(slot)}
-                                        onSwap={() => setPicker(slot)}
-                                        onRemove={() => setSlot(slot)}
-                                        onOpen={() => {
-                                            const r = recipeAt(slot.date, meal);
-                                            if (r) open(r);
-                                        }}
+                                        onRemove={(r) => removeFromSlot(slot, r)}
+                                        onOpen={open}
                                     />
                                 );
                             })}
@@ -452,6 +449,7 @@ export default function PlannerScreen() {
                             textColor="#FFFFFF"
                             onPress={onGenerate}
                             disabled={!recipes}
+                            compact
                             contentStyle={styles.generateContent}
                             style={styles.generate}
                         >
@@ -465,11 +463,9 @@ export default function PlannerScreen() {
             <RecipePicker
                 slot={picker}
                 recipes={recipes ?? []}
+                selectedIds={picker ? slots[slotKey(picker.date, picker.meal)] ?? [] : []}
+                onToggle={(r) => picker && toggleInSlot(picker, r)}
                 onClose={() => setPicker(null)}
-                onPick={(r) => {
-                    if (picker) setSlot(picker, r);
-                    setPicker(null);
-                }}
             />
 
             <ConfirmDialog
@@ -498,7 +494,7 @@ const styles = createStyles({
     title: { fontSize: 30, fontWeight: '800', color: '#2A2124' },
     titleAccent: { color: '#D81B60' },
     subtitle: { fontSize: 14, color: '#8A6673', marginTop: 4 },
-    headerButtons: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+    headerButtons: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, flexShrink: 1, maxWidth: '100%' },
     generate: { borderRadius: 14 },
     generateContent: { paddingVertical: 4, paddingHorizontal: 6 },
     card: {

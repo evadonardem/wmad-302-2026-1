@@ -262,11 +262,23 @@ export default function SearchScreen() {
     </View>
   );
 
-  // onEndReached alone is not reliable on web (tall header + grid), so also check the scroll position:
-  // when the person is within 400px of the bottom, load the next 9 (loadMore ignores repeat calls).
-  const loadWhenNearBottom = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  // The next 9 recipes load only when the person really reaches the very bottom (within 24px) and keeps
+  // pushing, not while they are still scrolling softly. A short pause with a spinner makes it feel deliberate.
+  const [revealing, setRevealing] = useState(false);
+  const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (revealTimer.current) clearTimeout(revealTimer.current);
+  }, []);
+  const loadWhenAtBottom = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-    if (contentSize.height > 0 && layoutMeasurement.height + contentOffset.y >= contentSize.height - 400) loadMore();
+    const atBottom = contentSize.height > 0 && layoutMeasurement.height + contentOffset.y >= contentSize.height - 24;
+    if (!atBottom || !hasMore || loadingMore || revealTimer.current) return;
+    setRevealing(true);
+    revealTimer.current = setTimeout(() => {
+      revealTimer.current = null;
+      setRevealing(false);
+      loadMore();
+    }, 700);
   };
 
   const results = (
@@ -307,17 +319,15 @@ export default function SearchScreen() {
           />
         )
       }
-      onEndReached={loadMore}
-      onEndReachedThreshold={0.5}
-      onScroll={loadWhenNearBottom}
-      scrollEventThrottle={120}
+      onScroll={loadWhenAtBottom}
+      scrollEventThrottle={100}
       ListFooterComponent={
         !loading && data.length > 0 ? (
           <View style={styles.footer}>
-            {loadingMore ? (
+            {loadingMore || revealing ? (
               <ActivityIndicator color="#D81B60" />
             ) : hasMore ? (
-              <Text style={styles.loadMoreInfo}>Scroll for more recipes</Text>
+              <Text style={styles.loadMoreInfo}>Scroll down for more recipes</Text>
             ) : (
               <Text style={styles.loadMoreInfo}>You&apos;ve reached the end 🍽️</Text>
             )}

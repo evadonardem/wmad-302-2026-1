@@ -115,8 +115,22 @@ export function getTagCounts(recipes: Recipe[]): Category[] {
 
 export const PLAN_MEALS = ['Breakfast', 'Lunch', 'Dinner'] as const;
 export type PlanMeal = (typeof PLAN_MEALS)[number];
-/** Planned meals: "2025-06-23|Dinner" -> recipe id */
-export type MealPlan = Record<string, number>;
+/** Planned meals: "2025-06-23|Dinner" -> the recipe ids picked for that meal (one or more) */
+export type MealPlan = Record<string, number[]>;
+
+/**
+ * Reads a saved plan. Older versions saved a single recipe id per meal, so a plain number is turned
+ * into a one-recipe list. Anything unreadable is skipped.
+ */
+export function normalizePlan(raw: unknown): MealPlan {
+    const plan: MealPlan = {};
+    if (!raw || typeof raw !== 'object') return plan;
+    Object.entries(raw as Record<string, unknown>).forEach(([key, value]) => {
+        const ids = (Array.isArray(value) ? value : [value]).filter((v): v is number => typeof v === 'number');
+        if (ids.length > 0) plan[key] = Array.from(new Set(ids));
+    });
+    return plan;
+}
 
 export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -153,7 +167,8 @@ export function formatWeekRange(start: Date): string {
 }
 
 /**
- * Fills every empty breakfast / lunch / dinner slot of the week with a recipe of that meal type.
+ * Fills every empty breakfast / lunch / dinner slot of the week with a recipe of that meal type
+ * (slots that already have one or more recipes are left alone).
  * Recipes are not repeated within the week while there are unused ones left. Existing slots are kept.
  */
 export function generatePlan(
@@ -163,19 +178,19 @@ export function generatePlan(
     random: () => number = Math.random
 ): { plan: MealPlan; added: number } {
     const plan: MealPlan = { ...existing };
-    const used = new Set<number>(Object.values(existing));
+    const used = new Set<number>(Object.values(existing).flat());
     let added = 0;
     for (let i = 0; i < 7; i++) {
         for (const meal of PLAN_MEALS) {
             const key = slotKey(addDays(weekStart, i), meal);
-            if (plan[key] !== undefined) continue;
+            if ((plan[key]?.length ?? 0) > 0) continue;
             const matching = recipes.filter((r) => hasMealType(r, meal));
             const pool = matching.length > 0 ? matching : recipes;
             if (pool.length === 0) continue;
             const fresh = pool.filter((r) => !used.has(r.id));
             const choices = fresh.length > 0 ? fresh : pool;
             const pick = choices[Math.floor(random() * choices.length)];
-            plan[key] = pick.id;
+            plan[key] = [pick.id];
             used.add(pick.id);
             added += 1;
         }
@@ -184,7 +199,7 @@ export function generatePlan(
 }
 
 /* ------------------------------------------------------------------ */
-/* Taste DNA - what the person likes, learned from their favorites     */
+/* Flavor profile - what the person likes, learned from their favorites */
 /* ------------------------------------------------------------------ */
 
 export interface TasteShare {
@@ -269,12 +284,12 @@ export function generateTastePlan(
     random: () => number = Math.random
 ): { plan: MealPlan; added: number } {
     const plan: MealPlan = { ...existing };
-    const used = new Set<number>(Object.values(existing));
+    const used = new Set<number>(Object.values(existing).flat());
     let added = 0;
     for (let i = 0; i < 7; i++) {
         for (const meal of PLAN_MEALS) {
             const key = slotKey(addDays(weekStart, i), meal);
-            if (plan[key] !== undefined) continue;
+            if ((plan[key]?.length ?? 0) > 0) continue;
             const matching = recipes.filter((r) => hasMealType(r, meal));
             const pool = matching.length > 0 ? matching : recipes;
             if (pool.length === 0) continue;
@@ -284,7 +299,7 @@ export function generateTastePlan(
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 4);
             const pick = choices[Math.floor(random() * choices.length)].r;
-            plan[key] = pick.id;
+            plan[key] = [pick.id];
             used.add(pick.id);
             added += 1;
         }

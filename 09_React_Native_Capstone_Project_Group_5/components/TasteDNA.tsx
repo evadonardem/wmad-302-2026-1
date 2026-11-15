@@ -1,5 +1,5 @@
 /**
- * Taste DNA card (Profile): shows what the person usually likes, learned from their favorite recipes.
+ * Flavor Profile card (Profile): shows what the person usually likes, learned from their favorite recipes.
  */
 import React from 'react';
 import { Text, View } from 'react-native';
@@ -56,7 +56,7 @@ export function TasteDNACard({
                     <MaterialCommunityIcons name="dna" size={26} color="#FFFFFF" />
                 </View>
                 <View style={styles.headerText}>
-                    <Text style={styles.title}>Your Taste DNA</Text>
+                    <Text style={styles.title}>Your Flavor Profile</Text>
                     <Text style={styles.sub}>
                         {empty ? 'Learned from your favorite recipes' : `${taste.title} · from ${taste.total} favorite${taste.total === 1 ? '' : 's'}`}
                     </Text>

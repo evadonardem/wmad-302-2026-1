@@ -51,7 +51,7 @@ export function Meta({ icon, text }: { icon: IconName; text: string }) {
     );
 }
 
-/** Round action button that sits on top of a photo (swap / remove). */
+/** Round action button that sits on top of a photo (remove). */
 export function PhotoAction({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
     useAppTheme();
     return (
@@ -67,24 +67,22 @@ export function PhotoAction({ icon, label, onPress }: { icon: IconName; label: s
     );
 }
 
-/** One cell of the weekly grid (wide screens). */
+/** One cell of the weekly grid (wide screens): every recipe picked for the meal, plus an add button. */
 export function SlotCell({
-    recipe,
+    recipes,
     meal,
     onAdd,
     onOpen,
-    onSwap,
     onRemove,
 }: {
-    recipe?: Recipe;
+    recipes: Recipe[];
     meal: PlanMeal;
     onAdd: () => void;
-    onOpen: () => void;
-    onSwap: () => void;
-    onRemove: () => void;
+    onOpen: (recipe: Recipe) => void;
+    onRemove: (recipe: Recipe) => void;
 }) {
     useAppTheme();
-    if (!recipe) {
+    if (recipes.length === 0) {
         return (
             <Pressable
                 onPress={onAdd}
@@ -101,47 +99,57 @@ export function SlotCell({
     }
     return (
         <View style={styles.cell}>
+            {recipes.map((recipe) => (
+                <View key={recipe.id} style={styles.cellItem}>
+                    <Pressable
+                        onPress={() => onOpen(recipe)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open recipe ${recipe.name}`}
+                        style={({ pressed }) => pressed && styles.pressed}
+                    >
+                        <View style={styles.cellImageWrap}>
+                            <Image source={{ uri: recipe.image }} style={styles.cellImage} resizeMode="cover" />
+                        </View>
+                        <Text style={styles.cellTitle} numberOfLines={2}>
+                            {recipe.name}
+                        </Text>
+                        <View style={styles.cellMeta}>
+                            <Meta icon="clock-outline" text={formatMinutes(totalTime(recipe))} />
+                            <Meta icon="fire" text={`${recipe.caloriesPerServing}`} />
+                        </View>
+                    </Pressable>
+                    {/* Sibling of the Pressable above (never nested buttons) */}
+                    <View style={styles.cellRemove} pointerEvents="box-none">
+                        <PhotoAction icon="close" label={`Remove ${recipe.name}`} onPress={() => onRemove(recipe)} />
+                    </View>
+                </View>
+            ))}
             <Pressable
-                onPress={onOpen}
+                onPress={onAdd}
                 accessibilityRole="button"
-                accessibilityLabel={`Open recipe ${recipe.name}`}
-                style={({ pressed }) => pressed && styles.pressed}
+                accessibilityLabel={`Add another ${meal.toLowerCase()}`}
+                style={({ pressed }) => [styles.addMore, pressed && styles.pressed]}
             >
-                <View style={styles.cellImageWrap}>
-                    <Image source={{ uri: recipe.image }} style={styles.cellImage} resizeMode="cover" />
-                </View>
-                <Text style={styles.cellTitle} numberOfLines={2}>
-                    {recipe.name}
-                </Text>
-                <View style={styles.cellMeta}>
-                    <Meta icon="clock-outline" text={formatMinutes(totalTime(recipe))} />
-                    <Meta icon="fire" text={`${recipe.caloriesPerServing}`} />
-                </View>
+                <MaterialCommunityIcons name="plus" size={16} color="#D81B60" />
+                <Text style={styles.addMoreText}>Add more</Text>
             </Pressable>
-            {/* Siblings of the Pressable above (never nested buttons) */}
-            <View style={styles.cellActions} pointerEvents="box-none">
-                <PhotoAction icon="swap-horizontal" label="Choose another recipe" onPress={onSwap} />
-                <PhotoAction icon="close" label="Remove from plan" onPress={onRemove} />
-            </View>
         </View>
     );
 }
 
-/** One meal of the selected day (phones / narrow windows). */
+/** One meal of the selected day (phones / narrow windows): every recipe picked for it. */
 export function SlotRow({
-    recipe,
+    recipes,
     meal,
     onAdd,
     onOpen,
-    onSwap,
     onRemove,
 }: {
-    recipe?: Recipe;
+    recipes: Recipe[];
     meal: PlanMeal;
     onAdd: () => void;
-    onOpen: () => void;
-    onSwap: () => void;
-    onRemove: () => void;
+    onOpen: (recipe: Recipe) => void;
+    onRemove: (recipe: Recipe) => void;
 }) {
     useAppTheme();
     return (
@@ -149,11 +157,23 @@ export function SlotRow({
             <View style={styles.rowLabel}>
                 <MaterialCommunityIcons name={MEAL_ICON[meal]} size={16} color="#D81B60" />
                 <Text style={styles.rowLabelText}>{meal}</Text>
-            </View>
-            {recipe ? (
-                <View style={styles.rowCard}>
+                {recipes.length > 1 && <Text style={styles.rowCount}>{recipes.length} recipes</Text>}
+                {recipes.length > 0 && (
                     <Pressable
-                        onPress={onOpen}
+                        onPress={onAdd}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Add another ${meal.toLowerCase()}`}
+                        style={({ pressed }) => [styles.rowAdd, pressed && styles.pressed]}
+                    >
+                        <MaterialCommunityIcons name="plus" size={16} color="#D81B60" />
+                        <Text style={styles.addMoreText}>Add more</Text>
+                    </Pressable>
+                )}
+            </View>
+            {recipes.map((recipe) => (
+                <View key={recipe.id} style={[styles.rowCard, styles.rowCardGap]}>
+                    <Pressable
+                        onPress={() => onOpen(recipe)}
                         accessibilityRole="button"
                         accessibilityLabel={`Open recipe ${recipe.name}`}
                         style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
@@ -170,11 +190,11 @@ export function SlotRow({
                         </View>
                     </Pressable>
                     <View style={styles.rowActions}>
-                        <PhotoAction icon="swap-horizontal" label="Choose another recipe" onPress={onSwap} />
-                        <PhotoAction icon="close" label="Remove from plan" onPress={onRemove} />
+                        <PhotoAction icon="close" label={`Remove ${recipe.name}`} onPress={() => onRemove(recipe)} />
                     </View>
                 </View>
-            ) : (
+            ))}
+            {recipes.length === 0 && (
                 <Pressable
                     onPress={onAdd}
                     accessibilityRole="button"
@@ -189,15 +209,19 @@ export function SlotRow({
     );
 }
 
+/** Pop-up to pick recipes for a meal. Tap a recipe to add it, tap it again to take it off; pick as many as you like. */
 export function RecipePicker({
     slot,
     recipes,
-    onPick,
+    selectedIds,
+    onToggle,
     onClose,
 }: {
     slot: Slot | null;
     recipes: Recipe[];
-    onPick: (recipe: Recipe) => void;
+    /** Recipes already picked for this meal. */
+    selectedIds: number[];
+    onToggle: (recipe: Recipe) => void;
     onClose: () => void;
 }) {
     useAppTheme();
@@ -235,7 +259,7 @@ export function RecipePicker({
                             <Text style={styles.sheetTitle}>Choose {slot?.meal.toLowerCase()}</Text>
                             {slot && (
                                 <Text style={styles.sheetSub}>
-                                    {DAY_NAMES[(slot.date.getDay() + 6) % 7]}, {formatShortDate(slot.date)}
+                                    {DAY_NAMES[(slot.date.getDay() + 6) % 7]}, {formatShortDate(slot.date)} · pick as many as you like
                                 </Text>
                             )}
                         </View>
@@ -280,27 +304,47 @@ export function RecipePicker({
                         keyExtractor={(r) => String(r.id)}
                         style={styles.pickList}
                         keyboardShouldPersistTaps="handled"
+                        extraData={selectedIds}
                         ListEmptyComponent={<Text style={styles.pickEmpty}>No recipes match. Try another search.</Text>}
-                        renderItem={({ item }) => (
-                            <Pressable
-                                onPress={() => onPick(item)}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Plan ${item.name}`}
-                                style={({ pressed }) => [styles.pickRow, pressed && styles.pressed]}
-                            >
-                                <Image source={{ uri: item.image }} style={styles.pickImage} resizeMode="cover" />
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.pickName} numberOfLines={2}>
-                                        {item.name}
-                                    </Text>
-                                    <Text style={styles.pickMeta}>
-                                        {formatMinutes(totalTime(item))} · {item.caloriesPerServing} cal · {item.cuisine}
-                                    </Text>
-                                </View>
-                                <MaterialCommunityIcons name="plus-circle" size={24} color="#D81B60" />
-                            </Pressable>
-                        )}
+                        renderItem={({ item }) => {
+                            const picked = selectedIds.includes(item.id);
+                            return (
+                                <Pressable
+                                    onPress={() => onToggle(item)}
+                                    accessibilityRole="checkbox"
+                                    accessibilityState={{ checked: picked }}
+                                    accessibilityLabel={`${picked ? 'Remove' : 'Add'} ${item.name}`}
+                                    style={({ pressed }) => [styles.pickRow, picked && styles.pickRowOn, pressed && styles.pressed]}
+                                >
+                                    <Image source={{ uri: item.image }} style={styles.pickImage} resizeMode="cover" />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.pickName} numberOfLines={2}>
+                                            {item.name}
+                                        </Text>
+                                        <Text style={styles.pickMeta}>
+                                            {formatMinutes(totalTime(item))} · {item.caloriesPerServing} cal · {item.cuisine}
+                                        </Text>
+                                    </View>
+                                    <MaterialCommunityIcons
+                                        name={picked ? 'check-circle' : 'plus-circle-outline'}
+                                        size={26}
+                                        color={picked ? '#43A047' : '#D81B60'}
+                                    />
+                                </Pressable>
+                            );
+                        }}
                     />
+
+                    <Button
+                        mode="contained"
+                        icon="check"
+                        buttonColor="#D81B60"
+                        textColor="#FFFFFF"
+                        onPress={onClose}
+                        style={styles.doneButton}
+                    >
+                        {selectedIds.length > 0 ? `Done · ${selectedIds.length} picked` : 'Done'}
+                    </Button>
                 </View>
             </View>
         </Modal>
@@ -356,7 +400,7 @@ export function ShoppingCard({
                 <View style={styles.shopIcon}>
                     <MaterialCommunityIcons name="cart-outline" size={26} color="#FFFFFF" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={styles.shopText}>
                     <Text style={styles.shopTitle}>Shopping List Generator</Text>
                     <Text style={styles.shopSub}>Create your shopping list from planned meals</Text>
                 </View>
@@ -506,7 +550,10 @@ const styles = createStyles({
     cellImage: { width: '100%', height: '100%' },
     cellTitle: { fontSize: 12.5, fontWeight: '700', color: '#2A2124', lineHeight: 17, marginTop: 8, minHeight: 34 },
     cellMeta: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-    cellActions: { position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between' },
+    cellItem: { position: 'relative', marginBottom: 10 },
+    cellRemove: { position: 'absolute', top: 6, right: 6 },
+    addMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#E3C7D1', backgroundColor: '#FFFFFF' },
+    addMoreText: { fontSize: 12, fontWeight: '700', color: '#D81B60' },
     photoAction: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.95)', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
     meta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     metaText: { fontSize: 11.5, color: '#8A6673', fontWeight: '600' },
@@ -515,8 +562,11 @@ const styles = createStyles({
     emptyText: { fontSize: 13, fontWeight: '600', color: '#8A6673' },
     rowBlock: { marginBottom: 14 },
     rowLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+    rowCount: { fontSize: 12, fontWeight: '600', color: '#8A6673' },
+    rowAdd: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#FDE7EF' },
     rowLabelText: { fontSize: 13, fontWeight: '800', color: '#5A3A46', textTransform: 'uppercase', letterSpacing: 0.6 },
     rowCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF9FB', borderRadius: 18, padding: 10, borderWidth: 1, borderColor: '#E9CED8', gap: 8 },
+    rowCardGap: { marginBottom: 8 },
     rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
     rowImage: { width: 84, height: 84, borderRadius: 14, backgroundColor: '#EDD8E0' },
     rowInfo: { flex: 1 },
@@ -550,12 +600,15 @@ const styles = createStyles({
     resultCount: { marginLeft: 'auto', fontSize: 12, color: '#8A6673' },
     pickList: { flexGrow: 0 },
     pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: '#EEDEE4' },
+    pickRowOn: { backgroundColor: '#FEF3F7' },
+    doneButton: { marginTop: 12, borderRadius: 14 },
     pickImage: { width: 58, height: 58, borderRadius: 12, backgroundColor: '#EDD8E0' },
     pickName: { fontSize: 15, fontWeight: '700', color: '#2A2124' },
     pickMeta: { fontSize: 12, color: '#8A6673', marginTop: 3 },
     pickEmpty: { textAlign: 'center', color: '#8A6673', paddingVertical: 28 },
     shopHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' },
     shopIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#D81B60', alignItems: 'center', justifyContent: 'center' },
+    shopText: { flex: 1, minWidth: 180 },
     shopTitle: { fontSize: 20, fontWeight: '800', color: '#2A2124' },
     shopSub: { fontSize: 13, color: '#8A6673', marginTop: 2 },
     shopHint: { marginTop: 14, fontSize: 13, color: '#8A6673' },

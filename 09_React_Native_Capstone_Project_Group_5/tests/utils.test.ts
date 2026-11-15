@@ -17,6 +17,7 @@ import {
     filterRecipes,
     formatWeekRange,
     generatePlan,
+    normalizePlan,
     getPageNumbers,
     hasMealType,
     startOfWeek,
@@ -216,10 +217,22 @@ describe('meal types and the meal planner', () => {
             make({ id: i + 1, mealType: [['Breakfast', 'Lunch', 'Dinner'][i % 3]] })
         );
         const monday = startOfWeek(new Date(2025, 5, 25));
-        const { plan, added } = generatePlan(pool, monday, { '2025-06-23|Dinner': 3 }, () => 0);
+        const { plan, added } = generatePlan(pool, monday, { '2025-06-23|Dinner': [3] }, () => 0);
         expect(added).toBe(20);
-        expect(plan['2025-06-23|Dinner']).toBe(3);
-        expect(new Set(Object.values(plan)).size).toBe(21);
+        expect(plan['2025-06-23|Dinner']).toEqual([3]);
+        expect(new Set(Object.values(plan).flat()).size).toBe(21);
+    });
+
+    it('keeps a slot with several recipes and reads older single-recipe plans', () => {
+        const pool = Array.from({ length: 30 }, (_, i) =>
+            make({ id: i + 1, mealType: [['Breakfast', 'Lunch', 'Dinner'][i % 3]] })
+        );
+        const monday = startOfWeek(new Date(2025, 5, 25));
+        const { plan, added } = generatePlan(pool, monday, { '2025-06-23|Dinner': [3, 6] }, () => 0);
+        expect(added).toBe(20); // the Dinner slot already has recipes, so it is not touched
+        expect(plan['2025-06-23|Dinner']).toEqual([3, 6]);
+        expect(normalizePlan({ a: 5, b: [1, 1, 2], c: 'x', d: [] })).toEqual({ a: [5], b: [1, 2] });
+        expect(normalizePlan(null)).toEqual({});
     });
 
     it('learns a taste profile from favorites', () => {
@@ -247,7 +260,7 @@ describe('meal types and the meal planner', () => {
         const monday = startOfWeek(new Date(2025, 5, 25));
         const { plan, added } = generateTastePlan(pool, monday, {}, taste, () => 0);
         expect(added).toBe(21);
-        const picked = Object.values(plan).map((id) => pool.find((r) => r.id === id)?.cuisine);
+        const picked = Object.values(plan).flat().map((id) => pool.find((r) => r.id === id)?.cuisine);
         expect(picked.every((c) => c === 'Italian')).toBe(true);
     });
 
