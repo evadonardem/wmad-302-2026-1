@@ -140,7 +140,7 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.productCard}
         onPress={() =>
-          router.push(`/(app)/(tabs)/product/${item.id}`)
+          router.push(`/(app)/product/${item.id}`)
         }
         activeOpacity={0.8}
       >
