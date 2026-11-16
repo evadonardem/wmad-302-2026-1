@@ -1,8 +1,8 @@
 
 /**
  * Home Screen - Marketplace Shop Tab
- * Students implement: Product grid, categories, flash deals, recommendations
- * APIs: https://dummyjson.com/docs/products
+ * Features: Product grid, categories, flash deals, recommendations
+ * API: https://dummyjson.com/docs/products
  */
 
 import React, { useState, useEffect } from 'react';
@@ -21,7 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Card, Title, Avatar, Button, Badge } from 'react-native-paper';
 import { styles } from './homeStyles';
 
-// Types for DummyJSON Products API
+// Product type from DummyJSON Products API
 interface Product {
   id: number;
   title: string;
@@ -35,7 +35,11 @@ interface Product {
   brand?: string;
   sku: string;
   weight: number;
-  dimensions: { width: number; height: number; depth: number };
+  dimensions: {
+    width: number;
+    height: number;
+    depth: number;
+  };
   warrantyInformation: string;
   shippingInformation: string;
   availabilityStatus: string;
@@ -57,6 +61,13 @@ interface Product {
   thumbnail: string;
 }
 
+// Category type from DummyJSON Categories API
+interface ProductCategory {
+  slug: string;
+  name: string;
+  url: string;
+}
+
 interface ProductsResponse {
   products: Product[];
   total: number;
@@ -69,14 +80,18 @@ export default function HomeScreen() {
   const { user } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch products and categories
   const fetchData = async (isRefresh = false) => {
     try {
-      if (!isRefresh) setLoading(true);
+      if (!isRefresh) {
+        setLoading(true);
+      }
+
       setError(null);
 
       const [productsRes, categoriesRes] = await Promise.all([
@@ -85,17 +100,20 @@ export default function HomeScreen() {
       ]);
 
       if (!productsRes.ok || !categoriesRes.ok) {
-        throw new Error('Failed to fetch data');
+        throw new Error('Failed to fetch marketplace data.');
       }
 
       const productsData: ProductsResponse = await productsRes.json();
-      const categoriesData: string[] = await categoriesRes.json();
+      const categoriesData: ProductCategory[] =
+        await categoriesRes.json();
 
       setProducts(productsData.products);
       setCategories(categoriesData);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load products',
+        err instanceof Error
+          ? err.message
+          : 'Failed to load marketplace data.',
       );
     } finally {
       setLoading(false);
@@ -107,11 +125,13 @@ export default function HomeScreen() {
     fetchData();
   }, []);
 
+  // Pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     fetchData(true);
   };
 
+  // Product card
   const renderProduct = ({ item }: { item: Product }) => {
     const discountedPrice =
       item.price * (1 - item.discountPercentage / 100);
@@ -119,7 +139,9 @@ export default function HomeScreen() {
     return (
       <TouchableOpacity
         style={styles.productCard}
-        onPress={() => router.push(`/(app)/(tabs)/product/${item.id}`)}
+        onPress={() =>
+          router.push(`/(app)/(tabs)/product/${item.id}`)
+        }
         activeOpacity={0.8}
       >
         <Card style={styles.card} elevation={2}>
@@ -138,7 +160,9 @@ export default function HomeScreen() {
           </View>
 
           <Card.Content style={styles.cardContent}>
-            <Text style={styles.productCategory}>{item.category}</Text>
+            <Text style={styles.productCategory}>
+              {item.category}
+            </Text>
 
             <Title style={styles.productTitle} numberOfLines={2}>
               {item.title}
@@ -168,15 +192,17 @@ export default function HomeScreen() {
     );
   };
 
+  // Loading screen
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1A73E8" />
+        <ActivityIndicator size="large" color="#43A52F" />
         <Text style={styles.loadingText}>Loading products...</Text>
       </View>
     );
   }
 
+  // Error screen
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -200,7 +226,7 @@ export default function HomeScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={['#1A73E8']}
+          colors={['#43A52F']}
         />
       }
       contentContainerStyle={styles.scrollContent}
@@ -209,7 +235,9 @@ export default function HomeScreen() {
       <View style={styles.welcomeContainer}>
         <View style={styles.welcomeTextContainer}>
           <Text style={styles.welcomeGreeting}>
-            {user ? `Welcome, ${user.firstName}!` : 'Welcome to Marketplace!'}
+            {user
+              ? `Welcome, ${user.firstName}!`
+              : 'Welcome to Marketplace!'}
           </Text>
 
           <Text style={styles.welcomeSubtitle}>
@@ -235,29 +263,30 @@ export default function HomeScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryList}
+          keyExtractor={(item) => item.slug}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.categoryChip}
               onPress={() =>
                 router.push(
-                  `/(app)/(tabs)/categories?category=${item}`,
+                  `/(app)/(tabs)/categories?category=${encodeURIComponent(item.slug)}`,
                 )
               }
             >
               <Text style={styles.categoryChipText}>
-                {item.charAt(0).toUpperCase() +
-                  item.slice(1).replace('-', ' ')}
+                {item.name}
               </Text>
             </TouchableOpacity>
           )}
-          keyExtractor={(item) => item}
         />
       </View>
 
       {/* Flash Deals */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>⚡ Flash Deals</Title>
+          <Title style={styles.sectionTitle}>
+            ⚡ Flash Deals
+          </Title>
 
           <TouchableOpacity style={styles.seeAll}>
             <Text style={styles.seeAllText}>See All</Text>
@@ -266,7 +295,7 @@ export default function HomeScreen() {
 
         <FlatList
           data={products
-            .filter((p) => p.discountPercentage > 20)
+            .filter((product) => product.discountPercentage > 20)
             .slice(0, 5)}
           renderItem={renderProduct}
           keyExtractor={(item) => item.id.toString()}
@@ -300,7 +329,9 @@ export default function HomeScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No products found</Text>
+              <Text style={styles.emptyText}>
+                No products found
+              </Text>
             </View>
           }
         />
