@@ -13,6 +13,12 @@ import {
   CartAddRequest,
 } from '@/types/product';
 
+export interface ProductCategory {
+  slug: string;
+  name: string;
+  url: string;
+}
+
 const API_BASE_URL = 'https://dummyjson.com';
 
 class ProductApiService {
@@ -30,25 +36,16 @@ class ProductApiService {
 
   // ============ Products ============
 
-  /**
-   * Get all products with pagination
-   */
   async getProducts(params: ProductSearchParams = {}): Promise<ProductsResponse> {
     const response = await this.client.get<ProductsResponse>('/products', { params });
     return response.data;
   }
 
-  /**
-   * Get single product by ID
-   */
   async getProductById(id: number): Promise<Product> {
     const response = await this.client.get<Product>(`/products/${id}`);
     return response.data;
   }
 
-  /**
-   * Search products by query
-   */
   async searchProducts(
     query: string,
     params: ProductSearchParams = {},
@@ -59,9 +56,6 @@ class ProductApiService {
     return response.data;
   }
 
-  /**
-   * Get products by category
-   */
   async getProductsByCategory(
     category: string,
     params: ProductSearchParams = {},
@@ -73,17 +67,11 @@ class ProductApiService {
     return response.data;
   }
 
-  /**
-   * Get all categories
-   */
-  async getCategories(): Promise<string[]> {
-    const response = await this.client.get<string[]>('/products/categories');
+  async getCategories(): Promise<ProductCategory[]> {
+    const response = await this.client.get<ProductCategory[]>('/products/categories');
     return response.data;
   }
 
-  /**
-   * Get products by brand
-   */
   async getProductsByBrand(
     brand: string,
     params: ProductSearchParams = {},
@@ -97,33 +85,21 @@ class ProductApiService {
 
   // ============ Carts ============
 
-  /**
-   * Get user's cart
-   */
   async getUserCart(userId: number): Promise<Cart> {
     const response = await this.client.get<Cart>(`/carts/user/${userId}`);
     return response.data;
   }
 
-  /**
-   * Get cart by ID
-   */
   async getCartById(id: number): Promise<Cart> {
     const response = await this.client.get<Cart>(`/carts/${id}`);
     return response.data;
   }
 
-  /**
-   * Create new cart (checkout)
-   */
   async addCart(cartData: CartAddRequest): Promise<Cart> {
     const response = await this.client.post<Cart>('/carts/add', cartData);
     return response.data;
   }
 
-  /**
-   * Update cart
-   */
   async updateCart(
     id: number,
     products: CartAddRequest['products'],
@@ -136,9 +112,6 @@ class ProductApiService {
     return response.data;
   }
 
-  /**
-   * Delete cart
-   */
   async deleteCart(
     id: number,
   ): Promise<{ isDeleted: boolean; deletedOn: string }> {
@@ -149,9 +122,6 @@ class ProductApiService {
     return response.data;
   }
 
-  /**
-   * Get all carts (admin)
-   */
   async getAllCarts(
     params: { limit?: number; skip?: number } = {},
   ): Promise<{ carts: Cart[]; total: number }> {
