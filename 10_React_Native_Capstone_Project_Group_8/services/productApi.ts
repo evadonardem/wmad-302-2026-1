@@ -1,10 +1,17 @@
+
 /**
  * Product & Cart API Service - DummyJSON
  * Docs: https://dummyjson.com/docs/products, https://dummyjson.com/docs/carts
  */
 
 import axios, { AxiosInstance } from 'axios';
-import { Product, ProductsResponse, ProductSearchParams, Cart, CartAddRequest, CartItem } from '@/types/product';
+import {
+  Product,
+  ProductsResponse,
+  ProductSearchParams,
+  Cart,
+  CartAddRequest,
+} from '@/types/product';
 
 const API_BASE_URL = 'https://dummyjson.com';
 
@@ -42,7 +49,10 @@ class ProductApiService {
   /**
    * Search products by query
    */
-  async searchProducts(query: string, params: ProductSearchParams = {}): Promise<ProductsResponse> {
+  async searchProducts(
+    query: string,
+    params: ProductSearchParams = {},
+  ): Promise<ProductsResponse> {
     const response = await this.client.get<ProductsResponse>('/products/search', {
       params: { q: query, ...params },
     });
@@ -52,10 +62,14 @@ class ProductApiService {
   /**
    * Get products by category
    */
-  async getProductsByCategory(category: string, params: ProductSearchParams = {}): Promise<ProductsResponse> {
-    const response = await this.client.get<ProductsResponse>(`/products/category/${encodeURIComponent(category)}`, {
-      params,
-    });
+  async getProductsByCategory(
+    category: string,
+    params: ProductSearchParams = {},
+  ): Promise<ProductsResponse> {
+    const response = await this.client.get<ProductsResponse>(
+      `/products/category/${encodeURIComponent(category)}`,
+      { params },
+    );
     return response.data;
   }
 
@@ -70,10 +84,14 @@ class ProductApiService {
   /**
    * Get products by brand
    */
-  async getProductsByBrand(brand: string, params: ProductSearchParams = {}): Promise<ProductsResponse> {
-    const response = await this.client.get<ProductsResponse>(`/products/brand/${encodeURIComponent(brand)}`, {
-      params,
-    });
+  async getProductsByBrand(
+    brand: string,
+    params: ProductSearchParams = {},
+  ): Promise<ProductsResponse> {
+    const response = await this.client.get<ProductsResponse>(
+      `/products/brand/${encodeURIComponent(brand)}`,
+      { params },
+    );
     return response.data;
   }
 
@@ -106,24 +124,41 @@ class ProductApiService {
   /**
    * Update cart
    */
-  async updateCart(id: number, products: CartAddRequest['products'], merge: boolean = true): Promise<Cart> {
-    const response = await this.client.put<Cart>(`/carts/${id}`, { products, merge });
+  async updateCart(
+    id: number,
+    products: CartAddRequest['products'],
+    merge: boolean = true,
+  ): Promise<Cart> {
+    const response = await this.client.put<Cart>(`/carts/${id}`, {
+      products,
+      merge,
+    });
     return response.data;
   }
 
   /**
    * Delete cart
    */
-  async deleteCart(id: number): Promise<{ isDeleted: boolean; deletedOn: string }> {
-    const response = await this.client.delete<{ isDeleted: boolean; deletedOn: string }>(`/carts/${id}`);
+  async deleteCart(
+    id: number,
+  ): Promise<{ isDeleted: boolean; deletedOn: string }> {
+    const response = await this.client.delete<{
+      isDeleted: boolean;
+      deletedOn: string;
+    }>(`/carts/${id}`);
     return response.data;
   }
 
   /**
    * Get all carts (admin)
    */
-  async getAllCarts(params: { limit?: number; skip?: number } = {}): Promise<{ carts: Cart[]; total: number }> {
-    const response = await this.client.get<{ carts: Cart[]; total: number }>('/carts', { params });
+  async getAllCarts(
+    params: { limit?: number; skip?: number } = {},
+  ): Promise<{ carts: Cart[]; total: number }> {
+    const response = await this.client.get<{
+      carts: Cart[];
+      total: number;
+    }>('/carts', { params });
     return response.data;
   }
 }

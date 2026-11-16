@@ -114,7 +114,7 @@ export default function CategoriesScreen() {
           1. Add category images/banners\n
           2. Show product count per category\n
           3. Add sub-categories navigation\n
-          4. Add "Featured Brands" section\n
+          4. Add &quot;Featured Brands&quot; section\n
           5. Implement pull-to-refresh
         </Text>
       </View>

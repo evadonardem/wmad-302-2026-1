@@ -1,7 +1,8 @@
+
 /**
  * Register Screen - SKELETON WITH TODOs
  * Students complete this screen to learn auth flow
- * 
+ *
  * TODO LIST:
  * 1. Wire form validation
  * 2. Call authApi.register() in handleRegister
@@ -11,6 +12,7 @@
  * 6. Handle loading/error states properly
  * 7. Test with DummyJSON /auth/register endpoint
  */
+
 import React, { useState } from 'react';
 import {
   View,
@@ -24,12 +26,19 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Button, TextInput as PaperTextInput, Checkbox } from 'react-native-paper';
+import {
+  Card,
+  Button,
+  TextInput as PaperTextInput,
+  Checkbox,
+} from 'react-native-paper';
 import { styles } from './styles';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register, isLoading, error, clearError } = useAuth();
+
+  // Removed unused register destructuring.
+  const { isLoading, error, clearError } = useAuth();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -52,21 +61,36 @@ export default function RegisterScreen() {
     if (!formData.firstName.trim()) return 'First name is required';
     if (!formData.lastName.trim()) return 'Last name is required';
     if (!formData.username.trim()) return 'Username is required';
-    if (formData.username.length < 3) return 'Username must be at least 3 characters';
+    if (formData.username.length < 3) {
+      return 'Username must be at least 3 characters';
+    }
     if (!formData.email.trim()) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Invalid email format';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return 'Invalid email format';
+    }
     if (!formData.password) return 'Password is required';
-    if (formData.password.length < 6) return 'Password must be at least 6 characters';
-    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
-    if (formData.age && (parseInt(formData.age) < 13 || parseInt(formData.age) > 120)) {
+    if (formData.password.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    if (formData.password !== formData.confirmPassword) {
+      return 'Passwords do not match';
+    }
+    if (
+      formData.age &&
+      (parseInt(formData.age, 10) < 13 ||
+        parseInt(formData.age, 10) > 120)
+    ) {
       return 'Age must be between 13 and 120';
     }
-    if (!agreedToTerms) return 'You must agree to the Terms of Service';
+    if (!agreedToTerms) {
+      return 'You must agree to the Terms of Service';
+    }
     return null;
   };
 
   const handleRegister = async () => {
     const validationError = validateForm();
+
     if (validationError) {
       Alert.alert('Validation Error', validationError);
       return;
@@ -89,10 +113,10 @@ export default function RegisterScreen() {
       //   username: formData.username.trim(),
       //   password: formData.password,
       //   email: formData.email.trim(),
-      //   age: formData.age ? parseInt(formData.age) : undefined,
+      //   age: formData.age ? parseInt(formData.age, 10) : undefined,
       //   gender: formData.gender,
       // });
-      // 
+      //
       // // Auto-login after registration
       // await login(formData.username.trim(), formData.password);
       // router.replace('/(app)/(tabs)/home');
@@ -110,12 +134,15 @@ export default function RegisterScreen() {
 
   const handleFieldChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+
     if (error) clearError();
   };
 
   React.useEffect(() => {
     if (error) {
-      Alert.alert('Registration Failed', error, [{ text: 'OK', onPress: clearError }]);
+      Alert.alert('Registration Failed', error, [
+        { text: 'OK', onPress: clearError },
+      ]);
     }
   }, [error, clearError]);
 
@@ -124,7 +151,10 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Logo/Brand */}
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>🛒</Text>
@@ -136,7 +166,9 @@ export default function RegisterScreen() {
         <Card style={styles.card} elevation={3}>
           <Card.Content style={styles.cardContent}>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start shopping smarter today</Text>
+            <Text style={styles.subtitle}>
+              Start shopping smarter today
+            </Text>
 
             {/* Name Fields Row */}
             <View style={styles.nameRow}>
@@ -151,6 +183,7 @@ export default function RegisterScreen() {
                 returnKeyType="next"
                 disabled={isLoading}
               />
+
               <PaperTextInput
                 label="Last Name"
                 mode="outlined"
@@ -204,7 +237,10 @@ export default function RegisterScreen() {
               disabled={isLoading}
               right={
                 <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowPassword(!showPassword)} style={styles.eyeText}>
+                  <Text
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeText}
+                  >
                     {showPassword ? '🙈' : '👁️'}
                   </Text>
                 </View>
@@ -224,7 +260,12 @@ export default function RegisterScreen() {
               disabled={isLoading}
               right={
                 <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeText}>
+                  <Text
+                    onPress={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    style={styles.eyeText}
+                  >
                     {showConfirmPassword ? '🙈' : '👁️'}
                   </Text>
                 </View>
@@ -243,32 +284,47 @@ export default function RegisterScreen() {
                 returnKeyType="next"
                 disabled={isLoading}
               />
+
               <View style={[styles.halfInput, styles.genderSelector]}>
                 <Text style={styles.genderLabel}>Gender</Text>
+
                 <View style={styles.genderOptions}>
                   <TouchableOpacity
                     onPress={() => handleFieldChange('gender', 'male')}
                     style={[
                       styles.genderOption,
-                      formData.gender === 'male' && styles.genderOptionSelected,
+                      formData.gender === 'male' &&
+                        styles.genderOptionSelected,
                     ]}
                   >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'male' && styles.genderOptionTextSelected,
-                    ]}>♂ Male</Text>
+                    <Text
+                      style={[
+                        styles.genderOptionText,
+                        formData.gender === 'male' &&
+                          styles.genderOptionTextSelected,
+                      ]}
+                    >
+                      ♂ Male
+                    </Text>
                   </TouchableOpacity>
+
                   <TouchableOpacity
                     onPress={() => handleFieldChange('gender', 'female')}
                     style={[
                       styles.genderOption,
-                      formData.gender === 'female' && styles.genderOptionSelected,
+                      formData.gender === 'female' &&
+                        styles.genderOptionSelected,
                     ]}
                   >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'female' && styles.genderOptionTextSelected,
-                    ]}>♀ Female</Text>
+                    <Text
+                      style={[
+                        styles.genderOptionText,
+                        formData.gender === 'female' &&
+                          styles.genderOptionTextSelected,
+                      ]}
+                    >
+                      ♀ Female
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -282,10 +338,11 @@ export default function RegisterScreen() {
                   onPress={() => setAgreedToTerms(!agreedToTerms)}
                 />
               </View>
+
               <Text style={styles.termsText}>
                 I agree to the{' '}
-                <Text style={styles.linkText}>Terms of Service</Text>{' '}
-                and{' '}
+                <Text style={styles.linkText}>Terms of Service</Text>
+                {' '}and{' '}
                 <Text style={styles.linkText}>Privacy Policy</Text>
               </Text>
             </View>
@@ -299,15 +356,23 @@ export default function RegisterScreen() {
               disabled={isLoading}
               contentStyle={styles.buttonContent}
             >
-              {isLoading ? <ActivityIndicator color="white" size="small" /> : (
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
                 <Text style={styles.buttonText}>Create Account</Text>
               )}
             </Button>
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.replace('/(auth)/login')} style={styles.link}>
+              <Text style={styles.loginText}>
+                Already have an account?{' '}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => router.replace('/(auth)/login')}
+                style={styles.link}
+              >
                 <Text style={styles.linkText}>Sign In</Text>
               </TouchableOpacity>
             </View>
@@ -316,12 +381,15 @@ export default function RegisterScreen() {
 
         {/* Student Guide */}
         <View style={styles.guideContainer}>
-          <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
+          <Text style={styles.guideTitle}>
+            📝 Student Implementation Guide
+          </Text>
+
           <Text style={styles.guideText}>
-            Complete the handleRegister function to:\n
-            1. Call authApi.register() with form data\n
-            2. Auto-login or redirect to login\n
-            3. Handle success/error states
+            Complete the handleRegister function to:
+            {'\n'}1. Call authApi.register() with form data
+            {'\n'}2. Auto-login or redirect to login
+            {'\n'}3. Handle success/error states
           </Text>
         </View>
       </ScrollView>

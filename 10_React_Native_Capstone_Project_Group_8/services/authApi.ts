@@ -1,11 +1,21 @@
+
 /**
  * Auth API Service - DummyJSON Authentication
  * Docs: https://dummyjson.com/docs/auth
  * Base URL: https://dummyjson.com/auth
  */
 
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
+import axios, {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from 'axios';
+import {
+  LoginCredentials,
+  RegisterData,
+  AuthUser,
+  RefreshTokenResponse,
+} from '@/types/auth';
+import { authStorage } from '@/utils/storage';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
 
@@ -22,78 +32,83 @@ class AuthApiService {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor to add auth token.
+    // AsyncStorage requires asynchronous access.
     this.client.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        const token = this.getAccessToken();
+      async (config: InternalAxiosRequestConfig) => {
+        const token = await this.getAccessToken();
+
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
-    // Response interceptor for token refresh
+    // Response interceptor for token refresh.
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
-        // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Do not retry a refresh request itself.
+        const isRefreshRequest =
+          typeof originalRequest?.url === 'string' &&
+          originalRequest.url.includes('/refresh');
+
+        if (
+          error.response?.status === 401 &&
+          originalRequest &&
+          !originalRequest._retry &&
+          !isRefreshRequest
+        ) {
           originalRequest._retry = true;
 
           try {
             const tokens = await this.refreshAccessToken();
-            originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+
+            originalRequest.headers.Authorization =
+              `Bearer ${tokens.accessToken}`;
+
             return this.client(originalRequest);
           } catch (refreshError) {
-            // Refresh failed, redirect to login
-            this.clearTokens();
-            // TODO: Student to implement navigation redirect to login
+            await this.clearTokens();
             console.warn('Token refresh failed, user logged out');
             return Promise.reject(refreshError);
           }
         }
 
         return Promise.reject(error);
-      }
+      },
     );
   }
 
-  private getAccessToken(): string | null {
+  private async getAccessToken(): Promise<string | null> {
     try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || user.accessToken || null;
-      }
-    } catch {
-      return null
-    }
-    return null;
-  }
-
-  private getRefreshToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.refreshToken || null;
-      }
+      const user = await authStorage.getUser();
+      return user?.token || null;
     } catch {
       return null;
     }
-    return null;
   }
 
-  setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
+  private async getRefreshToken(): Promise<string | null> {
+    try {
+      const user = await authStorage.getUser();
+      return user?.refreshToken || null;
+    } catch {
+      return null;
+    }
   }
 
-  private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+  async setTokens(user: AuthUser): Promise<void> {
+    await authStorage.setUser(user);
+  }
+
+  private async clearTokens(): Promise<void> {
+    await authStorage.clearUser();
   }
 
   /**
@@ -106,16 +121,18 @@ class AuthApiService {
       password: credentials.password,
       expiresInMins: credentials.expiresInMins || 60,
     });
-    this.setTokens(response.data);
+
+    await this.setTokens(response.data);
+
     return response.data;
   }
 
   /**
    * Register new user
    * POST /auth/register
-   * TODO: Students to complete this implementation
+   * TODO: Student implementation
    */
-  async register(data: RegisterData): Promise<AuthUser> {
+  async register(_data: RegisterData): Promise<AuthUser> {
     // TODO: Student implementation
     // 1. Call POST /auth/register with data
     // 2. On success, call login() to get tokens
@@ -137,12 +154,13 @@ class AuthApiService {
    * POST /auth/refresh
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
-    // Prevent multiple simultaneous refresh calls
+    // Prevent multiple simultaneous refresh calls.
     if (this.refreshTokenPromise) {
       return this.refreshTokenPromise;
     }
 
-    const refreshToken = this.getRefreshToken();
+    const refreshToken = await this.getRefreshToken();
+
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -152,21 +170,24 @@ class AuthApiService {
         refreshToken,
         expiresInMins: 60,
       })
-      .then((response) => {
-        // Update stored tokens with new ones
-        const currentUser = this.getStoredUser();
+      .then(async (response) => {
+        // Update stored tokens with new ones.
+        const currentUser = await this.getStoredUser();
+
         if (currentUser) {
-          const updatedUser = {
+          const updatedUser: AuthUser = {
             ...currentUser,
             token: response.data.accessToken,
             refreshToken: response.data.refreshToken,
           };
-          this.setTokens(updatedUser);
+
+          await this.setTokens(updatedUser);
         }
+
         return response.data;
       })
-      .catch((error) => {
-        this.clearTokens();
+      .catch(async (error) => {
+        await this.clearTokens();
         throw error;
       })
       .finally(() => {
@@ -179,10 +200,9 @@ class AuthApiService {
   /**
    * Get stored user data
    */
-  getStoredUser(): AuthUser | null {
+  async getStoredUser(): Promise<AuthUser | null> {
     try {
-      const userData = localStorage.getItem('auth_user');
-      return userData ? JSON.parse(userData) : null;
+      return await authStorage.getUser();
     } catch {
       return null;
     }
@@ -190,23 +210,23 @@ class AuthApiService {
 
   /**
    * Logout - clear local tokens
-   * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only
+   * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only.
    */
-  logout(): void {
-    this.clearTokens();
+  async logout(): Promise<void> {
+    await this.clearTokens();
   }
 
   /**
    * Check if user has valid tokens stored
    */
-  hasValidTokens(): boolean {
-    const user = this.getStoredUser();
+  async hasValidTokens(): Promise<boolean> {
+    const user = await this.getStoredUser();
     return !!(user?.token && user?.refreshToken);
   }
 }
 
-// Export singleton instance
+// Export singleton instance.
 export const authApi = new AuthApiService();
 
-// Export class for testing
+// Export class for testing.
 export { AuthApiService };

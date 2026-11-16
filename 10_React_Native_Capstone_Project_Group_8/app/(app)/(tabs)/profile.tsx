@@ -8,15 +8,20 @@
  * - Logout
  */
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Button, List, Avatar, Divider, Badge } from 'react-native-paper';
+import {
+  Card,
+  Button,
+  List,
+  Avatar,
+  Divider,
+  Badge,
+} from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from './profileStyles';
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const { user, logout, isAuthenticated } = useAuth();
 
   const handleLogout = () => {
@@ -55,12 +60,17 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       {/* Profile Header */}
       <View style={styles.header}>
         <Avatar.Image
           size={88}
-          source={{ uri: user?.image || 'https://via.placeholder.com/150' }}
+          source={{
+            uri: user?.image || 'https://via.placeholder.com/150',
+          }}
           style={styles.avatar}
         />
         <View style={styles.nameContainer}>
@@ -97,13 +107,27 @@ export default function ProfileScreen() {
               description="Track and manage orders"
               left={(props) => (
                 <View style={props.style}>
-                  <MaterialCommunityIcons name="package-variant" size={24} color="#1A73E8" />
-                  <Badge size={16} style={{ position: 'absolute', right: -4, top: -4 }}>
+                  <MaterialCommunityIcons
+                    name="package-variant"
+                    size={24}
+                    color="#1A73E8"
+                  />
+                  <Badge
+                    size={16}
+                    style={{ position: 'absolute', right: -4, top: -4 }}
+                  >
                     0
                   </Badge>
                 </View>
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#5F6368"
+                  style={props.style}
+                />
+              )}
               onPress={handleOrders}
             />
             <Divider style={styles.divider} />
@@ -111,9 +135,21 @@ export default function ProfileScreen() {
               title="Wishlist"
               description="Saved items for later"
               left={(props) => (
-                <MaterialCommunityIcons name="heart" size={24} color="#1A73E8" style={props.style} />
+                <MaterialCommunityIcons
+                  name="heart"
+                  size={24}
+                  color="#1A73E8"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#5F6368"
+                  style={props.style}
+                />
+              )}
               onPress={() => Alert.alert('TODO', 'Implement wishlist')}
             />
             <Divider style={styles.divider} />
@@ -121,9 +157,21 @@ export default function ProfileScreen() {
               title="Addresses"
               description="Manage delivery addresses"
               left={(props) => (
-                <MaterialCommunityIcons name="map-marker" size={24} color="#1A73E8" style={props.style} />
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={24}
+                  color="#1A73E8"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#5F6368"
+                  style={props.style}
+                />
+              )}
               onPress={handleAddresses}
             />
             <Divider style={styles.divider} />
@@ -131,9 +179,21 @@ export default function ProfileScreen() {
               title="Payment Methods"
               description="Manage cards & wallets"
               left={(props) => (
-                <MaterialCommunityIcons name="credit-card" size={24} color="#1A73E8" style={props.style} />
+                <MaterialCommunityIcons
+                  name="credit-card"
+                  size={24}
+                  color="#1A73E8"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#5F6368"
+                  style={props.style}
+                />
+              )}
               onPress={handlePayment}
             />
           </List.Section>
@@ -147,9 +207,21 @@ export default function ProfileScreen() {
               title="Edit Profile"
               description="Update your information"
               left={(props) => (
-                <MaterialCommunityIcons name="account-edit" size={24} color="#1A73E8" style={props.style} />
+                <MaterialCommunityIcons
+                  name="account-edit"
+                  size={24}
+                  color="#1A73E8"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#5F6368"
+                  style={props.style}
+                />
+              )}
               onPress={handleEditProfile}
             />
             <Divider style={styles.divider} />
@@ -157,9 +229,21 @@ export default function ProfileScreen() {
               title="Settings"
               description="Notifications, theme, privacy"
               left={(props) => (
-                <MaterialCommunityIcons name="cog" size={24} color="#1A73E8" style={props.style} />
+                <MaterialCommunityIcons
+                  name="cog"
+                  size={24}
+                  color="#1A73E8"
+                  style={props.style}
+                />
               )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
+              right={(props) => (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={24}
+                  color="#5F6368"
+                  style={props.style}
+                />
+              )}
               onPress={handleSettings}
             />
           </List.Section>
@@ -183,12 +267,12 @@ export default function ProfileScreen() {
       <View style={styles.guideContainer}>
         <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
         <Text style={styles.guideText}>
-          Complete the profile functionality:\n
-          1. Edit profile: PUT /users/{'{id}'}\n
-          2. Order history: GET /carts/user/{'{id}'}\n
-          3. Address management (CRUD)\n
-          4. Payment methods integration\n
-          5. Settings: theme, notifications, privacy
+          {'Complete the profile functionality:\n'}
+          {'1. Edit profile: PUT /users/{id}\n'}
+          {'2. Order history: GET /carts/user/{id}\n'}
+          {'3. Address management (CRUD)\n'}
+          {'4. Payment methods integration\n'}
+          {'5. Settings: theme, notifications, privacy'}
         </Text>
       </View>
 

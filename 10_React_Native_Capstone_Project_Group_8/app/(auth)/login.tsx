@@ -1,12 +1,13 @@
+
 /**
  * Login Screen - Complete, working implementation
  * Students can use as reference for building register screen
  */
+
 import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
@@ -16,7 +17,12 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Button, TextInput as PaperTextInput, Divider } from 'react-native-paper';
+import {
+  Card,
+  Button,
+  TextInput as PaperTextInput,
+  Divider,
+} from 'react-native-paper';
 import { styles } from './styles';
 
 export default function LoginScreen() {
@@ -46,6 +52,7 @@ export default function LoginScreen() {
     // DummyJSON test credentials: emilys / emilyspass
     setUsername('emilys');
     setPassword('emilyspass');
+
     try {
       await login('emilys', 'emilyspass');
       router.replace(redirect || '/(app)/(tabs)/home');
@@ -56,7 +63,9 @@ export default function LoginScreen() {
 
   React.useEffect(() => {
     if (error) {
-      Alert.alert('Login Failed', error, [{ text: 'OK', onPress: clearError }]);
+      Alert.alert('Login Failed', error, [
+        { text: 'OK', onPress: clearError },
+      ]);
     }
   }, [error, clearError]);
 
@@ -66,7 +75,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Logo/Brand */}
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>🛒</Text>
@@ -78,7 +90,9 @@ export default function LoginScreen() {
         <Card style={styles.card} elevation={3}>
           <Card.Content style={styles.cardContent}>
             <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue shopping</Text>
+            <Text style={styles.subtitle}>
+              Sign in to continue shopping
+            </Text>
 
             {/* Username Field */}
             <PaperTextInput
@@ -107,9 +121,16 @@ export default function LoginScreen() {
               returnKeyType="go"
               onSubmitEditing={handleLogin}
               disabled={isLoading}
-              right={<TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
-              </TouchableOpacity>}
+              right={
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Text style={styles.eyeText}>
+                    {showPassword ? '🙈' : '👁️'}
+                  </Text>
+                </TouchableOpacity>
+              }
             />
 
             {/* Error Display */}
@@ -138,14 +159,24 @@ export default function LoginScreen() {
             {/* Demo Login */}
             <View style={styles.demoContainer}>
               <Divider style={styles.divider} />
-              <TouchableOpacity onPress={handleDemoLogin} disabled={isLoading} style={styles.demoButton}>
-                <Text style={styles.demoButtonText}>Try Demo Account (emilys / emilyspass)</Text>
+
+              <TouchableOpacity
+                onPress={handleDemoLogin}
+                disabled={isLoading}
+                style={styles.demoButton}
+              >
+                <Text style={styles.demoButtonText}>
+                  Try Demo Account (emilys / emilyspass)
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* Register Link */}
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
+              <Text style={styles.registerText}>
+                Don&apos;t have an account?{' '}
+              </Text>
+
               <TouchableOpacity
                 onPress={() => router.push('/(auth)/register')}
                 style={styles.link}

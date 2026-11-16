@@ -8,10 +8,17 @@
  * - Checkout flow (POST /carts)
  * - DummyJSON Carts API: https://dummyjson.com/docs/carts
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { Card, Title, Button, IconButton, TextInput } from 'react-native-paper';
+import { Title, Button, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from './cartStyles';
 
@@ -57,7 +64,13 @@ export default function CartScreen() {
       // else setCart({ items: [], total: 0, discountedTotal: 0, totalProducts: 0, totalQuantity: 0 });
 
       // Mock empty cart for demo
-      setCart({ items: [], total: 0, discountedTotal: 0, totalProducts: 0, totalQuantity: 0 });
+      setCart({
+        items: [],
+        total: 0,
+        discountedTotal: 0,
+        totalProducts: 0,
+        totalQuantity: 0,
+      });
     } catch (error) {
       console.error('Failed to load cart:', error);
     } finally {
@@ -67,23 +80,30 @@ export default function CartScreen() {
 
   const updateQuantity = (productId: number, newQuantity: number) => {
     if (!cart) return;
+
     if (newQuantity <= 0) {
       removeItem(productId);
       return;
     }
-    const item = cart.items.find((i) => i.productId === productId);
+
+    const item = cart.items.find((currentItem) => currentItem.productId === productId);
+
     if (item && newQuantity > item.stock) {
       Alert.alert('Out of Stock', `Only ${item.stock} items available`);
       return;
     }
 
     // TODO: Update AsyncStorage and state
-    setCart((prev) => {
-      if (!prev) return prev;
-      const updatedItems = prev.items.map((i) =>
-        i.productId === productId ? { ...i, quantity: newQuantity } : i
+    setCart((previousCart) => {
+      if (!previousCart) return previousCart;
+
+      const updatedItems = previousCart.items.map((currentItem) =>
+        currentItem.productId === productId
+          ? { ...currentItem, quantity: newQuantity }
+          : currentItem
       );
-      return calculateTotals({ ...prev, items: updatedItems });
+
+      return calculateTotals({ ...previousCart, items: updatedItems });
     });
   };
 
@@ -94,10 +114,14 @@ export default function CartScreen() {
         text: 'Remove',
         style: 'destructive',
         onPress: () => {
-          setCart((prev) => {
-            if (!prev) return prev;
-            const updatedItems = prev.items.filter((i) => i.productId !== productId);
-            return calculateTotals({ ...prev, items: updatedItems });
+          setCart((previousCart) => {
+            if (!previousCart) return previousCart;
+
+            const updatedItems = previousCart.items.filter(
+              (item) => item.productId !== productId
+            );
+
+            return calculateTotals({ ...previousCart, items: updatedItems });
           });
         },
       },
@@ -105,14 +129,31 @@ export default function CartScreen() {
   };
 
   const calculateTotals = (cartData: Cart): Cart => {
-    const total = cartData.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const discountedTotal = cartData.items.reduce(
-      (sum, item) => sum + item.price * (1 - item.discountPercentage / 100) * item.quantity,
+    const total = cartData.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
       0
     );
+
+    const discountedTotal = cartData.items.reduce(
+      (sum, item) =>
+        sum +
+        item.price * (1 - item.discountPercentage / 100) * item.quantity,
+      0
+    );
+
     const totalProducts = cartData.items.length;
-    const totalQuantity = cartData.items.reduce((sum, item) => sum + item.quantity, 0);
-    return { ...cartData, total, discountedTotal, totalProducts, totalQuantity };
+    const totalQuantity = cartData.items.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
+
+    return {
+      ...cartData,
+      total,
+      discountedTotal,
+      totalProducts,
+      totalQuantity,
+    };
   };
 
   const handleCheckout = async () => {
@@ -139,18 +180,33 @@ export default function CartScreen() {
   };
 
   const renderItem = ({ item }: { item: CartItem }) => {
-    const discountedPrice = item.price * (1 - item.discountPercentage / 100);
+    const discountedPrice =
+      item.price * (1 - item.discountPercentage / 100);
+
     return (
       <View style={styles.cartItem}>
-        <Image source={{ uri: item.thumbnail }} style={styles.itemImage} resizeMode="contain" />
+        <Image
+          source={{ uri: item.thumbnail }}
+          style={styles.itemImage}
+          resizeMode="contain"
+        />
+
         <View style={styles.itemInfo}>
-          <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.itemTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+
           <View style={styles.itemPriceRow}>
-            <Text style={styles.itemCurrentPrice}>${discountedPrice.toFixed(2)}</Text>
+            <Text style={styles.itemCurrentPrice}>
+              ${discountedPrice.toFixed(2)}
+            </Text>
             {item.discountPercentage > 0 && (
-              <Text style={styles.itemOriginalPrice}>${item.price.toFixed(2)}</Text>
+              <Text style={styles.itemOriginalPrice}>
+                ${item.price.toFixed(2)}
+              </Text>
             )}
           </View>
+
           <View style={styles.quantityControls}>
             <IconButton
               icon="minus"
@@ -169,6 +225,7 @@ export default function CartScreen() {
             />
           </View>
         </View>
+
         <IconButton
           icon="delete-outline"
           size={24}
@@ -195,7 +252,11 @@ export default function CartScreen() {
     <View style={styles.container}>
       {isEmpty ? (
         <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="cart-outline" size={80} color="#DADCE0" />
+          <MaterialCommunityIcons
+            name="cart-outline"
+            size={80}
+            color="#DADCE0"
+          />
           <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
           <Text style={styles.emptyText}>Add some products to get started</Text>
           <Button
@@ -217,7 +278,9 @@ export default function CartScreen() {
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             ListHeaderComponent={
               <View style={styles.header}>
-                <Title style={styles.headerTitle}>Shopping Cart ({cart!.totalQuantity} items)</Title>
+                <Title style={styles.headerTitle}>
+                  Shopping Cart ({cart!.totalQuantity} items)
+                </Title>
               </View>
             }
           />
@@ -226,19 +289,29 @@ export default function CartScreen() {
           <View style={styles.summaryContainer}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>${cart!.total.toFixed(2)}</Text>
+              <Text style={styles.summaryValue}>
+                ${cart!.total.toFixed(2)}
+              </Text>
             </View>
+
             {cart!.total !== cart!.discountedTotal && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Discount</Text>
-                <Text style={styles.discountValue}>-${(cart!.total - cart!.discountedTotal).toFixed(2)}</Text>
+                <Text style={styles.discountValue}>
+                  -${(cart!.total - cart!.discountedTotal).toFixed(2)}
+                </Text>
               </View>
             )}
+
             <View style={styles.summaryRowDivider} />
+
             <View style={styles.summaryRowTotal}>
               <Text style={styles.summaryLabelTotal}>Total</Text>
-              <Text style={styles.summaryValueTotal}>${cart!.discountedTotal.toFixed(2)}</Text>
+              <Text style={styles.summaryValueTotal}>
+                ${cart!.discountedTotal.toFixed(2)}
+              </Text>
             </View>
+
             <Button
               mode="contained"
               onPress={handleCheckout}
@@ -255,16 +328,14 @@ export default function CartScreen() {
       <View style={styles.guideContainer}>
         <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
         <Text style={styles.guideText}>
-          Complete the cart functionality:\n
-          1. Cart Context with useReducer (add, remove, update)\n
-          2. Persist cart to AsyncStorage\n
-          3. Sync with DummyJSON: GET/POST /carts\n
-          4. Apply coupons (GET /carts/{'{id}'}/apply-coupon)\n
-          5. Checkout flow with order confirmation
+          {'Complete the cart functionality:\n'}
+          {'1. Cart Context with useReducer (add, remove, update)\n'}
+          {'2. Persist cart to AsyncStorage\n'}
+          {'3. Sync with DummyJSON: GET/POST /carts\n'}
+          {'4. Apply coupons (GET /carts/{id}/apply-coupon)\n'}
+          {'5. Checkout flow with order confirmation'}
         </Text>
       </View>
     </View>
   );
 }
-
-import { Image } from 'react-native';

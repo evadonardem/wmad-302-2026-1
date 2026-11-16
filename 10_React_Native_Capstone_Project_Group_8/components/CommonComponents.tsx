@@ -108,7 +108,7 @@ export function ProductCard({ product, onPress, style }: ProductCardProps) {
           />
           {product.discountPercentage > 0 && (
             <Badge style={styles.discountBadge}>
-              -{Math.round(product.discountPercentage)}%
+              {'-' + Math.round(product.discountPercentage) + '%'}
             </Badge>
           )}
         </View>

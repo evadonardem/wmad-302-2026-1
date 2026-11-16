@@ -6,10 +6,23 @@
  * - Sort by price, rating, discount, newest
  * - Infinite scroll pagination
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Image,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { Card, Title, Chip, Button, TextInput as PaperTextInput } from 'react-native-paper';
+import {
+  Card,
+  Title,
+  TextInput as PaperTextInput,
+} from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from './searchStyles';
 
@@ -27,24 +40,36 @@ interface Product {
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Product[]>([]);
+  const [results] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'price' | 'rating' | 'discount' | 'newest'>('rating');
+  const [sortBy, setSortBy] = useState<
+    'price' | 'rating' | 'discount' | 'newest'
+  >('rating');
 
   const categories = [
-    'smartphones', 'laptops', 'fragrances', 'skincare', 'groceries', 'home-decoration',
+    'smartphones',
+    'laptops',
+    'fragrances',
+    'skincare',
+    'groceries',
+    'home-decoration',
   ];
 
   const handleSearch = async () => {
     if (!query.trim()) return;
+
     setLoading(true);
+
     try {
       // TODO: Student implementation
       // const response = await fetch(`https://dummyjson.com/products/search?q=${encodeURIComponent(query)}`);
       // const data = await response.json();
       // setResults(data.products || []);
-      Alert.alert('TODO', 'Implement search: GET /products/search?q=' + query);
+      Alert.alert(
+        'TODO',
+        'Implement search: GET /products/search?q=' + query
+      );
     } catch {
       // Handle error
     } finally {
@@ -53,7 +78,9 @@ export default function SearchScreen() {
   };
 
   const renderResult = ({ item }: { item: Product }) => {
-    const discountedPrice = item.price * (1 - item.discountPercentage / 100);
+    const discountedPrice =
+      item.price * (1 - item.discountPercentage / 100);
+
     return (
       <TouchableOpacity
         style={styles.resultCard}
@@ -61,14 +88,24 @@ export default function SearchScreen() {
       >
         <Card style={styles.card} elevation={1}>
           <View style={styles.resultContent}>
-            <Image source={{ uri: item.thumbnail }} style={styles.resultImage} resizeMode="contain" />
+            <Image
+              source={{ uri: item.thumbnail }}
+              style={styles.resultImage}
+              resizeMode="contain"
+            />
             <View style={styles.resultInfo}>
               <Text style={styles.resultCategory}>{item.category}</Text>
-              <Title style={styles.resultTitle} numberOfLines={2}>{item.title}</Title>
+              <Title style={styles.resultTitle} numberOfLines={2}>
+                {item.title}
+              </Title>
               <View style={styles.resultPrice}>
-                <Text style={styles.currentPrice}>${discountedPrice.toFixed(2)}</Text>
+                <Text style={styles.currentPrice}>
+                  ${discountedPrice.toFixed(2)}
+                </Text>
                 {item.discountPercentage > 0 && (
-                  <Text style={styles.originalPrice}>${item.price.toFixed(2)}</Text>
+                  <Text style={styles.originalPrice}>
+                    ${item.price.toFixed(2)}
+                  </Text>
                 )}
               </View>
               <Text style={styles.resultDetails}>
@@ -81,10 +118,11 @@ export default function SearchScreen() {
     );
   };
 
-  const { Alert } = require('react-native');
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       {/* Search Bar */}
       <View style={styles.searchBarContainer}>
         <PaperTextInput
@@ -93,18 +131,41 @@ export default function SearchScreen() {
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleSearch}
-          left={<MaterialCommunityIcons name="magnify" size={24} color="#5F6368" style={{ marginLeft: 12 }} />}
+          left={
+            <MaterialCommunityIcons
+              name="magnify"
+              size={24}
+              color="#5F6368"
+              style={{ marginLeft: 12 }}
+            />
+          }
           right={
             query ? (
-              <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
-                <MaterialCommunityIcons name="close" size={24} color="#5F6368" style={{ marginRight: 12 }} />
+              <TouchableOpacity
+                onPress={() => setQuery('')}
+                style={styles.clearButton}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color="#5F6368"
+                  style={{ marginRight: 12 }}
+                />
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity onPress={handleSearch} disabled={loading} style={styles.searchButton}>
+              <TouchableOpacity
+                onPress={handleSearch}
+                disabled={loading}
+                style={styles.searchButton}
+              >
                 {loading ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <MaterialCommunityIcons name="magnify" size={24} color="white" />
+                  <MaterialCommunityIcons
+                    name="magnify"
+                    size={24}
+                    color="white"
+                  />
                 )}
               </TouchableOpacity>
             )
@@ -126,13 +187,18 @@ export default function SearchScreen() {
                 styles.filterChip,
                 selectedCategory === item && styles.filterChipSelected,
               ]}
-              onPress={() => setSelectedCategory(selectedCategory === item ? null : item)}
+              onPress={() =>
+                setSelectedCategory(selectedCategory === item ? null : item)
+              }
             >
-              <Text style={[
-                styles.filterChipText,
-                selectedCategory === item && styles.filterChipTextSelected,
-              ]}>
-                {item.charAt(0).toUpperCase() + item.slice(1).replace('-', ' ')}
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedCategory === item && styles.filterChipTextSelected,
+                ]}
+              >
+                {item.charAt(0).toUpperCase() +
+                  item.slice(1).replace('-', ' ')}
               </Text>
             </TouchableOpacity>
           )}
@@ -144,40 +210,52 @@ export default function SearchScreen() {
       <View style={styles.sortSection}>
         <Title style={styles.filterTitle}>Sort By</Title>
         <View style={styles.sortOptions}>
-          {(['price', 'rating', 'discount', 'newest'] as const).map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.sortChip,
-                sortBy === option && styles.sortChipSelected,
-              ]}
-              onPress={() => setSortBy(option)}
-            >
-              <Text style={[
-                styles.sortChipText,
-                sortBy === option && styles.sortChipTextSelected,
-              ]}>
-                {option.charAt(0).toUpperCase() + option.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {(['price', 'rating', 'discount', 'newest'] as const).map(
+            (option) => (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  styles.sortChip,
+                  sortBy === option && styles.sortChipSelected,
+                ]}
+                onPress={() => setSortBy(option)}
+              >
+                <Text
+                  style={[
+                    styles.sortChipText,
+                    sortBy === option && styles.sortChipTextSelected,
+                  ]}
+                >
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            )
+          )}
         </View>
       </View>
 
       {/* Results */}
       <View style={styles.resultsSection}>
         <Title style={styles.resultsTitle}>
-          Results {query ? `for "${query}"` : ''} {results.length > 0 && `(${results.length})`}
+          Results {query ? `for "${query}"` : ''}{' '}
+          {results.length > 0 && `(${results.length})`}
         </Title>
+
         {loading ? (
           <View style={styles.loadingCenter}>
             <ActivityIndicator size="large" color="#1A73E8" />
           </View>
         ) : results.length === 0 && query ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="magnify" size={64} color="#DADCE0" />
+            <MaterialCommunityIcons
+              name="magnify"
+              size={64}
+              color="#DADCE0"
+            />
             <Text style={styles.emptyText}>No products found</Text>
-            <Text style={styles.emptySubtext}>Try a different search term</Text>
+            <Text style={styles.emptySubtext}>
+              Try a different search term
+            </Text>
           </View>
         ) : (
           <FlatList
@@ -194,16 +272,14 @@ export default function SearchScreen() {
       <View style={styles.guideContainer}>
         <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
         <Text style={styles.guideText}>
-          Complete the search functionality:\n
-          1. Call GET /products/search?q={query}\n
-          2. Add category filter: &category={'{category}'}\n
-          3. Add price range filters\n
-          4. Implement sort: price, rating, discount\n
-          5. Add pagination with skip/limit
+          {'Complete the search functionality:\n'}
+          {'1. Call GET /products/search?q={query}\n'}
+          {'2. Add category filter: &category={category}\n'}
+          {'3. Add price range filters\n'}
+          {'4. Implement sort: price, rating, discount\n'}
+          {'5. Add pagination with skip/limit'}
         </Text>
       </View>
     </ScrollView>
   );
 }
-
-import { Image } from 'react-native';
