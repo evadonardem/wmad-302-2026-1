@@ -5,6 +5,8 @@
  *
  * Handles:
  * - Authentication storage
+ * - Contact information storage
+ * - Shipping address storage
  * - Favorites storage
  * - Shopping cart storage
  * - Order history storage
@@ -17,6 +19,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CartItem } from '@/types/product';
 import type { AuthUser } from '@/types/auth';
 import type {
+  ContactInformation,
+  SavedShippingAddress,
   Order,
   TrackingEvent,
   TrackingMilestone,
@@ -32,6 +36,19 @@ const STORAGE_KEYS = {
 
 export type StorageKey =
   (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
+/**
+ * Creates separate storage keys for each user's profile information.
+ *
+ * These keys are intentionally not included in STORAGE_KEYS.
+ * This prevents saved contact information and shipping addresses
+ * from being removed when the user logs out.
+ */
+const getContactInformationKey = (userId: number): string =>
+  `marketplace_contact_information_${userId}`;
+
+const getShippingAddressKey = (userId: number): string =>
+  `marketplace_shipping_address_${userId}`;
 
 /**
  * The complete sequence of simulated tracking milestones.
@@ -112,7 +129,7 @@ export async function getStorageItem<T>(
   try {
     const value = await AsyncStorage.getItem(key);
 
-    return value ? JSON.parse(value) as T : null;
+    return value ? (JSON.parse(value) as T) : null;
   } catch (error) {
     console.error(`Failed to get storage item ${key}:`, error);
     return null;
@@ -148,7 +165,11 @@ export async function removeStorageItem(
 }
 
 /**
- * Clear all app storage.
+ * Clear the app-wide storage keys.
+ *
+ * User-specific contact information and shipping addresses
+ * are intentionally preserved so they remain available
+ * after logout and the next login.
  */
 export async function clearAllStorage(): Promise<void> {
   try {
@@ -215,6 +236,176 @@ export const authStorage = {
 
   clearUser: (): Promise<void> =>
     removeStorageItem(STORAGE_KEYS.AUTH_USER),
+};
+
+/* =====================================================
+   CONTACT INFORMATION STORAGE
+===================================================== */
+
+/**
+ * Saves and retrieves contact information separately
+ * for each signed-in user.
+ *
+ * Stored information:
+ * - Full name
+ * - Email
+ * - Phone number
+ *
+ * This information is preserved after logout.
+ */
+export const contactInformationStorage = {
+  /**
+   * Retrieves the saved contact information of a user.
+   *
+   * Returns null when no contact information has been saved.
+   */
+  get: async (
+    userId: number,
+  ): Promise<ContactInformation | null> => {
+    try {
+      const key = getContactInformationKey(userId);
+      const value = await AsyncStorage.getItem(key);
+
+      return value
+        ? (JSON.parse(value) as ContactInformation)
+        : null;
+    } catch (error) {
+      console.error(
+        'Failed to get contact information:',
+        error,
+      );
+
+      return null;
+    }
+  },
+
+  /**
+   * Saves contact information for a specific user.
+   */
+  save: async (
+    userId: number,
+    information: ContactInformation,
+  ): Promise<void> => {
+    try {
+      const key = getContactInformationKey(userId);
+
+      await AsyncStorage.setItem(
+        key,
+        JSON.stringify(information),
+      );
+    } catch (error) {
+      console.error(
+        'Failed to save contact information:',
+        error,
+      );
+
+      throw error;
+    }
+  },
+
+  /**
+   * Removes saved contact information for a specific user.
+   */
+  clear: async (userId: number): Promise<void> => {
+    try {
+      const key = getContactInformationKey(userId);
+
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error(
+        'Failed to clear contact information:',
+        error,
+      );
+
+      throw error;
+    }
+  },
+};
+
+/* =====================================================
+   SHIPPING ADDRESS STORAGE
+===================================================== */
+
+/**
+ * Saves and retrieves shipping addresses separately
+ * for each signed-in user.
+ *
+ * Stored information:
+ * - Street address
+ * - City
+ * - Province
+ * - Postal code
+ *
+ * Contact information is stored separately.
+ * This information is preserved after logout.
+ */
+export const shippingAddressStorage = {
+  /**
+   * Retrieves the saved shipping address of a user.
+   *
+   * Returns null when no shipping address has been saved.
+   */
+  get: async (
+    userId: number,
+  ): Promise<SavedShippingAddress | null> => {
+    try {
+      const key = getShippingAddressKey(userId);
+      const value = await AsyncStorage.getItem(key);
+
+      return value
+        ? (JSON.parse(value) as SavedShippingAddress)
+        : null;
+    } catch (error) {
+      console.error(
+        'Failed to get shipping address:',
+        error,
+      );
+
+      return null;
+    }
+  },
+
+  /**
+   * Saves a shipping address for a specific user.
+   */
+  save: async (
+    userId: number,
+    address: SavedShippingAddress,
+  ): Promise<void> => {
+    try {
+      const key = getShippingAddressKey(userId);
+
+      await AsyncStorage.setItem(
+        key,
+        JSON.stringify(address),
+      );
+    } catch (error) {
+      console.error(
+        'Failed to save shipping address:',
+        error,
+      );
+
+      throw error;
+    }
+  },
+
+  /**
+   * Removes the saved shipping address for a specific user.
+   */
+  clear: async (userId: number): Promise<void> => {
+    try {
+      const key = getShippingAddressKey(userId);
+
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error(
+        'Failed to clear shipping address:',
+        error,
+      );
+
+      throw error;
+    }
+  },
 };
 
 /* =====================================================

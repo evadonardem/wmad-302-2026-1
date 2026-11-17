@@ -4,7 +4,9 @@
  *
  * Features:
  * - Customer contact information
- * - Shipping address
+ * - Separately saved contact information
+ * - Separately saved shipping address
+ * - Automatic saved information loading
  * - Delivery selection
  * - Payment selection
  * - Order summary
@@ -57,6 +59,8 @@ import { useAuth } from '@/context/AuthContext';
 import {
   cartStorage,
   ordersStorage,
+  contactInformationStorage,
+  shippingAddressStorage,
 } from '@/utils/storage';
 
 import type {
@@ -127,19 +131,83 @@ export default function CheckoutScreen() {
     useState<PaymentMethod>('Cash on Delivery');
 
   /**
-   * Prefill customer information from the signed-in account.
+   * Load saved Contact Information and Shipping Address.
+   *
+   * Contact Information and Shipping Address are stored
+   * separately for each signed-in user.
+   *
+   * If no saved contact information exists, the signed-in
+   * account's name and email are used as fallback values.
+   *
+   * Delivery notes are not part of the saved shipping
+   * address record because they may change per order.
    */
   useEffect(() => {
-    if (!user) {
-      return;
-    }
+    let isActive = true;
 
-    setAddress((previous) => ({
-      ...previous,
-      fullName:
-        `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
-      email: user.email ?? '',
-    }));
+    const loadSavedCustomerInformation = async () => {
+      if (!user) {
+        return;
+      }
+
+      try {
+        const [
+          savedContact,
+          savedShippingAddress,
+        ] = await Promise.all([
+          contactInformationStorage.get(user.id),
+          shippingAddressStorage.get(user.id),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        setAddress({
+          ...initialAddress,
+
+          // Saved Contact Information
+          fullName:
+            savedContact?.fullName ??
+            `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
+
+          email:
+            savedContact?.email ??
+            user.email ??
+            '',
+
+          phone:
+            savedContact?.phone ?? '',
+
+          // Saved Shipping Address
+          address:
+            savedShippingAddress?.address ?? '',
+
+          city:
+            savedShippingAddress?.city ?? '',
+
+          province:
+            savedShippingAddress?.province ?? '',
+
+          postalCode:
+            savedShippingAddress?.postalCode ?? '',
+
+          // Delivery notes are entered separately per order.
+          notes: '',
+        });
+      } catch (error) {
+        console.error(
+          'Failed to load saved customer information:',
+          error,
+        );
+      }
+    };
+
+    loadSavedCustomerInformation();
+
+    return () => {
+      isActive = false;
+    };
   }, [user]);
 
   /**
@@ -252,7 +320,7 @@ export default function CheckoutScreen() {
   );
 
   /**
-   * Update one shipping address field.
+   * Update one shipping or contact information field.
    */
   const updateAddress = (
     field: keyof ShippingAddress,
@@ -390,6 +458,13 @@ export default function CheckoutScreen() {
    * Normal cart checkout:
    * Saves the order and clears the purchased cart.
    *
+   * Contact Information and Shipping Address are saved
+   * separately for the signed-in user.
+   *
+   * The order also receives its own permanent customer
+   * snapshot so future profile changes do not modify
+   * previously placed orders.
+   *
    * A tracking reference and initial tracking event are
    * created automatically when the order is placed.
    *
@@ -477,6 +552,44 @@ export default function CheckoutScreen() {
         latestDiscount +
         latestShippingFee;
 
+      /**
+       * Prepare the separate Contact Information record.
+       */
+      const savedContact = {
+        fullName: address.fullName.trim(),
+        email: address.email.trim(),
+        phone: address.phone.trim(),
+      };
+
+      /**
+       * Prepare the separate Shipping Address record.
+       */
+      const savedShippingAddress = {
+        address: address.address.trim(),
+        city: address.city.trim(),
+        province: address.province.trim(),
+        postalCode: address.postalCode.trim(),
+      };
+
+      /**
+       * Save Contact Information and Shipping Address
+       * separately for the currently signed-in user.
+       *
+       * These records can be loaded automatically during
+       * the user's next checkout.
+       */
+      await Promise.all([
+        contactInformationStorage.save(
+          user.id,
+          savedContact,
+        ),
+
+        shippingAddressStorage.save(
+          user.id,
+          savedShippingAddress,
+        ),
+      ]);
+
       // Generate the order ID and tracking reference.
       const orderTimestamp = new Date().toISOString();
       const orderReference = Date.now();
@@ -484,24 +597,29 @@ export default function CheckoutScreen() {
       const orderId = `ORD-${orderReference}`;
       const trackingNumber = `TRK-${orderReference}`;
 
+      /**
+       * Create the order with its own permanent customer
+       * information snapshot.
+       *
+       * This information belongs to this particular order.
+       * Updating the saved contact or shipping address later
+       * will not change this existing order.
+       */
       const order: Order = {
         id: orderId,
         userId: user.id,
         username: user.username,
+
         customer: {
-          ...address,
-          fullName: address.fullName.trim(),
-          email: address.email.trim(),
-          phone: address.phone.trim(),
-          address: address.address.trim(),
-          city: address.city.trim(),
-          province: address.province.trim(),
-          postalCode: address.postalCode.trim(),
+          ...savedContact,
+          ...savedShippingAddress,
           notes: address.notes.trim(),
         },
+
         items: latestCart.map((item) => ({
           ...item,
         })),
+
         subtotal: latestSubtotal,
         discount: latestDiscount,
         shippingFee: latestShippingFee,
@@ -513,6 +631,7 @@ export default function CheckoutScreen() {
 
         // Initial tracking information.
         trackingNumber,
+
         trackingEvents: [
           {
             milestone: 'Order Placed',

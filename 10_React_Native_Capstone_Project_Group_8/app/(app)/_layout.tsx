@@ -1,14 +1,12 @@
 
 /**
  * App Layout - Protected routes with auth guard
+ *
+ * Marketplace App
  */
 
 import React from 'react';
-
-import {
-  Stack,
-  Redirect,
-} from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
 
@@ -42,6 +40,10 @@ export default function AppLayout() {
       <Stack.Screen name="order-confirmation" />
 
       <Stack.Screen name="order-details/[id]" />
+
+      <Stack.Screen name="contact-information" />
+
+      <Stack.Screen name="shipping-address" />
     </Stack>
   );
 }

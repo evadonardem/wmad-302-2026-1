@@ -7,6 +7,8 @@
  * - Shows actual order count and total spending.
  * - Displays the user's wishlist count.
  * - Navigates to My Orders and Wishlist.
+ * - Navigates to Contact Information management.
+ * - Navigates to Shipping Address management.
  * - Supports dynamic light and dark themes.
  * - Refreshes profile statistics whenever the screen is focused.
  */
@@ -44,6 +46,66 @@ import {
 
 import { createProfileStyles } from './profileStyles';
 
+type MenuRowProps = {
+  icon: React.ComponentProps<
+    typeof MaterialCommunityIcons
+  >['name'];
+  title: string;
+  description: string;
+  onPress: () => void;
+  styles: ReturnType<typeof createProfileStyles>;
+  color: string;
+  divider?: boolean;
+};
+
+function MenuRow({
+  icon,
+  title,
+  description,
+  onPress,
+  styles,
+  color,
+  divider = false,
+}: MenuRowProps) {
+  return (
+    <>
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.menuIconContainer}>
+          <MaterialCommunityIcons
+            name={icon}
+            size={23}
+            color={color}
+          />
+        </View>
+
+        <View style={styles.menuTextContainer}>
+          <Text style={styles.menuTitle}>
+            {title}
+          </Text>
+
+          <Text style={styles.menuDescription}>
+            {description}
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={23}
+          color={color}
+        />
+      </TouchableOpacity>
+
+      {divider && (
+        <Divider style={styles.divider} />
+      )}
+    </>
+  );
+}
+
 /**
  * Browser-compatible dialog helpers.
  */
@@ -76,8 +138,6 @@ export default function ProfileScreen() {
 
   /**
    * Load wishlist and order statistics.
-   *
-   * Orders are filtered by the signed-in user's ID.
    */
   const loadProfileStatistics = useCallback(async () => {
     if (!user) {
@@ -172,9 +232,7 @@ export default function ProfileScreen() {
   };
 
   /**
-   * Profile actions.
-   * These features are placeholders until their
-   * corresponding functionality is implemented.
+   * Existing Edit Profile placeholder.
    */
   const handleEditProfile = () => {
     showMessage(
@@ -190,13 +248,23 @@ export default function ProfileScreen() {
     router.push('/(app)/my-orders');
   };
 
-  const handleAddresses = () => {
-    showMessage(
-      'Addresses',
-      'Address management will be implemented in the next development step.',
-    );
+  /**
+   * Navigate to Contact Information.
+   */
+  const handleContactInformation = () => {
+    router.push('/(app)/contact-information');
   };
 
+  /**
+   * Navigate to Shipping Address.
+   */
+  const handleShippingAddress = () => {
+    router.push('/(app)/shipping-address');
+  };
+
+  /**
+   * Existing Payment Methods placeholder.
+   */
   const handlePayment = () => {
     showMessage(
       'Payment Methods',
@@ -240,7 +308,9 @@ export default function ProfileScreen() {
   const fullName =
     [user?.firstName, user?.lastName]
       .filter(Boolean)
-      .join(' ') || user?.username || 'Marketplace User';
+      .join(' ') ||
+    user?.username ||
+    'Marketplace User';
 
   return (
     <ScrollView
@@ -373,67 +443,24 @@ export default function ProfileScreen() {
         </Text>
 
         <Card style={styles.menuCard} mode="elevated">
-          <TouchableOpacity
-            style={styles.menuItem}
+          <MenuRow
+            icon="package-variant"
+            title="My Orders"
+            description="Track and manage your orders"
             onPress={handleOrders}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIconContainer}>
-              <MaterialCommunityIcons
-                name="package-variant"
-                size={23}
-                color={colors.primary}
-              />
-            </View>
+            styles={styles}
+            color={colors.primary}
+            divider
+          />
 
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
-                My Orders
-              </Text>
-
-              <Text style={styles.menuDescription}>
-                Track and manage your orders
-              </Text>
-            </View>
-
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={23}
-              color={colors.onSurfaceVariant}
-            />
-          </TouchableOpacity>
-
-          <Divider style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.menuItem}
+          <MenuRow
+            icon="heart-outline"
+            title="Wishlist"
+            description="Your saved favorite products"
             onPress={handleWishlist}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIconContainer}>
-              <MaterialCommunityIcons
-                name="heart-outline"
-                size={23}
-                color={colors.primary}
-              />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
-                Wishlist
-              </Text>
-
-              <Text style={styles.menuDescription}>
-                Your saved favorite products
-              </Text>
-            </View>
-
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={23}
-              color={colors.onSurfaceVariant}
-            />
-          </TouchableOpacity>
+            styles={styles}
+            color={colors.primary}
+          />
         </Card>
       </View>
 
@@ -444,99 +471,44 @@ export default function ProfileScreen() {
         </Text>
 
         <Card style={styles.menuCard} mode="elevated">
-          <TouchableOpacity
-            style={styles.menuItem}
+          <MenuRow
+            icon="account-edit-outline"
+            title="Edit Profile"
+            description="Update your personal information"
             onPress={handleEditProfile}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIconContainer}>
-              <MaterialCommunityIcons
-                name="account-edit-outline"
-                size={23}
-                color={colors.primary}
-              />
-            </View>
+            styles={styles}
+            color={colors.primary}
+            divider
+          />
 
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
-                Edit Profile
-              </Text>
+          <MenuRow
+            icon="account-box-outline"
+            title="My Contact Information"
+            description="Manage your name, email, and phone number"
+            onPress={handleContactInformation}
+            styles={styles}
+            color={colors.primary}
+            divider
+          />
 
-              <Text style={styles.menuDescription}>
-                Update your personal information
-              </Text>
-            </View>
+          <MenuRow
+            icon="map-marker-outline"
+            title="My Shipping Address"
+            description="Manage your delivery address"
+            onPress={handleShippingAddress}
+            styles={styles}
+            color={colors.primary}
+            divider
+          />
 
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={23}
-              color={colors.onSurfaceVariant}
-            />
-          </TouchableOpacity>
-
-          <Divider style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleAddresses}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIconContainer}>
-              <MaterialCommunityIcons
-                name="map-marker-outline"
-                size={23}
-                color={colors.primary}
-              />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
-                Addresses
-              </Text>
-
-              <Text style={styles.menuDescription}>
-                Manage your delivery addresses
-              </Text>
-            </View>
-
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={23}
-              color={colors.onSurfaceVariant}
-            />
-          </TouchableOpacity>
-
-          <Divider style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.menuItem}
+          <MenuRow
+            icon="credit-card-outline"
+            title="Payment Methods"
+            description="Manage your payment options"
             onPress={handlePayment}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIconContainer}>
-              <MaterialCommunityIcons
-                name="credit-card-outline"
-                size={23}
-                color={colors.primary}
-              />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
-                Payment Methods
-              </Text>
-
-              <Text style={styles.menuDescription}>
-                Manage your payment options
-              </Text>
-            </View>
-
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={23}
-              color={colors.onSurfaceVariant}
-            />
-          </TouchableOpacity>
+            styles={styles}
+            color={colors.primary}
+          />
         </Card>
       </View>
 
@@ -547,35 +519,14 @@ export default function ProfileScreen() {
         </Text>
 
         <Card style={styles.menuCard} mode="elevated">
-          <TouchableOpacity
-            style={styles.menuItem}
+          <MenuRow
+            icon="cog-outline"
+            title="Settings"
+            description="Appearance, notifications, and preferences"
             onPress={handleSettings}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuIconContainer}>
-              <MaterialCommunityIcons
-                name="cog-outline"
-                size={23}
-                color={colors.primary}
-              />
-            </View>
-
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>
-                Settings
-              </Text>
-
-              <Text style={styles.menuDescription}>
-                Appearance, notifications, and preferences
-              </Text>
-            </View>
-
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={23}
-              color={colors.onSurfaceVariant}
-            />
-          </TouchableOpacity>
+            styles={styles}
+            color={colors.primary}
+          />
         </Card>
       </View>
 
