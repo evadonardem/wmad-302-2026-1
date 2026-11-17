@@ -1,16 +1,25 @@
+
 /**
  * AsyncStorage Utilities
  * Marketplace App
  *
- * Handles authentication, profile overrides, contact information,
- * shipping addresses, favorites, cart, orders, cancellation,
- * and simulated order tracking.
+ * Handles:
+ * - Authentication storage
+ * - Profile overrides
+ * - Contact information
+ * - Shipping addresses
+ * - Account-specific favorites
+ * - Account-specific shopping carts
+ * - Order history
+ * - Order cancellation
+ * - Simulated order tracking
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { CartItem } from '@/types/product';
-import type { AuthUser } from '@/types/auth';
+import type { AuthUser, UserId } from '@/types/auth';
+
 import type {
   ContactInformation,
   SavedShippingAddress,
@@ -18,6 +27,10 @@ import type {
   TrackingEvent,
   TrackingMilestone,
 } from '@/types/order';
+
+// =====================================================
+// STORAGE KEYS
+// =====================================================
 
 const STORAGE_KEYS = {
   AUTH_USER: 'auth_user',
@@ -35,14 +48,28 @@ export type ProfileOverrides = Pick<
   'firstName' | 'lastName' | 'username' | 'email' | 'gender'
 >;
 
-const getProfileOverridesKey = (userId: number): string =>
+// =====================================================
+// USER-SPECIFIC STORAGE KEYS
+// =====================================================
+
+const getProfileOverridesKey = (userId: UserId): string =>
   `marketplace_profile_overrides_${userId}`;
 
-const getContactInformationKey = (userId: number): string =>
+const getContactInformationKey = (userId: UserId): string =>
   `marketplace_contact_information_${userId}`;
 
-const getShippingAddressKey = (userId: number): string =>
+const getShippingAddressKey = (userId: UserId): string =>
   `marketplace_shipping_address_${userId}`;
+
+const getFavoritesKey = (userId: UserId): string =>
+  `marketplace_favorites_${encodeURIComponent(String(userId))}`;
+
+const getCartKey = (userId: UserId): string =>
+  `marketplace_cart_${encodeURIComponent(String(userId))}`;
+
+// =====================================================
+// TRACKING CONFIGURATION
+// =====================================================
 
 const TRACKING_MILESTONES: TrackingMilestone[] = [
   'Order Placed',
@@ -88,6 +115,10 @@ function ensureTrackingData(order: Order): Order {
   };
 }
 
+// =====================================================
+// GENERAL STORAGE HELPERS
+// =====================================================
+
 export async function getStorageItem<T>(
   key: StorageKey,
 ): Promise<T | null> {
@@ -121,8 +152,9 @@ export async function removeStorageItem(key: StorageKey): Promise<void> {
 }
 
 /**
- * User-specific profile, contact, and address keys are deliberately
- * excluded from this list so they survive logout.
+ * User-specific information is deliberately excluded.
+ * Profile, contact, address, favorites, and cart data
+ * remain available when the user logs out.
  */
 export async function clearAllStorage(): Promise<void> {
   try {
@@ -170,9 +202,9 @@ export async function setMultipleStorageItems(
   }
 }
 
-/* =====================================================
-   AUTHENTICATION STORAGE
-===================================================== */
+// =====================================================
+// AUTHENTICATION STORAGE
+// =====================================================
 
 export const authStorage = {
   getUser: (): Promise<AuthUser | null> =>
@@ -185,18 +217,116 @@ export const authStorage = {
     removeStorageItem(STORAGE_KEYS.AUTH_USER),
 };
 
-/* =====================================================
-   PROFILE OVERRIDES STORAGE
-===================================================== */
+// =====================================================
+// ACTIVE USER HELPERS
+// =====================================================
 
 /**
- * Saves editable profile information separately for each user.
+ * Gets the currently authenticated user's ID.
  *
- * This is necessary because DummyJSON does not provide persistent
- * profile editing for the demo accounts.
+ * This allows favorites and cart methods to remain
+ * compatible with existing screens that do not pass
+ * a user ID directly.
  */
+async function getCurrentUserId(): Promise<UserId | null> {
+  const user = await authStorage.getUser();
+
+  return user?.id ?? null;
+}
+
+/**
+ * Returns the correct account-specific key.
+ *
+ * When no user is authenticated, the legacy global
+ * key is used for backward compatibility.
+ */
+async function getAccountStorageKey(
+  userKey: (userId: UserId) => string,
+  legacyKey: string,
+): Promise<string> {
+  const userId = await getCurrentUserId();
+
+  return userId !== null ? userKey(userId) : legacyKey;
+}
+
+/**
+ * Migrates existing global favorites/cart data
+ * for an existing DummyJSON demo account.
+ *
+ * New Supabase accounts will NOT automatically inherit
+ * another account's old global data.
+ */
+async function getAccountData<T>(
+  userKey: (userId: UserId) => string,
+  legacyKey: string,
+  defaultValue: T,
+): Promise<T> {
+  try {
+    const user = await authStorage.getUser();
+
+    if (!user) {
+      const legacyValue = await AsyncStorage.getItem(legacyKey);
+
+      return legacyValue
+        ? (JSON.parse(legacyValue) as T)
+        : defaultValue;
+    }
+
+    const accountKey = userKey(user.id);
+    const accountValue = await AsyncStorage.getItem(accountKey);
+
+    if (accountValue !== null) {
+      return JSON.parse(accountValue) as T;
+    }
+
+    // Only migrate legacy data to an existing
+    // DummyJSON account, never to a new Supabase account.
+    const isLegacyDemoAccount =
+      user.authProvider === 'dummyjson' ||
+      (user.authProvider === undefined && typeof user.id === 'number');
+
+    if (isLegacyDemoAccount) {
+      const legacyValue = await AsyncStorage.getItem(legacyKey);
+
+      if (legacyValue !== null) {
+        await AsyncStorage.setItem(accountKey, legacyValue);
+        await AsyncStorage.removeItem(legacyKey);
+
+        return JSON.parse(legacyValue) as T;
+      }
+    }
+
+    return defaultValue;
+  } catch (error) {
+    console.error('Failed to get account-specific storage:', error);
+    return defaultValue;
+  }
+}
+
+async function setAccountData<T>(
+  userKey: (userId: UserId) => string,
+  legacyKey: string,
+  value: T,
+): Promise<void> {
+  try {
+    const storageKey = await getAccountStorageKey(
+      userKey,
+      legacyKey,
+    );
+
+    await AsyncStorage.setItem(storageKey, JSON.stringify(value));
+  } catch (error) {
+    console.error('Failed to save account-specific storage:', error);
+    throw error;
+  }
+}
+
+// =====================================================
+// PROFILE OVERRIDES STORAGE
+// =====================================================
+
 export const profileOverridesStorage = {
-  get: async (userId: number): Promise<ProfileOverrides | null> => {
+  get: async (userId: UserId): Promise<ProfileOverrides | null> => {
     try {
       const value = await AsyncStorage.getItem(
         getProfileOverridesKey(userId),
@@ -210,7 +340,7 @@ export const profileOverridesStorage = {
   },
 
   save: async (
-    userId: number,
+    userId: UserId,
     profile: ProfileOverrides,
   ): Promise<void> => {
     try {
@@ -224,7 +354,7 @@ export const profileOverridesStorage = {
     }
   },
 
-  clear: async (userId: number): Promise<void> => {
+  clear: async (userId: UserId): Promise<void> => {
     try {
       await AsyncStorage.removeItem(getProfileOverridesKey(userId));
     } catch (error) {
@@ -234,12 +364,14 @@ export const profileOverridesStorage = {
   },
 };
 
-/* =====================================================
-   CONTACT INFORMATION STORAGE
-===================================================== */
+// =====================================================
+// CONTACT INFORMATION STORAGE
+// =====================================================
 
 export const contactInformationStorage = {
-  get: async (userId: number): Promise<ContactInformation | null> => {
+  get: async (
+    userId: UserId,
+  ): Promise<ContactInformation | null> => {
     try {
       const value = await AsyncStorage.getItem(
         getContactInformationKey(userId),
@@ -253,7 +385,7 @@ export const contactInformationStorage = {
   },
 
   save: async (
-    userId: number,
+    userId: UserId,
     information: ContactInformation,
   ): Promise<void> => {
     try {
@@ -267,9 +399,11 @@ export const contactInformationStorage = {
     }
   },
 
-  clear: async (userId: number): Promise<void> => {
+  clear: async (userId: UserId): Promise<void> => {
     try {
-      await AsyncStorage.removeItem(getContactInformationKey(userId));
+      await AsyncStorage.removeItem(
+        getContactInformationKey(userId),
+      );
     } catch (error) {
       console.error('Failed to clear contact information:', error);
       throw error;
@@ -277,12 +411,14 @@ export const contactInformationStorage = {
   },
 };
 
-/* =====================================================
-   SHIPPING ADDRESS STORAGE
-===================================================== */
+// =====================================================
+// SHIPPING ADDRESS STORAGE
+// =====================================================
 
 export const shippingAddressStorage = {
-  get: async (userId: number): Promise<SavedShippingAddress | null> => {
+  get: async (
+    userId: UserId,
+  ): Promise<SavedShippingAddress | null> => {
     try {
       const value = await AsyncStorage.getItem(
         getShippingAddressKey(userId),
@@ -298,7 +434,7 @@ export const shippingAddressStorage = {
   },
 
   save: async (
-    userId: number,
+    userId: UserId,
     address: SavedShippingAddress,
   ): Promise<void> => {
     try {
@@ -312,9 +448,11 @@ export const shippingAddressStorage = {
     }
   },
 
-  clear: async (userId: number): Promise<void> => {
+  clear: async (userId: UserId): Promise<void> => {
     try {
-      await AsyncStorage.removeItem(getShippingAddressKey(userId));
+      await AsyncStorage.removeItem(
+        getShippingAddressKey(userId),
+      );
     } catch (error) {
       console.error('Failed to clear shipping address:', error);
       throw error;
@@ -322,18 +460,26 @@ export const shippingAddressStorage = {
   },
 };
 
-/* =====================================================
-   FAVORITES STORAGE
-===================================================== */
+// =====================================================
+// ACCOUNT-SPECIFIC FAVORITES STORAGE
+// =====================================================
 
 export const favoritesStorage = {
   getIds: async (): Promise<number[]> =>
-    (await getStorageItem<number[]>(STORAGE_KEYS.FAVORITES)) ?? [],
+    getAccountData<number[]>(
+      getFavoritesKey,
+      STORAGE_KEYS.FAVORITES,
+      [],
+    ),
 
-  setIds: (ids: number[]) =>
-    setStorageItem(STORAGE_KEYS.FAVORITES, ids),
+  setIds: async (ids: number[]): Promise<void> =>
+    setAccountData(
+      getFavoritesKey,
+      STORAGE_KEYS.FAVORITES,
+      ids,
+    ),
 
-  addId: async (id: number) => {
+  addId: async (id: number): Promise<void> => {
     const ids = await favoritesStorage.getIds();
 
     if (!ids.includes(id)) {
@@ -341,7 +487,7 @@ export const favoritesStorage = {
     }
   },
 
-  removeId: async (id: number) => {
+  removeId: async (id: number): Promise<void> => {
     const ids = await favoritesStorage.getIds();
 
     await favoritesStorage.setIds(
@@ -349,7 +495,7 @@ export const favoritesStorage = {
     );
   },
 
-  toggleId: async (id: number) => {
+  toggleId: async (id: number): Promise<boolean> => {
     const ids = await favoritesStorage.getIds();
 
     if (ids.includes(id)) {
@@ -362,18 +508,26 @@ export const favoritesStorage = {
   },
 };
 
-/* =====================================================
-   SHOPPING CART STORAGE
-===================================================== */
+// =====================================================
+// ACCOUNT-SPECIFIC SHOPPING CART STORAGE
+// =====================================================
 
 export const cartStorage = {
   getCart: async (): Promise<CartItem[]> =>
-    (await getStorageItem<CartItem[]>(STORAGE_KEYS.CART)) ?? [],
+    getAccountData<CartItem[]>(
+      getCartKey,
+      STORAGE_KEYS.CART,
+      [],
+    ),
 
-  setCart: (items: CartItem[]) =>
-    setStorageItem(STORAGE_KEYS.CART, items),
+  setCart: async (items: CartItem[]): Promise<void> =>
+    setAccountData(
+      getCartKey,
+      STORAGE_KEYS.CART,
+      items,
+    ),
 
-  addItem: async (item: CartItem) => {
+  addItem: async (item: CartItem): Promise<void> => {
     const items = await cartStorage.getCart();
 
     const existingIndex = items.findIndex(
@@ -389,7 +543,10 @@ export const cartStorage = {
     await cartStorage.setCart(items);
   },
 
-  updateQuantity: async (productId: number, quantity: number) => {
+  updateQuantity: async (
+    productId: number,
+    quantity: number,
+  ): Promise<void> => {
     const items = await cartStorage.getCart();
 
     const index = items.findIndex(
@@ -407,7 +564,7 @@ export const cartStorage = {
     }
   },
 
-  removeItem: async (productId: number) => {
+  removeItem: async (productId: number): Promise<void> => {
     const items = await cartStorage.getCart();
 
     await cartStorage.setCart(
@@ -415,18 +572,29 @@ export const cartStorage = {
     );
   },
 
-  clear: () => removeStorageItem(STORAGE_KEYS.CART),
+  clear: async (): Promise<void> => {
+    const storageKey = await getAccountStorageKey(
+      getCartKey,
+      STORAGE_KEYS.CART,
+    );
+
+    try {
+      await AsyncStorage.removeItem(storageKey);
+    } catch (error) {
+      console.error('Failed to clear shopping cart:', error);
+    }
+  },
 };
 
-/* =====================================================
-   ORDER HISTORY AND TRACKING STORAGE
-===================================================== */
+// =====================================================
+// ORDER HISTORY AND TRACKING STORAGE
+// =====================================================
 
 export const ordersStorage = {
   getOrders: async (): Promise<Order[]> =>
     (await getStorageItem<Order[]>(STORAGE_KEYS.ORDERS)) ?? [],
 
-  getUserOrders: async (userId: number): Promise<Order[]> => {
+  getUserOrders: async (userId: UserId): Promise<Order[]> => {
     const orders = await ordersStorage.getOrders();
 
     return orders
@@ -441,17 +609,31 @@ export const ordersStorage = {
   saveOrder: async (order: Order): Promise<void> => {
     const orders = await ordersStorage.getOrders();
 
-    await setStorageItem(STORAGE_KEYS.ORDERS, [order, ...orders]);
+    await setStorageItem(
+      STORAGE_KEYS.ORDERS,
+      [order, ...orders],
+    );
   },
 
   completeOrder: async (order: Order): Promise<void> => {
     const orders = await ordersStorage.getOrders();
     const updatedOrders = [order, ...orders];
 
+    const cartKey = await getAccountStorageKey(
+      getCartKey,
+      STORAGE_KEYS.CART,
+    );
+
     try {
       await AsyncStorage.multiSet([
-        [STORAGE_KEYS.ORDERS, JSON.stringify(updatedOrders)],
-        [STORAGE_KEYS.CART, JSON.stringify([])],
+        [
+          STORAGE_KEYS.ORDERS,
+          JSON.stringify(updatedOrders),
+        ],
+        [
+          cartKey,
+          JSON.stringify([]),
+        ],
       ]);
     } catch (error) {
       console.error('Failed to complete order:', error);
@@ -459,7 +641,9 @@ export const ordersStorage = {
     }
   },
 
-  getOrderById: async (orderId: string): Promise<Order | null> => {
+  getOrderById: async (
+    orderId: string,
+  ): Promise<Order | null> => {
     const orders = await ordersStorage.getOrders();
 
     const order = orders.find((item) => item.id === orderId);
@@ -469,7 +653,7 @@ export const ordersStorage = {
 
   advanceTracking: async (
     orderId: string,
-    userId: number,
+    userId: UserId,
   ): Promise<Order | null> => {
     const orders = await ordersStorage.getOrders();
 
@@ -492,6 +676,7 @@ export const ordersStorage = {
     }
 
     const orderWithTracking = ensureTrackingData(selectedOrder);
+
     const trackingEvents = [
       ...(orderWithTracking.trackingEvents ?? []),
     ];
@@ -549,7 +734,7 @@ export const ordersStorage = {
 
   cancelOrder: async (
     orderId: string,
-    userId: number,
+    userId: UserId,
   ): Promise<Order | null> => {
     const orders = await ordersStorage.getOrders();
 

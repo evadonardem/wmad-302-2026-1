@@ -1,46 +1,56 @@
 
 /**
- * Register Screen - SKELETON WITH TODOs
- * Students complete this screen to learn auth flow
+ * Register Screen - Marketplace App
  *
- * TODO LIST:
- * 1. Wire form validation
- * 2. Call authApi.register() in handleRegister
- * 3. On success, call context.login() or navigate to login
- * 4. Add password confirmation field
- * 5. Add terms checkbox
- * 6. Handle loading/error states properly
- * 7. Test with DummyJSON /auth/register endpoint
+ * Features:
+ * - Real Supabase account registration.
+ * - First name, last name, username, and email.
+ * - Password and confirmation validation.
+ * - Optional age and gender.
+ * - Terms agreement.
+ * - Email confirmation handling.
+ * - Automatic session handling.
+ * - Visible success and error messages for web and mobile.
+ * - Dynamic light/dark theme support.
  */
 
 import React, { useState } from 'react';
+
 import {
   View,
   Text,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+
 import { useRouter } from 'expo-router';
+
 import { useAuth } from '@/context/AuthContext';
+
 import {
   Card,
   Button,
   TextInput as PaperTextInput,
   Checkbox,
+  useTheme,
 } from 'react-native-paper';
+
 import { styles } from './styles';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const theme = useTheme();
 
-  // Removed unused register destructuring.
-  const { isLoading, error, clearError } = useAuth();
+  const {
+    register,
+    isLoading,
+    error,
+    clearError,
+  } = useAuth();
 
-  // Form state
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -53,147 +63,351 @@ export default function RegisterScreen() {
   });
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Validation helpers
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
+
+  const [formError, setFormError] = useState('');
+
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const [successAction, setSuccessAction] = useState<
+    'login' | 'home' | null
+  >(null);
+
+  /**
+   * Validate registration form.
+   */
   const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) return 'First name is required';
-    if (!formData.lastName.trim()) return 'Last name is required';
-    if (!formData.username.trim()) return 'Username is required';
-    if (formData.username.length < 3) {
-      return 'Username must be at least 3 characters';
+    if (!formData.firstName.trim()) {
+      return 'First name is required.';
     }
-    if (!formData.email.trim()) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      return 'Invalid email format';
+
+    if (!formData.lastName.trim()) {
+      return 'Last name is required.';
     }
-    if (!formData.password) return 'Password is required';
+
+    if (!formData.username.trim()) {
+      return 'Username is required.';
+    }
+
+    if (formData.username.trim().length < 3) {
+      return 'Username must be at least 3 characters.';
+    }
+
+    if (!formData.email.trim()) {
+      return 'Email is required.';
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(formData.email.trim())) {
+      return 'Please enter a valid email address.';
+    }
+
+    if (!formData.password) {
+      return 'Password is required.';
+    }
+
     if (formData.password.length < 6) {
-      return 'Password must be at least 6 characters';
+      return 'Password must be at least 6 characters.';
     }
+
     if (formData.password !== formData.confirmPassword) {
-      return 'Passwords do not match';
+      return 'Passwords do not match.';
     }
-    if (
-      formData.age &&
-      (parseInt(formData.age, 10) < 13 ||
-        parseInt(formData.age, 10) > 120)
-    ) {
-      return 'Age must be between 13 and 120';
+
+    if (formData.age.trim()) {
+      const age = Number(formData.age);
+
+      if (
+        !Number.isInteger(age) ||
+        age < 13 ||
+        age > 120
+      ) {
+        return 'Age must be a whole number between 13 and 120.';
+      }
     }
+
     if (!agreedToTerms) {
-      return 'You must agree to the Terms of Service';
+      return 'You must agree to the Terms of Service.';
     }
+
     return null;
   };
 
+  /**
+   * Reset the registration form.
+   */
+  const resetForm = () => {
+    setFormData({
+      firstName: '',
+      lastName: '',
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      age: '',
+      gender: 'male',
+    });
+
+    setAgreedToTerms(false);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  /**
+   * Register a new Supabase account.
+   */
   const handleRegister = async () => {
+    setFormError('');
+    setSuccessMessage('');
+    setSuccessAction(null);
+
+    if (error) {
+      clearError();
+    }
+
     const validationError = validateForm();
 
     if (validationError) {
-      Alert.alert('Validation Error', validationError);
+      setFormError(validationError);
       return;
     }
 
-    // TODO: Student Implementation
-    // 1. Call authApi.register() with formData
-    //    - Import authApi from '@/services/authApi'
-    //    - Pass: firstName, lastName, username, password, email, age, gender
-    // 2. On success:
-    //    - Option A: Auto-login by calling context.login(username, password)
-    //    - Option B: Show success alert and navigate to login screen
-    // 3. On failure: Error is handled by context (shows in error state)
-
     try {
-      // TODO: Replace with actual implementation
-      // const user = await authApi.register({
-      //   firstName: formData.firstName.trim(),
-      //   lastName: formData.lastName.trim(),
-      //   username: formData.username.trim(),
-      //   password: formData.password,
-      //   email: formData.email.trim(),
-      //   age: formData.age ? parseInt(formData.age, 10) : undefined,
-      //   gender: formData.gender,
-      // });
-      //
-      // // Auto-login after registration
-      // await login(formData.username.trim(), formData.password);
-      // router.replace('/(app)/(tabs)/home');
+      const result = await register({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        age: formData.age.trim()
+          ? Number(formData.age)
+          : undefined,
+        gender: formData.gender,
+      });
 
-      Alert.alert(
-        'TODO: Implement Register',
-        'Complete the register function by:\n1. Calling authApi.register()\n2. Auto-login or redirect to login\n3. Handle errors',
-        [{ text: 'OK' }]
+      // Only clear the form after registration succeeds.
+      resetForm();
+
+      if (result.needsEmailConfirmation) {
+        setSuccessMessage(
+          'Your Marketplace account has been created successfully! Please check your email and verify your account before signing in.',
+        );
+
+        setSuccessAction('login');
+
+        return;
+      }
+
+      setSuccessMessage(
+        'Congratulations! Your Marketplace account has been created successfully. You can now start shopping!',
       );
-    } catch (err) {
-      // Error handled by context
-      console.error('Registration error:', err);
+
+      setSuccessAction('home');
+    } catch (registrationError) {
+      console.error(
+        'Registration failed:',
+        registrationError,
+      );
+
+      const message =
+        registrationError instanceof Error
+          ? registrationError.message
+          : 'Something went wrong during registration. Please try again.';
+
+      setFormError(message);
     }
   };
 
-  const handleFieldChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  /**
+   * Update form fields.
+   */
+  const handleFieldChange = (
+    field: string,
+    value: string,
+  ) => {
+    setFormData((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
 
-    if (error) clearError();
-  };
+    setFormError('');
+    setSuccessMessage('');
+    setSuccessAction(null);
 
-  React.useEffect(() => {
     if (error) {
-      Alert.alert('Registration Failed', error, [
-        { text: 'OK', onPress: clearError },
-      ]);
+      clearError();
     }
-  }, [error, clearError]);
+  };
+
+  /**
+   * Continue after successful registration.
+   */
+  const handleSuccessContinue = () => {
+    if (successAction === 'login') {
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    if (successAction === 'home') {
+      router.replace('/(app)/(tabs)/home');
+    }
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={
+        Platform.OS === 'ios'
+          ? 'padding'
+          : 'height'
+      }
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Logo/Brand */}
+        {/* Logo and Brand */}
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>🛒</Text>
-          <Text style={styles.appName}>Marketplace</Text>
-          <Text style={styles.tagline}>Create Your Account</Text>
+
+          <Text style={styles.appName}>
+            Marketplace
+          </Text>
+
+          <Text style={styles.tagline}>
+            Create Your Account
+          </Text>
         </View>
 
-        {/* Register Card */}
-        <Card style={styles.card} elevation={3}>
+        {/* Registration Card */}
+        <Card
+          style={styles.card}
+          elevation={3}
+        >
           <Card.Content style={styles.cardContent}>
-            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.title}>
+              Create Account
+            </Text>
+
             <Text style={styles.subtitle}>
               Start shopping smarter today
             </Text>
 
-            {/* Name Fields Row */}
+            {/* Success Message */}
+            {successMessage ? (
+              <View
+                style={{
+                  backgroundColor:
+                    theme.colors.secondaryContainer,
+                  borderRadius: 10,
+                  padding: 14,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: theme.colors.outline,
+                }}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.onSecondaryContainer,
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    marginBottom: 6,
+                  }}
+                >
+                  ✓ Registration Successful!
+                </Text>
+
+                <Text
+                  style={{
+                    color: theme.colors.onSecondaryContainer,
+                    fontSize: 14,
+                    lineHeight: 21,
+                  }}
+                >
+                  {successMessage}
+                </Text>
+
+                <Button
+                  mode="contained"
+                  onPress={handleSuccessContinue}
+                  style={{ marginTop: 14 }}
+                  buttonColor={theme.colors.primary}
+                >
+                  {successAction === 'login'
+                    ? 'Go to Sign In'
+                    : 'Continue to Marketplace'}
+                </Button>
+              </View>
+            ) : null}
+
+            {/* Validation / Registration Error */}
+            {formError || error ? (
+              <View
+                style={{
+                  backgroundColor: theme.colors.errorContainer,
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: theme.colors.error,
+                }}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.onErrorContainer,
+                    fontWeight: 'bold',
+                    marginBottom: 4,
+                  }}
+                >
+                  Registration Failed
+                </Text>
+
+                <Text
+                  style={{
+                    color: theme.colors.onErrorContainer,
+                    fontSize: 14,
+                    lineHeight: 20,
+                  }}
+                >
+                  {formError || error}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* First and Last Name */}
             <View style={styles.nameRow}>
               <PaperTextInput
                 label="First Name"
                 mode="outlined"
                 value={formData.firstName}
-                onChangeText={(v) => handleFieldChange('firstName', v)}
+                onChangeText={(value) =>
+                  handleFieldChange('firstName', value)
+                }
                 style={[styles.input, styles.halfInput]}
                 autoCapitalize="words"
                 autoComplete="given-name"
                 returnKeyType="next"
-                disabled={isLoading}
+                disabled={isLoading || !!successMessage}
               />
 
               <PaperTextInput
                 label="Last Name"
                 mode="outlined"
                 value={formData.lastName}
-                onChangeText={(v) => handleFieldChange('lastName', v)}
+                onChangeText={(value) =>
+                  handleFieldChange('lastName', value)
+                }
                 style={[styles.input, styles.halfInput]}
                 autoCapitalize="words"
                 autoComplete="family-name"
                 returnKeyType="next"
-                disabled={isLoading}
+                disabled={isLoading || !!successMessage}
               />
             </View>
 
@@ -202,26 +416,33 @@ export default function RegisterScreen() {
               label="Username"
               mode="outlined"
               value={formData.username}
-              onChangeText={(v) => handleFieldChange('username', v)}
+              onChangeText={(value) =>
+                handleFieldChange('username', value)
+              }
               style={styles.input}
               autoCapitalize="none"
+              autoCorrect={false}
               autoComplete="username"
               returnKeyType="next"
-              disabled={isLoading}
+              disabled={isLoading || !!successMessage}
             />
 
             {/* Email */}
             <PaperTextInput
-              label="Email"
+              label="Email Address"
               mode="outlined"
               value={formData.email}
-              onChangeText={(v) => handleFieldChange('email', v)}
+              onChangeText={(value) =>
+                handleFieldChange('email', value)
+              }
               style={styles.input}
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
               autoComplete="email"
+              textContentType="emailAddress"
               returnKeyType="next"
-              disabled={isLoading}
+              disabled={isLoading || !!successMessage}
             />
 
             {/* Password */}
@@ -229,21 +450,26 @@ export default function RegisterScreen() {
               label="Password"
               mode="outlined"
               value={formData.password}
-              onChangeText={(v) => handleFieldChange('password', v)}
+              onChangeText={(value) =>
+                handleFieldChange('password', value)
+              }
               style={styles.input}
               secureTextEntry={!showPassword}
               autoComplete="new-password"
+              textContentType="newPassword"
               returnKeyType="next"
-              disabled={isLoading}
+              disabled={isLoading || !!successMessage}
               right={
-                <View style={styles.eyeIcon}>
-                  <Text
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeText}
-                  >
-                    {showPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
+                <PaperTextInput.Icon
+                  icon={
+                    showPassword
+                      ? 'eye-off'
+                      : 'eye'
+                  }
+                  onPress={() =>
+                    setShowPassword(!showPassword)
+                  }
+                />
               }
             />
 
@@ -252,45 +478,65 @@ export default function RegisterScreen() {
               label="Confirm Password"
               mode="outlined"
               value={formData.confirmPassword}
-              onChangeText={(v) => handleFieldChange('confirmPassword', v)}
+              onChangeText={(value) =>
+                handleFieldChange(
+                  'confirmPassword',
+                  value,
+                )
+              }
               style={styles.input}
               secureTextEntry={!showConfirmPassword}
               autoComplete="new-password"
+              textContentType="newPassword"
               returnKeyType="next"
-              disabled={isLoading}
+              disabled={isLoading || !!successMessage}
               right={
-                <View style={styles.eyeIcon}>
-                  <Text
-                    onPress={() =>
-                      setShowConfirmPassword(!showConfirmPassword)
-                    }
-                    style={styles.eyeText}
-                  >
-                    {showConfirmPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
+                <PaperTextInput.Icon
+                  icon={
+                    showConfirmPassword
+                      ? 'eye-off'
+                      : 'eye'
+                  }
+                  onPress={() =>
+                    setShowConfirmPassword(
+                      !showConfirmPassword,
+                    )
+                  }
+                />
               }
             />
 
-            {/* Optional Fields */}
+            {/* Optional Age and Gender */}
             <View style={styles.optionalRow}>
               <PaperTextInput
                 label="Age (Optional)"
                 mode="outlined"
                 value={formData.age}
-                onChangeText={(v) => handleFieldChange('age', v)}
+                onChangeText={(value) =>
+                  handleFieldChange('age', value)
+                }
                 style={[styles.input, styles.halfInput]}
                 keyboardType="numeric"
                 returnKeyType="next"
-                disabled={isLoading}
+                disabled={isLoading || !!successMessage}
               />
 
-              <View style={[styles.halfInput, styles.genderSelector]}>
-                <Text style={styles.genderLabel}>Gender</Text>
+              <View
+                style={[
+                  styles.halfInput,
+                  styles.genderSelector,
+                ]}
+              >
+                <Text style={styles.genderLabel}>
+                  Gender
+                </Text>
 
                 <View style={styles.genderOptions}>
                   <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'male')}
+                    onPress={() =>
+                      handleFieldChange('gender', 'male')
+                    }
+                    disabled={isLoading || !!successMessage}
                     style={[
                       styles.genderOption,
                       formData.gender === 'male' &&
@@ -309,7 +555,10 @@ export default function RegisterScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'female')}
+                    onPress={() =>
+                      handleFieldChange('gender', 'female')
+                    }
+                    disabled={isLoading || !!successMessage}
                     style={[
                       styles.genderOption,
                       formData.gender === 'female' &&
@@ -334,64 +583,75 @@ export default function RegisterScreen() {
             <View style={styles.termsContainer}>
               <View style={styles.checkbox}>
                 <Checkbox
-                  status={agreedToTerms ? 'checked' : 'unchecked'}
-                  onPress={() => setAgreedToTerms(!agreedToTerms)}
+                  status={
+                    agreedToTerms
+                      ? 'checked'
+                      : 'unchecked'
+                  }
+                  onPress={() =>
+                    setAgreedToTerms(!agreedToTerms)
+                  }
+                  disabled={isLoading || !!successMessage}
                 />
               </View>
 
               <Text style={styles.termsText}>
                 I agree to the{' '}
-                <Text style={styles.linkText}>Terms of Service</Text>
+                <Text style={styles.linkText}>
+                  Terms of Service
+                </Text>
                 {' '}and{' '}
-                <Text style={styles.linkText}>Privacy Policy</Text>
+                <Text style={styles.linkText}>
+                  Privacy Policy
+                </Text>
               </Text>
             </View>
 
-            {/* Register Button */}
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              loading={isLoading}
-              style={styles.registerButton}
-              disabled={isLoading}
-              contentStyle={styles.buttonContent}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
-              )}
-            </Button>
-
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>
-                Already have an account?{' '}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => router.replace('/(auth)/login')}
-                style={styles.link}
+            {/* Create Account Button */}
+            {!successMessage ? (
+              <Button
+                mode="contained"
+                onPress={handleRegister}
+                loading={isLoading}
+                style={styles.registerButton}
+                disabled={isLoading}
+                contentStyle={styles.buttonContent}
               >
-                <Text style={styles.linkText}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
+                {isLoading ? (
+                  <ActivityIndicator
+                    color="white"
+                    size="small"
+                  />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    Create Account
+                  </Text>
+                )}
+              </Button>
+            ) : null}
+
+            {/* Sign In Link */}
+            {!successMessage ? (
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>
+                  Already have an account?{' '}
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() =>
+                    router.replace('/(auth)/login')
+                  }
+                  style={styles.link}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.linkText}>
+                    Sign In
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </Card.Content>
         </Card>
-
-        {/* Student Guide */}
-        <View style={styles.guideContainer}>
-          <Text style={styles.guideTitle}>
-            📝 Student Implementation Guide
-          </Text>
-
-          <Text style={styles.guideText}>
-            Complete the handleRegister function to:
-            {'\n'}1. Call authApi.register() with form data
-            {'\n'}2. Auto-login or redirect to login
-            {'\n'}3. Handle success/error states
-          </Text>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

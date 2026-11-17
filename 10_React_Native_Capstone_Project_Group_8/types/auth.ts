@@ -1,24 +1,34 @@
+
 /**
- * Auth Types - Shared between both capstone projects
- * Based on DummyJSON Auth API: https://dummyjson.com/docs/auth
+ * Authentication Types - Marketplace App
+ *
+ * Supports:
+ * - Supabase authentication for real registered accounts.
+ * - DummyJSON authentication for the demo account.
  */
 
+export type UserId = string | number;
+
+export type AuthProvider = 'supabase' | 'dummyjson';
+
+export type UserGender = 'male' | 'female';
+
 export interface AuthUser {
-  id: number;
+  id: UserId;
   username: string;
   email: string;
   firstName: string;
   lastName: string;
-  gender: 'male' | 'female';
+  gender: UserGender;
   image: string;
   token: string;
   refreshToken: string;
+  authProvider?: AuthProvider;
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
-  expiresInMins?: number; // optional, default 60
 }
 
 export interface RegisterData {
@@ -28,21 +38,19 @@ export interface RegisterData {
   password: string;
   email: string;
   age?: number;
-  gender?: 'male' | 'female';
+  gender?: UserGender;
   image?: string;
 }
 
-export interface AuthResponse extends AuthUser {
-  // DummyJSON returns the user object with tokens on login/register
-}
+export interface AuthResponse extends AuthUser {}
 
 export interface RefreshTokenResponse {
-  id: number;
+  id: UserId;
   username: string;
   email: string;
   firstName: string;
   lastName: string;
-  gender: 'male' | 'female';
+  gender: UserGender;
   image: string;
   accessToken: string;
   refreshToken: string;

@@ -1,10 +1,16 @@
 
 /**
- * Login Screen - Complete, working implementation
- * Students can use as reference for building register screen
+ * Login Screen - Marketplace App
+ *
+ * Features:
+ * - Supabase email and password login.
+ * - Separate DummyJSON demo account login.
+ * - Dynamic existing styles and theme.
+ * - Supports protected-route redirects.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
 import {
   View,
   Text,
@@ -15,95 +21,157 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+
+import {
+  useRouter,
+  useLocalSearchParams,
+} from 'expo-router';
+
 import { useAuth } from '@/context/AuthContext';
+
 import {
   Card,
   Button,
   TextInput as PaperTextInput,
   Divider,
 } from 'react-native-paper';
+
 import { styles } from './styles';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
-  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
 
-  const [username, setUsername] = useState('');
+  const {
+    login,
+    loginDemo,
+    isLoading,
+    error,
+    clearError,
+  } = useAuth();
+
+  const { redirect } =
+    useLocalSearchParams<{ redirect?: string }>();
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  /**
+   * Supabase email login.
+   */
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both username and password');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert(
+        'Missing Information',
+        'Please enter both your email address and password.',
+      );
       return;
     }
 
     try {
-      await login(username.trim(), password.trim());
-      router.replace(redirect || '/(app)/(tabs)/home');
+      await login(
+        email.trim().toLowerCase(),
+        password,
+      );
+
+      router.replace(
+        redirect || '/(app)/(tabs)/home',
+      );
     } catch {
-      // Error handled in context
+      // Authentication errors are handled by AuthContext.
     }
   };
 
+  /**
+   * DummyJSON demo account login.
+   */
   const handleDemoLogin = async () => {
-    // DummyJSON test credentials: emilys / emilyspass
-    setUsername('emilys');
-    setPassword('emilyspass');
-
     try {
-      await login('emilys', 'emilyspass');
-      router.replace(redirect || '/(app)/(tabs)/home');
+      await loginDemo(
+        'emilys',
+        'emilyspass',
+      );
+
+      router.replace(
+        redirect || '/(app)/(tabs)/home',
+      );
     } catch {
-      // Error handled in context
+      // Authentication errors are handled by AuthContext.
     }
   };
 
-  React.useEffect(() => {
+  /**
+   * Display authentication errors.
+   */
+  useEffect(() => {
     if (error) {
-      Alert.alert('Login Failed', error, [
-        { text: 'OK', onPress: clearError },
-      ]);
+      Alert.alert(
+        'Login Failed',
+        error,
+        [
+          {
+            text: 'OK',
+            onPress: clearError,
+          },
+        ],
+      );
     }
   }, [error, clearError]);
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      behavior={
+        Platform.OS === 'ios'
+          ? 'padding'
+          : 'height'
+      }
+      keyboardVerticalOffset={0}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Logo/Brand */}
+        {/* Logo and Brand */}
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>🛒</Text>
-          <Text style={styles.appName}>Marketplace</Text>
-          <Text style={styles.tagline}>Shop Smart, Save More</Text>
+
+          <Text style={styles.appName}>
+            Marketplace
+          </Text>
+
+          <Text style={styles.tagline}>
+            Shop Smart, Save More
+          </Text>
         </View>
 
         {/* Login Card */}
-        <Card style={styles.card} elevation={3}>
+        <Card
+          style={styles.card}
+          elevation={3}
+        >
           <Card.Content style={styles.cardContent}>
-            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.title}>
+              Welcome Back
+            </Text>
+
             <Text style={styles.subtitle}>
               Sign in to continue shopping
             </Text>
 
-            {/* Username Field */}
+            {/* Email Field */}
             <PaperTextInput
-              label="Username or Email"
+              label="Email Address"
               mode="outlined"
-              value={username}
-              onChangeText={setUsername}
+              value={email}
+              onChangeText={setEmail}
               style={styles.input}
               autoCapitalize="none"
-              autoComplete="username"
-              textContentType="username"
+              autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
+              keyboardType="email-address"
               returnKeyType="next"
               disabled={isLoading}
             />
@@ -116,31 +184,35 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               style={styles.input}
               secureTextEntry={!showPassword}
-              autoComplete="password"
+              autoComplete="current-password"
               textContentType="password"
               returnKeyType="go"
               onSubmitEditing={handleLogin}
               disabled={isLoading}
               right={
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Text style={styles.eyeText}>
-                    {showPassword ? '🙈' : '👁️'}
-                  </Text>
-                </TouchableOpacity>
+                <PaperTextInput.Icon
+                  icon={
+                    showPassword
+                      ? 'eye-off'
+                      : 'eye'
+                  }
+                  onPress={() =>
+                    setShowPassword(!showPassword)
+                  }
+                />
               }
             />
 
             {/* Error Display */}
             {error && (
               <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text style={styles.errorText}>
+                  {error}
+                </Text>
               </View>
             )}
 
-            {/* Login Button */}
+            {/* Sign In Button */}
             <Button
               mode="contained"
               onPress={handleLogin}
@@ -150,9 +222,14 @@ export default function LoginScreen() {
               contentStyle={styles.buttonContent}
             >
               {isLoading ? (
-                <ActivityIndicator color="white" size="small" />
+                <ActivityIndicator
+                  color="white"
+                  size="small"
+                />
               ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
+                <Text style={styles.buttonText}>
+                  Sign In
+                </Text>
               )}
             </Button>
 
@@ -171,17 +248,22 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Register Link */}
+            {/* Registration Link */}
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>
                 Don&apos;t have an account?{' '}
               </Text>
 
               <TouchableOpacity
-                onPress={() => router.push('/(auth)/register')}
+                onPress={() =>
+                  router.push('/(auth)/register')
+                }
                 style={styles.link}
+                disabled={isLoading}
               >
-                <Text style={styles.linkText}>Sign Up</Text>
+                <Text style={styles.linkText}>
+                  Sign Up
+                </Text>
               </TouchableOpacity>
             </View>
           </Card.Content>
@@ -190,7 +272,8 @@ export default function LoginScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By signing in, you agree to our Terms of Service and Privacy Policy
+            By signing in, you agree to our Terms of
+            Service and Privacy Policy
           </Text>
         </View>
       </ScrollView>

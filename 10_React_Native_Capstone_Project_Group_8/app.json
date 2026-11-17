@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Marketplace Capstone",
@@ -12,20 +13,19 @@
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": ["**/*"],
-    "ios": {
+    "ios": { 
       "supportsTablet": true,
-      "bundleIdentifier": "com.wmad302.marketplace"
-    },
-    "android": {
+      "bundleIdentifier": "com.wmad302.marketplace"  
+    },  
+    "android": {  
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff"  
       },
       "package": "com.wmad302.marketplace"
     },
     "web": {
-      "bundler": "metro",
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",

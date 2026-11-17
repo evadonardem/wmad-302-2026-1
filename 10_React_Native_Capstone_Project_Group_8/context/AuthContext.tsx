@@ -1,8 +1,12 @@
+
 /**
- * Auth Context with useReducer
+ * Authentication Context - Marketplace App
  *
- * Restores saved login sessions from local storage.
- * Supports locally saved profile updates.
+ * Supports:
+ * - Supabase registered accounts.
+ * - DummyJSON demo account.
+ * - Persistent session restoration.
+ * - Locally saved profile updates.
  */
 
 import React, {
@@ -20,7 +24,10 @@ import type {
   AuthUser,
 } from '@/types/auth';
 
-import { authApi } from '@/services/authApi';
+import {
+  authApi,
+  type RegistrationResult,
+} from '@/services/authApi';
 
 import {
   authStorage,
@@ -35,7 +42,50 @@ const initialState: AuthState = {
   error: null,
 };
 
-function authReducer(state: AuthState, action: AuthAction): AuthState {
+type RegisterInput = {
+  firstName: string;
+  lastName: string;
+  username: string;
+  password: string;
+  email: string;
+  age?: number;
+  gender?: 'male' | 'female';
+};
+
+interface AuthContextType extends AuthState {
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<void>;
+
+  loginDemo: (
+    username: string,
+    password: string,
+  ) => Promise<void>;
+
+  register: (
+    data: RegisterInput,
+  ) => Promise<RegistrationResult>;
+
+  logout: () => Promise<void>;
+
+  clearError: () => void;
+
+  refreshUser: () => Promise<void>;
+
+  updateProfile: (
+    updates: ProfileOverrides,
+  ) => Promise<void>;
+}
+
+const AuthContext = createContext<
+  AuthContextType | undefined
+>(undefined);
+
+function authReducer(
+  state: AuthState,
+  action: AuthAction,
+): AuthState {
   switch (action.type) {
     case 'AUTH_START':
       return {
@@ -99,36 +149,15 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-type RegisterInput = {
-  firstName: string;
-  lastName: string;
-  username: string;
-  password: string;
-  email: string;
-  age?: number;
-  gender?: 'male' | 'female';
-};
-
-interface AuthContextType extends AuthState {
-  login: (username: string, password: string) => Promise<void>;
-  register: (data: RegisterInput) => Promise<void>;
-  logout: () => Promise<void>;
-  clearError: () => void;
-  refreshUser: () => Promise<void>;
-  updateProfile: (updates: ProfileOverrides) => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(
-  undefined,
-);
-
 /**
- * Applies locally saved profile edits to a user.
+ * Apply locally saved profile edits to a user.
  */
 async function applyProfileOverrides(
   user: AuthUser,
 ): Promise<AuthUser> {
-  const overrides = await profileOverridesStorage.get(user.id);
+  const overrides = await profileOverridesStorage.get(
+    user.id,
+  );
 
   if (!overrides) {
     return user;
@@ -139,6 +168,7 @@ async function applyProfileOverrides(
     ...overrides,
     token: user.token,
     refreshToken: user.refreshToken,
+    authProvider: user.authProvider,
   };
 }
 
@@ -147,11 +177,16 @@ export function AuthProvider({
 }: {
   children: ReactNode;
 }) {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [state, dispatch] = useReducer(
+    authReducer,
+    initialState,
+  );
 
   /**
-   * Restore the locally saved session.
-   * Apply any previously saved profile edits.
+   * Restore the saved authentication session.
+   *
+   * DummyJSON sessions are restored from local storage.
+   * Supabase sessions are restored through Supabase Auth.
    */
   useEffect(() => {
     let isMounted = true;
@@ -160,25 +195,34 @@ export function AuthProvider({
       try {
         const storedUser = await authApi.getStoredUser();
 
-        if (
-          storedUser &&
-          storedUser.id &&
-          storedUser.username &&
-          storedUser.token
-        ) {
-          const userWithOverrides =
-            await applyProfileOverrides(storedUser);
+        let authenticatedUser: AuthUser | null = null;
 
-          if (isMounted) {
-            dispatch({
-              type: 'AUTH_HYDRATE',
-              payload: userWithOverrides,
-            });
+        if (
+          storedUser?.authProvider === 'dummyjson'
+        ) {
+          if (
+            storedUser.id &&
+            storedUser.username &&
+            storedUser.token
+          ) {
+            authenticatedUser = storedUser;
           }
-        } else if (isMounted) {
+        } else {
+          authenticatedUser =
+            await authApi.restoreSupabaseSession();
+        }
+
+        if (authenticatedUser) {
+          authenticatedUser =
+            await applyProfileOverrides(
+              authenticatedUser,
+            );
+        }
+
+        if (isMounted) {
           dispatch({
             type: 'AUTH_HYDRATE',
-            payload: null,
+            payload: authenticatedUser,
           });
         }
       } catch (error) {
@@ -204,22 +248,27 @@ export function AuthProvider({
   }, []);
 
   /**
-   * Login
+   * Supabase email and password login.
    */
   const login = useCallback(
-    async (username: string, password: string) => {
+    async (
+      email: string,
+      password: string,
+    ) => {
       dispatch({ type: 'AUTH_START' });
 
       try {
         const user = await authApi.login({
-          username,
+          email,
           password,
         });
 
         const userWithOverrides =
           await applyProfileOverrides(user);
 
-        await authStorage.setUser(userWithOverrides);
+        await authStorage.setUser(
+          userWithOverrides,
+        );
 
         dispatch({
           type: 'AUTH_SUCCESS',
@@ -227,7 +276,9 @@ export function AuthProvider({
         });
       } catch (error: unknown) {
         const message =
-          error instanceof Error ? error.message : 'Login failed';
+          error instanceof Error
+            ? error.message
+            : 'Login failed';
 
         dispatch({
           type: 'AUTH_FAILURE',
@@ -241,21 +292,87 @@ export function AuthProvider({
   );
 
   /**
-   * Register
-   *
-   * Existing registration implementation is intentionally
-   * left unchanged in this update.
+   * DummyJSON demo account login.
    */
-  const register = useCallback(
-    async (data: RegisterInput) => {
+  const loginDemo = useCallback(
+    async (
+      username: string,
+      password: string,
+    ) => {
       dispatch({ type: 'AUTH_START' });
 
       try {
-        void data;
-
-        throw new Error(
-          'TODO: Implement register in AuthContext - call authApi.register',
+        const user = await authApi.loginDemo(
+          username,
+          password,
         );
+
+        const userWithOverrides =
+          await applyProfileOverrides(user);
+
+        await authStorage.setUser(
+          userWithOverrides,
+        );
+
+        dispatch({
+          type: 'AUTH_SUCCESS',
+          payload: userWithOverrides,
+        });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Demo login failed';
+
+        dispatch({
+          type: 'AUTH_FAILURE',
+          payload: message,
+        });
+
+        throw error;
+      }
+    },
+    [],
+  );
+
+  /**
+   * Supabase account registration.
+   */
+  const register = useCallback(
+    async (
+      data: RegisterInput,
+    ): Promise<RegistrationResult> => {
+      dispatch({ type: 'AUTH_START' });
+
+      try {
+        const result = await authApi.register(data);
+
+        if (!result.user) {
+          // Email confirmation is required.
+          dispatch({
+            type: 'AUTH_HYDRATE',
+            payload: null,
+          });
+
+          return result;
+        }
+
+        const userWithOverrides =
+          await applyProfileOverrides(result.user);
+
+        await authStorage.setUser(
+          userWithOverrides,
+        );
+
+        dispatch({
+          type: 'AUTH_SUCCESS',
+          payload: userWithOverrides,
+        });
+
+        return {
+          ...result,
+          user: userWithOverrides,
+        };
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -274,7 +391,7 @@ export function AuthProvider({
   );
 
   /**
-   * Logout
+   * Logout.
    */
   const logout = useCallback(async () => {
     try {
@@ -292,10 +409,9 @@ export function AuthProvider({
   }, []);
 
   /**
-   * Update the signed-in user's editable profile information.
+   * Update the signed-in user's editable profile.
    *
-   * The profile is saved separately for the current user.
-   * Authentication tokens and other user properties are preserved.
+   * Profile edits are saved locally per account.
    */
   const updateProfile = useCallback(
     async (updates: ProfileOverrides) => {
@@ -320,16 +436,13 @@ export function AuthProvider({
         ...updatedProfile,
       };
 
-      // Save the editable profile separately for this user.
       await profileOverridesStorage.save(
         currentUser.id,
         updatedProfile,
       );
 
-      // Update the locally stored authenticated user.
       await authStorage.setUser(updatedUser);
 
-      // Immediately update the app's authentication state.
       dispatch({
         type: 'AUTH_UPDATE_USER',
         payload: updatedProfile,
@@ -339,51 +452,59 @@ export function AuthProvider({
   );
 
   /**
-   * Refresh user information from DummyJSON.
-   *
-   * Local profile edits take priority over API profile data.
-   * Existing authentication tokens are preserved.
+   * Refresh user information according to the
+   * current authentication provider.
    */
   const refreshUser = useCallback(async () => {
-    if (!state.isAuthenticated) {
+    if (!state.isAuthenticated || !state.user) {
       return;
     }
 
     try {
-      const user = await authApi.getMe();
-      const storedUser = await authApi.getStoredUser();
+      let user: AuthUser;
 
-      if (storedUser) {
-        const mergedUser: AuthUser = {
-          ...storedUser,
-          ...user,
-          token: storedUser.token,
-          refreshToken: storedUser.refreshToken,
-        };
+      if (
+        state.user.authProvider === 'dummyjson'
+      ) {
+        user = await authApi.getMe();
+      } else {
+        const restoredUser =
+          await authApi.restoreSupabaseSession();
 
-        const userWithOverrides =
-          await applyProfileOverrides(mergedUser);
+        if (!restoredUser) {
+          throw new Error(
+            'Your Supabase session has expired. Please log in again.',
+          );
+        }
 
-        await authStorage.setUser(userWithOverrides);
-
-        dispatch({
-          type: 'AUTH_SUCCESS',
-          payload: userWithOverrides,
-        });
+        user = restoredUser;
       }
+
+      const userWithOverrides =
+        await applyProfileOverrides(user);
+
+      await authStorage.setUser(
+        userWithOverrides,
+      );
+
+      dispatch({
+        type: 'AUTH_SUCCESS',
+        payload: userWithOverrides,
+      });
     } catch (error) {
       console.warn(
         'Could not refresh profile information. Keeping the saved session.',
         error,
       );
     }
-  }, [state.isAuthenticated]);
+  }, [state.isAuthenticated, state.user]);
 
   return (
     <AuthContext.Provider
       value={{
         ...state,
         login,
+        loginDemo,
         register,
         logout,
         clearError,

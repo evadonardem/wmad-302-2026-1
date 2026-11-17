@@ -1,41 +1,27 @@
 
 import type { CartItem } from '@/types/product';
+import type { UserId } from '@/types/auth';
 
-/**
- * Order status values.
- */
 export type OrderStatus =
   | 'Processing'
   | 'Shipped'
   | 'Delivered'
   | 'Cancelled';
 
-/**
- * Available payment methods.
- */
 export type PaymentMethod =
   | 'Cash on Delivery'
   | 'Simulated Online Payment';
 
-/**
- * Available delivery methods.
- */
 export type DeliveryMethod =
   | 'Standard Delivery'
   | 'Express Delivery';
 
-/**
- * Contact information saved separately in the user's profile.
- */
 export interface ContactInformation {
   fullName: string;
   email: string;
   phone: string;
 }
 
-/**
- * Shipping address saved separately in the user's profile.
- */
 export interface SavedShippingAddress {
   address: string;
   city: string;
@@ -43,9 +29,6 @@ export interface SavedShippingAddress {
   postalCode: string;
 }
 
-/**
- * Tracking milestones for the simulated order-tracking system.
- */
 export type TrackingMilestone =
   | 'Order Placed'
   | 'Order Confirmed'
@@ -54,21 +37,12 @@ export type TrackingMilestone =
   | 'Out for Delivery'
   | 'Delivered';
 
-/**
- * A saved tracking event with its description and timestamp.
- */
 export interface TrackingEvent {
   milestone: TrackingMilestone;
   description: string;
   timestamp: string;
 }
 
-/**
- * Combined customer information stored as an order snapshot.
- *
- * Keeping this interface preserves compatibility with existing
- * checkout and order-details functionality.
- */
 export interface ShippingAddress {
   fullName: string;
   phone: string;
@@ -80,12 +54,9 @@ export interface ShippingAddress {
   notes: string;
 }
 
-/**
- * Complete marketplace order.
- */
 export interface Order {
   id: string;
-  userId: number;
+  userId: UserId;
   username: string;
   customer: ShippingAddress;
   items: CartItem[];
@@ -97,11 +68,6 @@ export interface Order {
   deliveryMethod: DeliveryMethod;
   status: OrderStatus;
   createdAt: string;
-
-  /**
-   * Optional for compatibility with orders saved before
-   * the tracking system was introduced.
-   */
   trackingNumber?: string;
   trackingEvents?: TrackingEvent[];
 }

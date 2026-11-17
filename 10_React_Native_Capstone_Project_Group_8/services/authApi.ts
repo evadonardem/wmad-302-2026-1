@@ -1,11 +1,16 @@
 
 /**
- * Auth API Service - DummyJSON Authentication
- * Docs: https://dummyjson.com/docs/auth
- * Base URL: https://dummyjson.com/auth
+ * Authentication API Service - Marketplace App
  *
- * Converts DummyJSON's accessToken into the local
- * AuthUser.token property so sessions can be restored.
+ * Supabase:
+ * - Real account registration.
+ * - Email and password login.
+ * - Persistent authentication sessions.
+ *
+ * DummyJSON:
+ * - Demo account login.
+ * - Demo account profile refresh.
+ * - Demo account token refresh.
  */
 
 import axios, {
@@ -14,19 +19,19 @@ import axios, {
 } from 'axios';
 
 import type {
+  AuthUser,
   LoginCredentials,
   RegisterData,
-  AuthUser,
   RefreshTokenResponse,
 } from '@/types/auth';
 
+import { supabase } from '@/services/supabase';
 import { authStorage } from '@/utils/storage';
+
+import type { Session, User } from '@supabase/supabase-js';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
 
-/**
- * Actual user response returned by DummyJSON.
- */
 interface DummyJSONAuthResponse {
   id: number;
   username: string;
@@ -39,10 +44,19 @@ interface DummyJSONAuthResponse {
   refreshToken: string;
 }
 
+interface RegistrationResult {
+  user: AuthUser | null;
+  needsEmailConfirmation: boolean;
+}
+
+function normalizeGender(value: unknown): 'male' | 'female' {
+  return value === 'female' ? 'female' : 'male';
+}
+
 /**
- * Convert DummyJSON response into our local AuthUser format.
+ * Convert DummyJSON response into our AuthUser format.
  */
-function normalizeAuthUser(
+function normalizeDummyJSONUser(
   data: DummyJSONAuthResponse,
 ): AuthUser {
   return {
@@ -55,14 +69,53 @@ function normalizeAuthUser(
     image: data.image,
     token: data.accessToken,
     refreshToken: data.refreshToken,
+    authProvider: 'dummyjson',
+  };
+}
+
+/**
+ * Convert a Supabase session into our AuthUser format.
+ */
+function normalizeSupabaseUser(
+  session: Session,
+): AuthUser {
+  const user: User = session.user;
+  const metadata = user.user_metadata ?? {};
+
+  const email = user.email ?? '';
+
+  return {
+    id: user.id,
+    username:
+      typeof metadata.username === 'string'
+        ? metadata.username
+        : email.split('@')[0] || 'user',
+    email,
+    firstName:
+      typeof metadata.firstName === 'string'
+        ? metadata.firstName
+        : '',
+    lastName:
+      typeof metadata.lastName === 'string'
+        ? metadata.lastName
+        : '',
+    gender: normalizeGender(metadata.gender),
+    image:
+      typeof metadata.image === 'string'
+        ? metadata.image
+        : '',
+    token: session.access_token,
+    refreshToken: session.refresh_token,
+    authProvider: 'supabase',
   };
 }
 
 class AuthApiService {
   private client: AxiosInstance;
 
-  private refreshTokenPromise: Promise<RefreshTokenResponse> | null =
-    null;
+  private refreshTokenPromise:
+    | Promise<RefreshTokenResponse>
+    | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -74,15 +127,18 @@ class AuthApiService {
     });
 
     /**
-     * Request interceptor:
-     * Automatically attach the saved access token.
+     * Attach authentication tokens only to DummyJSON requests.
      */
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        const token = await this.getAccessToken();
+        const user = await authStorage.getUser();
 
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
+        if (
+          user?.authProvider === 'dummyjson' &&
+          user.token &&
+          config.headers
+        ) {
+          config.headers.Authorization = `Bearer ${user.token}`;
         }
 
         return config;
@@ -91,8 +147,7 @@ class AuthApiService {
     );
 
     /**
-     * Response interceptor:
-     * Refresh the access token if the API returns 401.
+     * Refresh expired DummyJSON tokens.
      */
     this.client.interceptors.response.use(
       (response) => response,
@@ -109,6 +164,12 @@ class AuthApiService {
           !originalRequest._retry &&
           !isRefreshRequest
         ) {
+          const currentUser = await authStorage.getUser();
+
+          if (currentUser?.authProvider !== 'dummyjson') {
+            return Promise.reject(error);
+          }
+
           originalRequest._retry = true;
 
           try {
@@ -122,7 +183,7 @@ class AuthApiService {
             await this.clearTokens();
 
             console.warn(
-              'Token refresh failed. The saved session was cleared.',
+              'DummyJSON token refresh failed. The saved demo session was cleared.',
             );
 
             return Promise.reject(refreshError);
@@ -134,154 +195,238 @@ class AuthApiService {
     );
   }
 
-  /**
-   * Get saved access token.
-   */
-  private async getAccessToken(): Promise<string | null> {
-    try {
-      const user = await authStorage.getUser();
-      return user?.token || null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Get saved refresh token.
-   */
-  private async getRefreshToken(): Promise<string | null> {
-    try {
-      const user = await authStorage.getUser();
-      return user?.refreshToken || null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Save normalized user and authentication tokens.
-   */
-  async setTokens(user: AuthUser): Promise<void> {
-    await authStorage.setUser(user);
-  }
-
-  /**
-   * Clear saved authentication information.
-   */
   private async clearTokens(): Promise<void> {
     await authStorage.clearUser();
   }
 
+  async setTokens(user: AuthUser): Promise<void> {
+    await authStorage.setUser(user);
+  }
+
+  async getStoredUser(): Promise<AuthUser | null> {
+    try {
+      return await authStorage.getUser();
+    } catch {
+      return null;
+    }
+  }
+
   /**
-   * Login user.
-   * POST /auth/login
-   *
-   * IMPORTANT:
-   * DummyJSON returns accessToken.
-   * Our application stores it as token.
+   * Supabase email and password login.
    */
-  async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await this.client.post<DummyJSONAuthResponse>(
-      '/login',
-      {
-        username: credentials.username,
+  async login(
+    credentials: LoginCredentials,
+  ): Promise<AuthUser> {
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email: credentials.email.trim().toLowerCase(),
         password: credentials.password,
-        expiresInMins: credentials.expiresInMins || 60,
-      },
-    );
+      });
 
-    const user = normalizeAuthUser(response.data);
+    if (error) {
+      throw error;
+    }
 
-    // Save the correctly normalized user.
+    if (!data.session) {
+      throw new Error(
+        'Login succeeded but no authentication session was returned.',
+      );
+    }
+
+    const user = normalizeSupabaseUser(data.session);
+
     await this.setTokens(user);
 
     return user;
   }
 
   /**
-   * Register user.
-   * TODO: Student implementation.
+   * DummyJSON demo account login.
    */
-  async register(_data: RegisterData): Promise<AuthUser> {
-    throw new Error(
-      'TODO: Implement register - call /auth/register then login',
-    );
+  async loginDemo(
+    username: string,
+    password: string,
+  ): Promise<AuthUser> {
+    // Remove any existing Supabase session before using demo login.
+    const { error: signOutError } =
+      await supabase.auth.signOut();
+
+    if (signOutError) {
+      throw signOutError;
+    }
+
+    const response =
+      await this.client.post<DummyJSONAuthResponse>(
+        '/login',
+        {
+          username: username.trim(),
+          password,
+          expiresInMins: 60,
+        },
+      );
+
+    const user = normalizeDummyJSONUser(response.data);
+
+    await this.setTokens(user);
+
+    return user;
   }
 
   /**
-   * Get current authenticated user.
-   * GET /auth/me
+   * Register a real Supabase account.
+   *
+   * If email confirmation is enabled in Supabase,
+   * the returned session will be null until the user
+   * verifies their email address.
+   */
+  async register(
+    data: RegisterData,
+  ): Promise<RegistrationResult> {
+    const { data: result, error } =
+      await supabase.auth.signUp({
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+        options: {
+          data: {
+            firstName: data.firstName.trim(),
+            lastName: data.lastName.trim(),
+            username: data.username.trim(),
+            age: data.age,
+            gender: data.gender ?? 'male',
+            image: data.image ?? '',
+          },
+        },
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!result.session) {
+      await authStorage.clearUser();
+
+      return {
+        user: null,
+        needsEmailConfirmation: true,
+      };
+    }
+
+    const user = normalizeSupabaseUser(result.session);
+
+    await this.setTokens(user);
+
+    return {
+      user,
+      needsEmailConfirmation: false,
+    };
+  }
+
+  /**
+   * Restore an existing Supabase session.
+   */
+  async restoreSupabaseSession(): Promise<AuthUser | null> {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.session) {
+      await authStorage.clearUser();
+      return null;
+    }
+
+    const user = normalizeSupabaseUser(data.session);
+
+    await this.setTokens(user);
+
+    return user;
+  }
+
+  /**
+   * Get the current authenticated DummyJSON user.
    */
   async getMe(): Promise<AuthUser> {
-    const response = await this.client.get<
-      Omit<DummyJSONAuthResponse, 'accessToken' | 'refreshToken'> &
-      Partial<Pick<DummyJSONAuthResponse, 'accessToken' | 'refreshToken'>>
-    >('/me');
-
     const storedUser = await this.getStoredUser();
 
-    if (!storedUser) {
-      throw new Error('No saved user session found.');
+    if (
+      !storedUser ||
+      storedUser.authProvider !== 'dummyjson'
+    ) {
+      throw new Error(
+        'No authenticated DummyJSON demo session found.',
+      );
     }
+
+    const response = await this.client.get<
+      Omit<
+        DummyJSONAuthResponse,
+        'accessToken' | 'refreshToken'
+      > &
+        Partial<
+          Pick<
+            DummyJSONAuthResponse,
+            'accessToken' | 'refreshToken'
+          >
+        >
+    >('/me');
 
     return {
       ...storedUser,
       ...response.data,
       token: storedUser.token,
       refreshToken: storedUser.refreshToken,
+      authProvider: 'dummyjson',
     };
   }
 
   /**
-   * Refresh access token.
-   * POST /auth/refresh
+   * Refresh DummyJSON access token.
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
-    // Reuse an existing refresh request if one is running.
     if (this.refreshTokenPromise) {
       return this.refreshTokenPromise;
     }
 
-    const refreshToken = await this.getRefreshToken();
+    const storedUser = await this.getStoredUser();
 
-    if (!refreshToken) {
-      throw new Error('No refresh token available.');
+    if (
+      !storedUser ||
+      storedUser.authProvider !== 'dummyjson' ||
+      !storedUser.refreshToken
+    ) {
+      throw new Error(
+        'No DummyJSON refresh token available.',
+      );
     }
 
     this.refreshTokenPromise = this.client
-      .post<{
-        accessToken: string;
-        refreshToken: string;
-        id: number;
-        username: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-        gender: 'male' | 'female';
-        image: string;
-      }>('/refresh', {
-        refreshToken,
-        expiresInMins: 60,
-      })
+      .post<RefreshTokenResponse>(
+        '/refresh',
+        {
+          refreshToken: storedUser.refreshToken,
+          expiresInMins: 60,
+        },
+      )
       .then(async (response) => {
         const currentUser = await this.getStoredUser();
 
         if (!currentUser) {
-          throw new Error('Saved user session not found.');
+          throw new Error(
+            'Saved demo user session not found.',
+          );
         }
 
         const updatedUser: AuthUser = {
           ...currentUser,
           token: response.data.accessToken,
           refreshToken: response.data.refreshToken,
+          authProvider: 'dummyjson',
         };
 
-        // Persist the newly refreshed tokens.
         await this.setTokens(updatedUser);
 
-        return {
-          ...response.data,
-        };
+        return response.data;
       })
       .catch(async (error) => {
         await this.clearTokens();
@@ -295,28 +440,24 @@ class AuthApiService {
   }
 
   /**
-   * Get locally saved user.
+   * Logout from the current authentication provider.
    */
-  async getStoredUser(): Promise<AuthUser | null> {
+  async logout(): Promise<void> {
+    const user = await this.getStoredUser();
+
     try {
-      return await authStorage.getUser();
-    } catch {
-      return null;
+      if (user?.authProvider === 'supabase') {
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+          throw error;
+        }
+      }
+    } finally {
+      await this.clearTokens();
     }
   }
 
-  /**
-   * Logout.
-   * DummyJSON has no logout endpoint.
-   * Clear the local session.
-   */
-  async logout(): Promise<void> {
-    await this.clearTokens();
-  }
-
-  /**
-   * Check whether authentication tokens are saved.
-   */
   async hasValidTokens(): Promise<boolean> {
     const user = await this.getStoredUser();
 
@@ -327,8 +468,7 @@ class AuthApiService {
   }
 }
 
-// Export singleton instance.
 export const authApi = new AuthApiService();
 
-// Export class for testing.
 export { AuthApiService };
+export type { RegistrationResult };
