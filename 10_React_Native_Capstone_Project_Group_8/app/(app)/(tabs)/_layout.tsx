@@ -4,10 +4,11 @@
  *
  * Bottom navigation:
  * - Shop
- * - Categories
+ * - Orders
  * - Wishlist
  * - Profile
  *
+ * Categories remains accessible through the Shop screen.
  * Search and Cart remain available as hidden routes.
  * Dynamic light and dark theme support.
  */
@@ -90,11 +91,11 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Categories */}
+      {/* Orders */}
       <Tabs.Screen
-        name="categories"
+        name="orders"
         options={{
-          title: 'Categories',
+          title: 'Orders',
           tabBarIcon: ({ focused, color }) => (
             <View
               style={[
@@ -105,7 +106,11 @@ export default function TabsLayout() {
               ]}
             >
               <MaterialCommunityIcons
-                name={focused ? 'view-grid' : 'view-grid-outline'}
+                name={
+                  focused
+                    ? 'package-variant'
+                    : 'package-variant-closed'
+                }
                 size={23}
                 color={color}
               />
@@ -162,7 +167,15 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Hidden Search route - still accessible through Shop */}
+      {/* Categories - accessible through Shop */}
+      <Tabs.Screen
+        name="categories"
+        options={{
+          href: null,
+        }}
+      />
+
+      {/* Hidden Search route */}
       <Tabs.Screen
         name="search"
         options={{
@@ -170,7 +183,7 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Hidden Cart route - still accessible through Shop */}
+      {/* Hidden Cart route */}
       <Tabs.Screen
         name="cart"
         options={{

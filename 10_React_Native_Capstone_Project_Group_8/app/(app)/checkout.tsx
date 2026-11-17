@@ -8,10 +8,15 @@
  * - Delivery selection
  * - Payment selection
  * - Order summary
+ * - Normal cart checkout
+ * - Direct Buy Now checkout
  * - Order validation and local storage
  * - Dedicated Order Confirmation screen
+ * - Automatic tracking reference and initial tracking event
  *
  * Online payment is simulated only.
+ *
+ * Direct checkout does not modify or clear the customer's saved cart.
  */
 
 import React, {
@@ -41,7 +46,11 @@ import {
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-import { useFocusEffect, useRouter } from 'expo-router';
+import {
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
 
@@ -50,7 +59,10 @@ import {
   ordersStorage,
 } from '@/utils/storage';
 
-import type { CartItem } from '@/types/product';
+import type {
+  CartItem,
+  Product,
+} from '@/types/product';
 
 import type {
   DeliveryMethod,
@@ -78,7 +90,22 @@ const initialAddress: ShippingAddress = {
 export default function CheckoutScreen() {
   const router = useRouter();
 
+  const {
+    mode,
+    productId,
+    quantity: requestedQuantityParam,
+  } = useLocalSearchParams<{
+    mode?: string;
+    productId?: string;
+    quantity?: string;
+  }>();
+
+  const isDirectCheckout = mode === 'direct';
+
+  const requestedQuantity = Number(requestedQuantityParam);
+
   const theme = useTheme<MD3Theme>();
+
   const styles = useMemo(
     () => createCheckoutStyles(theme),
     [theme],
@@ -116,28 +143,93 @@ export default function CheckoutScreen() {
   }, [user]);
 
   /**
-   * Load the latest cart whenever Checkout becomes active.
+   * Load Checkout items.
+   *
+   * Normal checkout:
+   * Loads the customer's saved cart.
+   *
+   * Direct checkout:
+   * Loads only the selected product and requested quantity.
+   * The saved cart is never modified.
    */
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
 
-      const loadCart = async () => {
+      const loadCheckoutItems = async () => {
         try {
           setLoading(true);
 
-          const savedItems = await cartStorage.getCart();
+          if (isDirectCheckout) {
+            if (
+              !productId ||
+              !/^\d+$/.test(productId) ||
+              !Number.isInteger(requestedQuantity) ||
+              requestedQuantity < 1
+            ) {
+              throw new Error(
+                'Invalid direct purchase information. Please return to the product and try again.',
+              );
+            }
 
-          if (isActive) {
-            setItems(savedItems ?? []);
+            const response = await fetch(
+              `https://dummyjson.com/products/${productId}`,
+            );
+
+            if (!response.ok) {
+              throw new Error(
+                'Unable to load the selected product. Please try again.',
+              );
+            }
+
+            const product: Product = await response.json();
+
+            if (product.stock <= 0) {
+              throw new Error(
+                'This product is currently out of stock.',
+              );
+            }
+
+            if (requestedQuantity > product.stock) {
+              throw new Error(
+                `Only ${product.stock} item(s) are currently available.`,
+              );
+            }
+
+            const directItem: CartItem = {
+              productId: product.id,
+              title: product.title,
+              thumbnail: product.thumbnail,
+              price: product.price,
+              discountPercentage: product.discountPercentage,
+              quantity: requestedQuantity,
+              stock: product.stock,
+            };
+
+            if (isActive) {
+              setItems([directItem]);
+            }
+          } else {
+            const savedItems = await cartStorage.getCart();
+
+            if (isActive) {
+              setItems(savedItems ?? []);
+            }
           }
         } catch (error) {
-          console.error('Failed to load checkout cart:', error);
+          console.error(
+            'Failed to load checkout items:',
+            error,
+          );
 
           if (isActive) {
+            setItems([]);
+
             Alert.alert(
-              'Unable to Load Cart',
-              'Please return to your cart and try again.',
+              'Unable to Load Checkout',
+              error instanceof Error
+                ? error.message
+                : 'Please return and try again.',
             );
           }
         } finally {
@@ -147,12 +239,16 @@ export default function CheckoutScreen() {
         }
       };
 
-      loadCart();
+      loadCheckoutItems();
 
       return () => {
         isActive = false;
       };
-    }, []),
+    }, [
+      isDirectCheckout,
+      productId,
+      requestedQuantity,
+    ]),
   );
 
   /**
@@ -223,7 +319,9 @@ export default function CheckoutScreen() {
 
     if (items.length === 0) {
       showValidationError(
-        'Your cart is empty. Add products before checking out.',
+        isDirectCheckout
+          ? 'The selected product is unavailable. Please return to the product page and try again.'
+          : 'Your cart is empty. Add products before checking out.',
       );
       return false;
     }
@@ -286,8 +384,14 @@ export default function CheckoutScreen() {
   /**
    * Place an order.
    *
-   * The order is stored locally and the cart is cleared
-   * through ordersStorage.completeOrder().
+   * Direct purchase:
+   * Saves the order without touching the customer's cart.
+   *
+   * Normal cart checkout:
+   * Saves the order and clears the purchased cart.
+   *
+   * A tracking reference and initial tracking event are
+   * created automatically when the order is placed.
    *
    * After successful storage, navigate to the dedicated
    * Order Confirmation screen.
@@ -308,20 +412,31 @@ export default function CheckoutScreen() {
     try {
       setSubmitting(true);
 
-      // Retrieve the latest cart before creating the order.
-      const latestCart = await cartStorage.getCart();
+      /**
+       * Retrieve the correct Checkout items.
+       *
+       * Direct checkout uses the selected product already
+       * loaded into this screen.
+       *
+       * Normal checkout retrieves the latest saved cart.
+       */
+      const latestCart = isDirectCheckout
+        ? items
+        : await cartStorage.getCart();
 
       if (!latestCart || latestCart.length === 0) {
         setItems([]);
 
         showValidationError(
-          'Your cart is empty. Please add products before placing an order.',
+          isDirectCheckout
+            ? 'The selected product is unavailable. Please return to the product page and try again.'
+            : 'Your cart is empty. Please add products before placing an order.',
         );
 
         return;
       }
 
-      // Recalculate the amounts using the latest cart.
+      // Recalculate the amounts using the correct Checkout items.
       const latestSubtotal = latestCart.reduce(
         (sum, item) =>
           sum + item.price * item.quantity,
@@ -362,8 +477,15 @@ export default function CheckoutScreen() {
         latestDiscount +
         latestShippingFee;
 
+      // Generate the order ID and tracking reference.
+      const orderTimestamp = new Date().toISOString();
+      const orderReference = Date.now();
+
+      const orderId = `ORD-${orderReference}`;
+      const trackingNumber = `TRK-${orderReference}`;
+
       const order: Order = {
-        id: `ORD-${Date.now()}`,
+        id: orderId,
         userId: user.id,
         username: user.username,
         customer: {
@@ -387,13 +509,36 @@ export default function CheckoutScreen() {
         paymentMethod,
         deliveryMethod,
         status: 'Processing',
-        createdAt: new Date().toISOString(),
+        createdAt: orderTimestamp,
+
+        // Initial tracking information.
+        trackingNumber,
+        trackingEvents: [
+          {
+            milestone: 'Order Placed',
+            description:
+              'Your order has been successfully placed.',
+            timestamp: orderTimestamp,
+          },
+        ],
       };
 
-      // Save the order and clear the cart.
-      await ordersStorage.completeOrder(order);
+      /**
+       * Save the order according to the Checkout mode.
+       *
+       * Direct purchase:
+       * Saves the order without touching the customer's cart.
+       *
+       * Normal cart checkout:
+       * Saves the order and clears the purchased cart.
+       */
+      if (isDirectCheckout) {
+        await ordersStorage.saveOrder(order);
+      } else {
+        await ordersStorage.completeOrder(order);
+      }
 
-      // Clear the local Checkout cart state.
+      // Clear the local Checkout screen state.
       setItems([]);
 
       // Open the dedicated confirmation screen.
@@ -421,6 +566,8 @@ export default function CheckoutScreen() {
   const handleGoBack = () => {
     if (router.canGoBack()) {
       router.back();
+    } else if (isDirectCheckout) {
+      router.replace('/(app)/(tabs)/home');
     } else {
       router.replace('/(app)/(tabs)/cart');
     }
@@ -465,25 +612,28 @@ export default function CheckoutScreen() {
   }
 
   /**
-   * Empty cart state.
+   * Empty checkout state.
    */
   if (items.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons
-            name="cart-outline"
+            name={isDirectCheckout ? 'package-variant' : 'cart-outline'}
             size={70}
             color={theme.colors.onSurfaceVariant}
           />
 
           <Text style={styles.emptyTitle}>
-            Your Cart Is Empty
+            {isDirectCheckout
+              ? 'Unable to Load Product'
+              : 'Your Cart Is Empty'}
           </Text>
 
           <Text style={styles.emptyText}>
-            You need to add products to your cart before
-            proceeding to checkout.
+            {isDirectCheckout
+              ? 'The selected product could not be loaded. Please return to the product page and try again.'
+              : 'You need to add products to your cart before proceeding to checkout.'}
           </Text>
 
           <Button
@@ -530,7 +680,9 @@ export default function CheckoutScreen() {
             </Text>
 
             <Text style={styles.headerSubtitle}>
-              Complete your order details
+              {isDirectCheckout
+                ? 'Complete your direct purchase'
+                : 'Complete your order details'}
             </Text>
           </View>
         </View>
@@ -859,8 +1011,7 @@ export default function CheckoutScreen() {
           <TouchableOpacity
             style={[
               styles.optionCard,
-              paymentMethod ===
-                'Simulated Online Payment' &&
+              paymentMethod === 'Simulated Online Payment' &&
                 styles.optionCardSelected,
             ]}
             onPress={() =>
@@ -869,8 +1020,7 @@ export default function CheckoutScreen() {
             accessibilityRole="radio"
             accessibilityState={{
               checked:
-                paymentMethod ===
-                'Simulated Online Payment',
+                paymentMethod === 'Simulated Online Payment',
             }}
           >
             <View style={styles.optionIconContainer}>
@@ -894,13 +1044,11 @@ export default function CheckoutScreen() {
             <View
               style={[
                 styles.radioOuter,
-                paymentMethod ===
-                  'Simulated Online Payment' &&
+                paymentMethod === 'Simulated Online Payment' &&
                   styles.radioOuterSelected,
               ]}
             >
-              {paymentMethod ===
-                'Simulated Online Payment' && (
+              {paymentMethod === 'Simulated Online Payment' && (
                 <View style={styles.radioInner} />
               )}
             </View>

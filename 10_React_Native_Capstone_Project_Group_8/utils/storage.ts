@@ -9,13 +9,18 @@
  * - Shopping cart storage
  * - Order history storage
  * - Order cancellation
+ * - Simulated order tracking
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { CartItem } from '@/types/product';
 import type { AuthUser } from '@/types/auth';
-import type { Order } from '@/types/order';
+import type {
+  Order,
+  TrackingEvent,
+  TrackingMilestone,
+} from '@/types/order';
 
 const STORAGE_KEYS = {
   AUTH_USER: 'auth_user',
@@ -27,6 +32,76 @@ const STORAGE_KEYS = {
 
 export type StorageKey =
   (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
+/**
+ * The complete sequence of simulated tracking milestones.
+ */
+const TRACKING_MILESTONES: TrackingMilestone[] = [
+  'Order Placed',
+  'Order Confirmed',
+  'Preparing Shipment',
+  'Shipped',
+  'Out for Delivery',
+  'Delivered',
+];
+
+/**
+ * Descriptions displayed for each tracking milestone.
+ */
+const TRACKING_DESCRIPTIONS: Record<
+  TrackingMilestone,
+  string
+> = {
+  'Order Placed':
+    'Your order has been successfully placed.',
+  'Order Confirmed':
+    'Your order has been confirmed and is being processed.',
+  'Preparing Shipment':
+    'Your items are being prepared for shipment.',
+  Shipped:
+    'Your package has been dispatched and is on its way.',
+  'Out for Delivery':
+    'Your package is with the delivery courier.',
+  Delivered:
+    'Your package has been successfully delivered.',
+};
+
+/**
+ * Creates a tracking reference number for older orders
+ * that were saved before tracking was introduced.
+ */
+function createTrackingNumber(orderId: string): string {
+  return `TRK-${orderId}`;
+}
+
+/**
+ * Provides tracking information for older orders.
+ *
+ * Existing orders receive an initial Order Placed event
+ * using their original creation timestamp.
+ */
+function ensureTrackingData(order: Order): Order {
+  const trackingNumber =
+    order.trackingNumber || createTrackingNumber(order.id);
+
+  const trackingEvents: TrackingEvent[] =
+    order.trackingEvents && order.trackingEvents.length > 0
+      ? order.trackingEvents
+      : [
+          {
+            milestone: 'Order Placed',
+            description:
+              TRACKING_DESCRIPTIONS['Order Placed'],
+            timestamp: order.createdAt,
+          },
+        ];
+
+  return {
+    ...order,
+    trackingNumber,
+    trackingEvents,
+  };
+}
 
 /**
  * Get item from storage with type safety.
@@ -244,7 +319,7 @@ export const cartStorage = {
 };
 
 /* =====================================================
-   ORDER HISTORY STORAGE
+   ORDER HISTORY AND TRACKING STORAGE
 ===================================================== */
 
 export const ordersStorage = {
@@ -311,15 +386,117 @@ export const ordersStorage = {
 
   /**
    * Retrieves a specific order.
+   *
+   * Also provides fallback tracking information for
+   * older orders without changing their saved data.
    */
   getOrderById: async (
     orderId: string,
   ): Promise<Order | null> => {
     const orders = await ordersStorage.getOrders();
 
-    return orders.find(
-      (order) => order.id === orderId,
-    ) ?? null;
+    const order = orders.find(
+      (item) => item.id === orderId,
+    );
+
+    return order ? ensureTrackingData(order) : null;
+  },
+
+  /**
+   * Advances an order to its next tracking milestone.
+   *
+   * Requirements:
+   * - The order must exist.
+   * - The order must belong to the requesting user.
+   * - The order must not be Cancelled.
+   * - The order must not already be Delivered.
+   *
+   * Each milestone is saved with its own timestamp.
+   * The updated order is returned on success.
+   * Returns null if the update is not allowed.
+   */
+  advanceTracking: async (
+    orderId: string,
+    userId: number,
+  ): Promise<Order | null> => {
+    const orders = await ordersStorage.getOrders();
+
+    const orderIndex = orders.findIndex(
+      (item) => item.id === orderId,
+    );
+
+    if (orderIndex === -1) {
+      return null;
+    }
+
+    const selectedOrder = orders[orderIndex];
+
+    if (
+      selectedOrder.userId !== userId ||
+      selectedOrder.status === 'Cancelled' ||
+      selectedOrder.status === 'Delivered'
+    ) {
+      return null;
+    }
+
+    const orderWithTracking = ensureTrackingData(selectedOrder);
+    const trackingEvents = [
+      ...(orderWithTracking.trackingEvents ?? []),
+    ];
+
+    const lastEvent = trackingEvents[trackingEvents.length - 1];
+
+    const lastMilestoneIndex = TRACKING_MILESTONES.indexOf(
+      lastEvent.milestone,
+    );
+
+    if (
+      lastMilestoneIndex === -1 ||
+      lastMilestoneIndex >= TRACKING_MILESTONES.length - 1
+    ) {
+      return null;
+    }
+
+    const nextMilestone =
+      TRACKING_MILESTONES[lastMilestoneIndex + 1];
+
+    const newEvent: TrackingEvent = {
+      milestone: nextMilestone,
+      description: TRACKING_DESCRIPTIONS[nextMilestone],
+      timestamp: new Date().toISOString(),
+    };
+
+    trackingEvents.push(newEvent);
+
+    let updatedStatus = orderWithTracking.status;
+
+    if (
+      nextMilestone === 'Shipped' ||
+      nextMilestone === 'Out for Delivery'
+    ) {
+      updatedStatus = 'Shipped';
+    }
+
+    if (nextMilestone === 'Delivered') {
+      updatedStatus = 'Delivered';
+    }
+
+    const updatedOrder: Order = {
+      ...orderWithTracking,
+      status: updatedStatus,
+      trackingEvents,
+    };
+
+    const updatedOrders = [...orders];
+
+    updatedOrders[orderIndex] = updatedOrder;
+
+    await setStorageItem(
+      STORAGE_KEYS.ORDERS,
+      updatedOrders,
+    );
+
+    return updatedOrder;
   },
 
   /**

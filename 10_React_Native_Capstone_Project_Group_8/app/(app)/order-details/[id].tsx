@@ -9,7 +9,10 @@
  * - Shows subtotal, discount, shipping fee, and total.
  * - Displays complete customer shipping information.
  * - Shows payment and delivery methods.
- * - Provides a simulated order tracking timeline.
+ * - Provides six simulated order tracking milestones.
+ * - Displays a tracking reference number and progress indicator.
+ * - Saves tracking events and timestamps to AsyncStorage.
+ * - Allows manual demonstration of the next tracking update.
  * - Allows cancellation of Processing orders.
  * - Uses browser-compatible confirmation and feedback dialogs.
  * - Supports dynamic light and dark themes.
@@ -56,32 +59,58 @@ import { ordersStorage } from '@/utils/storage';
 import type {
   Order,
   OrderStatus,
+  TrackingMilestone,
 } from '@/types/order';
 
 type TrackingStep = {
-  status: OrderStatus;
+  milestone: TrackingMilestone;
   title: string;
   description: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
 };
 
 const TRACKING_STEPS: TrackingStep[] = [
   {
-    status: 'Processing',
-    title: 'Order Processing',
+    milestone: 'Order Placed',
+    title: 'Order Placed',
     description:
-      'Your order has been received and is being prepared.',
+      'Your order has been successfully placed and recorded.',
+    icon: 'clipboard-check-outline',
   },
   {
-    status: 'Shipped',
+    milestone: 'Order Confirmed',
+    title: 'Order Confirmed',
+    description:
+      'Your order has been confirmed and is ready for processing.',
+    icon: 'check-decagram-outline',
+  },
+  {
+    milestone: 'Preparing Shipment',
+    title: 'Preparing Shipment',
+    description:
+      'Your purchased products are being prepared for shipment.',
+    icon: 'package-variant-closed',
+  },
+  {
+    milestone: 'Shipped',
     title: 'Order Shipped',
     description:
       'Your order has been dispatched and is on its way.',
+    icon: 'truck-fast-outline',
   },
   {
-    status: 'Delivered',
+    milestone: 'Out for Delivery',
+    title: 'Out for Delivery',
+    description:
+      'Your order is on its way to your delivery address.',
+    icon: 'truck-delivery-outline',
+  },
+  {
+    milestone: 'Delivered',
     title: 'Order Delivered',
     description:
       'Your order has successfully reached its destination.',
+    icon: 'check-circle-outline',
   },
 ];
 
@@ -106,13 +135,14 @@ export default function OrderDetailsScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [trackingUpdating, setTrackingUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Cancellation confirmation dialog.
   const [cancelDialogVisible, setCancelDialogVisible] =
     useState(false);
 
-  // Cancellation feedback dialog.
+  // Feedback dialog for cancellation and tracking updates.
   const [feedbackDialogVisible, setFeedbackDialogVisible] =
     useState(false);
 
@@ -339,9 +369,63 @@ export default function OrderDetailsScreen() {
           color: colors.primary,
         },
 
+        trackingReferenceContainer: {
+          padding: 13,
+          borderRadius: 12,
+          backgroundColor: colors.surfaceVariant,
+          marginBottom: 17,
+        },
+
+        trackingReferenceLabel: {
+          fontSize: 11,
+          fontWeight: '700',
+          color: colors.onSurfaceVariant,
+          marginBottom: 5,
+        },
+
+        trackingReferenceValue: {
+          fontSize: 15,
+          fontWeight: '800',
+          color: colors.onSurface,
+          letterSpacing: 0.5,
+        },
+
+        trackingProgressHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 9,
+        },
+
+        trackingProgressLabel: {
+          fontSize: 12,
+          fontWeight: '700',
+          color: colors.onSurface,
+        },
+
+        trackingProgressCount: {
+          fontSize: 12,
+          fontWeight: '800',
+          color: colors.primary,
+        },
+
+        trackingProgressTrack: {
+          height: 8,
+          borderRadius: 10,
+          overflow: 'hidden',
+          backgroundColor: colors.surfaceVariant,
+          marginBottom: 20,
+        },
+
+        trackingProgressFill: {
+          height: '100%',
+          borderRadius: 10,
+          backgroundColor: colors.primary,
+        },
+
         trackingStep: {
           flexDirection: 'row',
-          minHeight: 91,
+          minHeight: 112,
         },
 
         trackingIconColumn: {
@@ -360,14 +444,14 @@ export default function OrderDetailsScreen() {
         trackingLine: {
           width: 2,
           flex: 1,
-          minHeight: 49,
+          minHeight: 65,
           backgroundColor: colors.outlineVariant,
         },
 
         trackingContent: {
           flex: 1,
           paddingLeft: 13,
-          paddingBottom: 19,
+          paddingBottom: 20,
         },
 
         trackingTitle: {
@@ -383,11 +467,51 @@ export default function OrderDetailsScreen() {
           marginTop: 4,
         },
 
+        trackingTimestamp: {
+          fontSize: 11,
+          fontWeight: '600',
+          color: colors.primary,
+          marginTop: 7,
+        },
+
+        trackingPending: {
+          fontSize: 11,
+          color: colors.onSurfaceVariant,
+          marginTop: 7,
+        },
+
         currentStepLabel: {
           fontSize: 10,
           fontWeight: '800',
           color: colors.primary,
           marginTop: 6,
+        },
+
+        trackingDemoNotice: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          padding: 12,
+          borderRadius: 11,
+          backgroundColor: colors.surfaceVariant,
+          marginTop: 8,
+          marginBottom: 15,
+        },
+
+        trackingDemoNoticeText: {
+          flex: 1,
+          fontSize: 11,
+          lineHeight: 18,
+          color: colors.onSurfaceVariant,
+          marginLeft: 9,
+        },
+
+        trackingButton: {
+          marginTop: 3,
+          marginBottom: 12,
+        },
+
+        trackingButtonText: {
+          fontSize: 12,
         },
 
         cancelledContainer: {
@@ -524,7 +648,7 @@ export default function OrderDetailsScreen() {
     `$${amount.toFixed(2)}`;
 
   /**
-   * Format order date.
+   * Format date and time.
    */
   const formatDate = (date: string) => {
     const parsedDate = new Date(date);
@@ -758,6 +882,82 @@ export default function OrderDetailsScreen() {
   };
 
   /**
+   * Save the next simulated tracking milestone.
+   *
+   * Each press advances only one milestone.
+   * The storage function saves the new event and
+   * timestamp to AsyncStorage.
+   */
+  const handleSimulateTrackingUpdate = async () => {
+    if (
+      !order ||
+      !user ||
+      trackingUpdating ||
+      order.status === 'Cancelled' ||
+      order.status === 'Delivered'
+    ) {
+      return;
+    }
+
+    try {
+      setTrackingUpdating(true);
+
+      const updatedOrder =
+        await ordersStorage.advanceTracking(
+          order.id,
+          user.id,
+        );
+
+      if (!updatedOrder) {
+        const latestOrder =
+          await ordersStorage.getOrderById(order.id);
+
+        if (
+          latestOrder &&
+          latestOrder.userId === user.id
+        ) {
+          setOrder(latestOrder);
+        }
+
+        showFeedback(
+          'Tracking Update Unavailable',
+          'The next tracking update could not be saved. The order may already be completed or updated. Please check the latest tracking information.',
+        );
+
+        return;
+      }
+
+      setOrder(updatedOrder);
+
+      const latestEvent =
+        updatedOrder.trackingEvents?.[
+          updatedOrder.trackingEvents.length - 1
+        ];
+
+      showFeedback(
+        latestEvent?.milestone === 'Delivered'
+          ? 'Order Delivered'
+          : 'Tracking Updated',
+        latestEvent
+          ? `${latestEvent.milestone} has been recorded successfully. The tracking history and timestamp have been saved.`
+          : 'The tracking information has been updated successfully.',
+      );
+    } catch (trackingError) {
+      console.error(
+        'Failed to update order tracking:',
+        trackingError,
+      );
+
+      showFeedback(
+        'Tracking Update Failed',
+        'We could not save the next tracking update. Please try again.',
+      );
+    } finally {
+      setTrackingUpdating(false);
+    }
+  };
+
+  /**
    * Loading state.
    */
   if (loading) {
@@ -810,9 +1010,36 @@ export default function OrderDetailsScreen() {
 
   const statusColors = getStatusColors(order.status);
 
-  const currentStepIndex = TRACKING_STEPS.findIndex(
-    (step) => step.status === order.status,
+  // Use the saved tracking events as the source of truth.
+  const trackingEvents = order.trackingEvents ?? [];
+
+  const completedMilestones = new Set(
+    trackingEvents.map((event) => event.milestone),
   );
+
+  const completedCount = TRACKING_STEPS.filter(
+    (step) => completedMilestones.has(step.milestone),
+  ).length;
+
+  const latestTrackingEvent =
+    trackingEvents.length > 0
+      ? trackingEvents[trackingEvents.length - 1]
+      : null;
+
+  const currentStepIndex = latestTrackingEvent
+    ? TRACKING_STEPS.findIndex(
+        (step) =>
+          step.milestone === latestTrackingEvent.milestone,
+      )
+    : -1;
+
+  const progressPercentage =
+    (completedCount / TRACKING_STEPS.length) * 100;
+
+  const canSimulateTracking =
+    order.status !== 'Cancelled' &&
+    order.status !== 'Delivered' &&
+    completedCount < TRACKING_STEPS.length;
 
   return (
     <View style={styles.container}>
@@ -980,7 +1207,7 @@ export default function OrderDetailsScreen() {
               </Text>
 
               <Text style={styles.sectionSubtitle}>
-                Simulated delivery progress
+                Six-stage simulated delivery progress
               </Text>
             </View>
           </View>
@@ -997,83 +1224,184 @@ export default function OrderDetailsScreen() {
               </Text>
             </View>
           ) : (
-            TRACKING_STEPS.map((step, index) => {
-              const isCompleted =
-                index <= currentStepIndex;
+            <>
+              {/* Tracking Reference */}
+              <View style={styles.trackingReferenceContainer}>
+                <Text style={styles.trackingReferenceLabel}>
+                  TRACKING REFERENCE NUMBER
+                </Text>
 
-              const isCurrent =
-                index === currentStepIndex;
+                <Text style={styles.trackingReferenceValue}>
+                  {order.trackingNumber ?? 'Not available'}
+                </Text>
+              </View>
 
-              return (
+              {/* Tracking Progress */}
+              <View style={styles.trackingProgressHeader}>
+                <Text style={styles.trackingProgressLabel}>
+                  Delivery Progress
+                </Text>
+
+                <Text style={styles.trackingProgressCount}>
+                  {completedCount} of {TRACKING_STEPS.length} completed
+                </Text>
+              </View>
+
+              <View style={styles.trackingProgressTrack}>
                 <View
-                  key={step.status}
-                  style={styles.trackingStep}
-                >
-                  <View style={styles.trackingIconColumn}>
-                    <View
-                      style={[
-                        styles.trackingIcon,
-                        {
-                          backgroundColor: isCompleted
-                            ? colors.primary
-                            : colors.surfaceVariant,
-                        },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={
-                          isCompleted
-                            ? 'check'
-                            : 'circle-outline'
-                        }
-                        size={18}
-                        color={
-                          isCompleted
-                            ? '#FFFFFF'
-                            : colors.onSurfaceVariant
-                        }
-                      />
-                    </View>
+                  style={[
+                    styles.trackingProgressFill,
+                    { width: `${progressPercentage}%` },
+                  ]}
+                />
+              </View>
 
-                    {index !== TRACKING_STEPS.length - 1 && (
+              {/* Tracking Timeline */}
+              {TRACKING_STEPS.map((step, index) => {
+                const isCompleted =
+                  completedMilestones.has(step.milestone);
+
+                const isCurrent =
+                  index === currentStepIndex;
+
+                const savedEvent = trackingEvents.find(
+                  (event) =>
+                    event.milestone === step.milestone,
+                );
+
+                return (
+                  <View
+                    key={step.milestone}
+                    style={styles.trackingStep}
+                  >
+                    <View style={styles.trackingIconColumn}>
                       <View
                         style={[
-                          styles.trackingLine,
+                          styles.trackingIcon,
                           {
-                            backgroundColor:
-                              index < currentStepIndex
-                                ? colors.primary
-                                : colors.outlineVariant,
+                            backgroundColor: isCompleted
+                              ? colors.primary
+                              : colors.surfaceVariant,
                           },
                         ]}
-                      />
-                    )}
-                  </View>
+                      >
+                        <MaterialCommunityIcons
+                          name={
+                            isCompleted
+                              ? 'check'
+                              : step.icon
+                          }
+                          size={17}
+                          color={
+                            isCompleted
+                              ? '#FFFFFF'
+                              : colors.onSurfaceVariant
+                          }
+                        />
+                      </View>
 
-                  <View style={styles.trackingContent}>
-                    <Text style={styles.trackingTitle}>
-                      {step.title}
-                    </Text>
+                      {index !== TRACKING_STEPS.length - 1 && (
+                        <View
+                          style={[
+                            styles.trackingLine,
+                            {
+                              backgroundColor:
+                                isCompleted &&
+                                completedMilestones.has(
+                                  TRACKING_STEPS[index + 1].milestone,
+                                )
+                                  ? colors.primary
+                                  : colors.outlineVariant,
+                            },
+                          ]}
+                        />
+                      )}
+                    </View>
 
-                    <Text style={styles.trackingDescription}>
-                      {step.description}
-                    </Text>
-
-                    {isCurrent && (
-                      <Text style={styles.currentStepLabel}>
-                        CURRENT STATUS
+                    <View style={styles.trackingContent}>
+                      <Text style={styles.trackingTitle}>
+                        {step.title}
                       </Text>
-                    )}
+
+                      <Text style={styles.trackingDescription}>
+                        {step.description}
+                      </Text>
+
+                      {isCompleted && savedEvent ? (
+                        <Text style={styles.trackingTimestamp}>
+                          <MaterialCommunityIcons
+                            name="clock-outline"
+                            size={12}
+                          />{' '}
+                          {formatDate(savedEvent.timestamp)}
+                        </Text>
+                      ) : (
+                        <Text style={styles.trackingPending}>
+                          Awaiting update
+                        </Text>
+                      )}
+
+                      {isCurrent && (
+                        <Text style={styles.currentStepLabel}>
+                          LATEST TRACKING UPDATE
+                        </Text>
+                      )}
+                    </View>
                   </View>
+                );
+              })}
+
+              {/* Manual Demo Tracking Update */}
+              {canSimulateTracking && (
+                <Button
+                  mode="contained"
+                  icon="truck-fast-outline"
+                  onPress={() => {
+                    void handleSimulateTrackingUpdate();
+                  }}
+                  loading={trackingUpdating}
+                  disabled={trackingUpdating || cancelling}
+                  style={styles.trackingButton}
+                  contentStyle={{ height: 49 }}
+                  labelStyle={styles.trackingButtonText}
+                >
+                  {trackingUpdating
+                    ? 'Saving Tracking Update...'
+                    : 'Simulate Next Tracking Update'}
+                </Button>
+              )}
+
+              {order.status === 'Delivered' && (
+                <View style={styles.trackingDemoNotice}>
+                  <MaterialCommunityIcons
+                    name="check-circle-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
+
+                  <Text style={styles.trackingDemoNoticeText}>
+                    This order has completed all tracking stages.
+                    Delivery has been marked as completed.
+                  </Text>
                 </View>
-              );
-            })
+              )}
+            </>
           )}
 
-          <Text style={styles.sectionSubtitle}>
-            Tracking is simulated for this marketplace project.
-            No real-time courier updates are connected.
-          </Text>
+          <View style={styles.trackingDemoNotice}>
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={20}
+              color={colors.primary}
+            />
+
+            <Text style={styles.trackingDemoNoticeText}>
+              Tracking updates are simulated for this marketplace
+              project. Use the button above to demonstrate the
+              next milestone. No real-time courier updates are
+              connected.
+            </Text>
+          </View>
         </Card>
 
         {/* Purchased Products */}
@@ -1297,7 +1625,7 @@ export default function OrderDetailsScreen() {
             style={styles.cancelButton}
             contentStyle={{ height: 49 }}
             loading={cancelling}
-            disabled={cancelling}
+            disabled={cancelling || trackingUpdating}
             onPress={handleCancelOrder}
           >
             {cancelling
@@ -1315,7 +1643,7 @@ export default function OrderDetailsScreen() {
           }
           style={styles.footerButton}
           contentStyle={{ height: 49 }}
-          disabled={cancelling}
+          disabled={cancelling || trackingUpdating}
         >
           Back to My Orders
         </Button>
@@ -1327,7 +1655,7 @@ export default function OrderDetailsScreen() {
             router.replace('/(app)/(tabs)/home')
           }
           contentStyle={{ height: 47 }}
-          disabled={cancelling}
+          disabled={cancelling || trackingUpdating}
         >
           Continue Shopping
         </Button>
@@ -1384,7 +1712,7 @@ export default function OrderDetailsScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        {/* Cancellation Result Dialog */}
+        {/* Feedback Dialog */}
         <Dialog
           visible={feedbackDialogVisible}
           onDismiss={() =>

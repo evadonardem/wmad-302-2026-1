@@ -1,19 +1,29 @@
 
 /**
  * Product Details Screen
+ *
  * Features:
  * - Dynamic light/dark theme
  * - Product image gallery
  * - Product information and specifications
  * - Wishlist functionality
  * - Quantity selector
+ * - Direct Buy Now checkout
  * - Add to cart
  * - Customer reviews
+ * - Automatically resets Buy Now loading state when returning to this screen
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Platform,
   ScrollView,
@@ -21,6 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
 import {
   Button,
   IconButton,
@@ -28,7 +39,13 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from 'expo-router';
 
 import { Product } from '@/types/product';
 import { cartStorage, favoritesStorage } from '@/utils/storage';
@@ -39,6 +56,14 @@ const showBrowserAlert = (message: string): void => {
   };
 
   browser.alert?.(message);
+};
+
+const showMessage = (title: string, message: string): void => {
+  if (Platform.OS === 'web') {
+    showBrowserAlert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
 };
 
 const createStyles = (colors: MD3Theme['colors']) =>
@@ -326,7 +351,11 @@ interface InfoRowProps {
 
 function InfoRow({ label, value }: InfoRowProps) {
   const theme = useTheme<MD3Theme>();
-  const styles = useMemo(() => createStyles(theme.colors), [theme.colors]);
+
+  const styles = useMemo(
+    () => createStyles(theme.colors),
+    [theme.colors],
+  );
 
   return (
     <View style={styles.infoRow}>
@@ -338,8 +367,11 @@ function InfoRow({ label, value }: InfoRowProps) {
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+
   const router = useRouter();
+
   const theme = useTheme<MD3Theme>();
+
   const styles = useMemo(
     () => createStyles(theme.colors),
     [theme.colors],
@@ -351,8 +383,27 @@ export default function ProductDetailsScreen() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState('');
   const [adding, setAdding] = useState(false);
+  const [buying, setBuying] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
+  /**
+   * Reset button loading states whenever this screen
+   * becomes active again.
+   *
+   * This fixes the Buy Now spinner remaining visible
+   * after returning from Checkout using the Back button.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      setBuying(false);
+
+      return undefined;
+    }, []),
+  );
+
+  /**
+   * Load product details.
+   */
   useEffect(() => {
     let mounted = true;
 
@@ -375,10 +426,16 @@ export default function ProductDetailsScreen() {
 
         const data: Product = await response.json();
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         setProduct(data);
-        setSelectedImage(data.thumbnail || data.images[0] || '');
+
+        setSelectedImage(
+          data.thumbnail || data.images?.[0] || '',
+        );
+
         setQuantity(1);
 
         try {
@@ -420,61 +477,73 @@ export default function ProductDetailsScreen() {
 
   const subtotal = discountedPrice * quantity;
 
+  /**
+   * Update selected quantity.
+   */
   const handleQuantityChange = (change: number) => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
-    setQuantity((current) => {
-      return Math.max(1, Math.min(product.stock, current + change));
-    });
+    setQuantity((current) =>
+      Math.max(
+        1,
+        Math.min(product.stock, current + change),
+      ),
+    );
   };
 
+  /**
+   * Add or remove the product from Wishlist.
+   */
   const handleFavorite = async () => {
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
     try {
       const added = await favoritesStorage.toggleId(product.id);
+
       setIsFavorite(added);
 
       const message = added
         ? 'Product added to your wishlist.'
         : 'Product removed from your wishlist.';
 
-      if (Platform.OS === 'web') {
-        showBrowserAlert(message);
-      } else {
-        const { Alert } = require('react-native');
-        Alert.alert('Wishlist Updated', message);
-      }
+      showMessage('Wishlist Updated', message);
     } catch {
-      if (Platform.OS === 'web') {
-        showBrowserAlert('Unable to update your wishlist.');
-      } else {
-        const { Alert } = require('react-native');
-        Alert.alert('Error', 'Unable to update your wishlist.');
-      }
+      showMessage(
+        'Error',
+        'Unable to update your wishlist.',
+      );
     }
   };
 
+  /**
+   * Add the selected product and quantity to Cart.
+   */
   const handleAddToCart = async () => {
-    if (!product || product.stock <= 0 || adding) return;
+    if (!product || product.stock <= 0 || adding || buying) {
+      return;
+    }
 
     try {
       setAdding(true);
 
       const existingItems = await cartStorage.getCart();
+
       const existingItem = existingItems.find(
         (item) => item.productId === product.id,
       );
 
-      if (existingItem && existingItem.quantity + quantity > product.stock) {
-        const message = `Only ${product.stock} item(s) are available in stock. Your cart already contains ${existingItem.quantity}.`;
-
-        if (Platform.OS === 'web') {
-          showBrowserAlert(message);
-        } else {
-          const { Alert } = require('react-native');
-          Alert.alert('Stock Limit', message);
-        }
+      if (
+        existingItem &&
+        existingItem.quantity + quantity > product.stock
+      ) {
+        showMessage(
+          'Stock Limit',
+          `Only ${product.stock} item(s) are available in stock. Your cart already contains ${existingItem.quantity}.`,
+        );
 
         return;
       }
@@ -489,44 +558,98 @@ export default function ProductDetailsScreen() {
         stock: product.stock,
       });
 
-      const message = 'Product successfully added to your cart!';
-
-      if (Platform.OS === 'web') {
-        showBrowserAlert(message);
-      } else {
-        const { Alert } = require('react-native');
-        Alert.alert('Added to Cart', message);
-      }
+      showMessage(
+        'Added to Cart',
+        'Product successfully added to your cart!',
+      );
     } catch {
-      const message = 'Unable to add this product to your cart. Please try again.';
-
-      if (Platform.OS === 'web') {
-        showBrowserAlert(message);
-      } else {
-        const { Alert } = require('react-native');
-        Alert.alert('Error', message);
-      }
+      showMessage(
+        'Error',
+        'Unable to add this product to your cart. Please try again.',
+      );
     } finally {
       setAdding(false);
     }
   };
 
+  /**
+   * Buy Now:
+   * Opens Checkout directly with this product
+   * and the currently selected quantity.
+   *
+   * This does not add anything to the saved cart.
+   */
+  const handleBuyNow = () => {
+    if (!product || product.stock <= 0 || buying || adding) {
+      return;
+    }
+
+    if (
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > product.stock
+    ) {
+      showMessage(
+        'Invalid Quantity',
+        'Please select a valid product quantity.',
+      );
+
+      return;
+    }
+
+    setBuying(true);
+
+    try {
+      router.push({
+        pathname: '/(app)/checkout',
+        params: {
+          mode: 'direct',
+          productId: String(product.id),
+          quantity: String(quantity),
+        },
+      });
+    } catch {
+      setBuying(false);
+
+      showMessage(
+        'Unable to Continue',
+        'Unable to open Checkout. Please try again.',
+      );
+    }
+  };
+
+  /**
+   * Loading state.
+   */
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading product details...</Text>
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.primary}
+        />
+
+        <Text style={styles.loadingText}>
+          Loading product details...
+        </Text>
       </View>
     );
   }
 
+  /**
+   * Error state.
+   */
   if (error || !product) {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>
           {error || 'Product not found.'}
         </Text>
-        <Button mode="contained" onPress={() => router.back()}>
+
+        <Button
+          mode="contained"
+          onPress={() => router.back()}
+        >
           Go Back
         </Button>
       </View>
@@ -550,6 +673,7 @@ export default function ProductDetailsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
+        {/* Header */}
         <View style={styles.header}>
           <IconButton
             icon="arrow-left"
@@ -558,16 +682,21 @@ export default function ProductDetailsScreen() {
             onPress={() => router.back()}
           />
 
-          <Text style={styles.headerTitle}>Product Details</Text>
+          <Text style={styles.headerTitle}>
+            Product Details
+          </Text>
 
           <IconButton
             icon="cart-outline"
             size={24}
             iconColor={theme.colors.onBackground}
-            onPress={() => router.push('/(app)/(tabs)/cart')}
+            onPress={() =>
+              router.push('/(app)/(tabs)/cart')
+            }
           />
         </View>
 
+        {/* Product Image */}
         <View style={styles.imageContainer}>
           {selectedImage ? (
             <Image
@@ -576,7 +705,9 @@ export default function ProductDetailsScreen() {
               resizeMode="contain"
             />
           ) : (
-            <Text style={styles.mutedText}>No image available</Text>
+            <Text style={styles.mutedText}>
+              No image available
+            </Text>
           )}
 
           {product.discountPercentage > 0 && (
@@ -589,13 +720,18 @@ export default function ProductDetailsScreen() {
 
           <IconButton
             icon={isFavorite ? 'heart' : 'heart-outline'}
-            iconColor={isFavorite ? theme.colors.error : theme.colors.primary}
+            iconColor={
+              isFavorite
+                ? theme.colors.error
+                : theme.colors.primary
+            }
             size={25}
             style={styles.favoriteButton}
             onPress={handleFavorite}
           />
         </View>
 
+        {/* Image Gallery */}
         {images.length > 1 && (
           <ScrollView
             horizontal
@@ -607,7 +743,8 @@ export default function ProductDetailsScreen() {
                 key={`${image}-${index}`}
                 style={[
                   styles.thumbnail,
-                  selectedImage === image && styles.selectedThumbnail,
+                  selectedImage === image &&
+                    styles.selectedThumbnail,
                 ]}
                 onPress={() => setSelectedImage(image)}
               >
@@ -621,16 +758,26 @@ export default function ProductDetailsScreen() {
           </ScrollView>
         )}
 
-        <Text style={styles.category}>{product.category}</Text>
+        {/* Product Information */}
+        <Text style={styles.category}>
+          {product.category}
+        </Text>
 
-        <Text style={styles.title}>{product.title}</Text>
+        <Text style={styles.title}>
+          {product.title}
+        </Text>
 
         {product.brand && (
-          <Text style={styles.brand}>Brand: {product.brand}</Text>
+          <Text style={styles.brand}>
+            Brand: {product.brand}
+          </Text>
         )}
 
         <View style={styles.ratingRow}>
-          <Text style={styles.rating}>★ {product.rating.toFixed(1)}</Text>
+          <Text style={styles.rating}>
+            ★ {product.rating.toFixed(1)}
+          </Text>
+
           <Text style={styles.mutedText}>
             Customer rating
           </Text>
@@ -644,6 +791,7 @@ export default function ProductDetailsScreen() {
           </Text>
         </View>
 
+        {/* Price */}
         <View style={styles.priceRow}>
           <Text style={styles.price}>
             ${discountedPrice.toFixed(2)}
@@ -660,10 +808,14 @@ export default function ProductDetailsScreen() {
           {product.description}
         </Text>
 
+        {/* Quantity Selector */}
         <View style={styles.quantityCard}>
           <View style={styles.quantityRow}>
             <View>
-              <Text style={styles.sectionTitle}>Quantity</Text>
+              <Text style={styles.sectionTitle}>
+                Quantity
+              </Text>
+
               <Text style={styles.mutedText}>
                 Select how many you want
               </Text>
@@ -680,7 +832,9 @@ export default function ProductDetailsScreen() {
                 onPress={() => handleQuantityChange(-1)}
               />
 
-              <Text style={styles.quantity}>{quantity}</Text>
+              <Text style={styles.quantity}>
+                {quantity}
+              </Text>
 
               <IconButton
                 icon="plus"
@@ -695,31 +849,69 @@ export default function ProductDetailsScreen() {
           </View>
 
           <View style={styles.subtotalRow}>
-            <Text style={styles.subtotalLabel}>Subtotal</Text>
+            <Text style={styles.subtotalLabel}>
+              Subtotal
+            </Text>
+
             <Text style={styles.subtotal}>
               ${subtotal.toFixed(2)}
             </Text>
           </View>
 
           {product.minimumOrderQuantity > 1 && (
-            <Text style={[styles.mutedText, { marginTop: 10 }]}>
-              Minimum order quantity: {product.minimumOrderQuantity}
+            <Text
+              style={[
+                styles.mutedText,
+                { marginTop: 10 },
+              ]}
+            >
+              Minimum order quantity:{' '}
+              {product.minimumOrderQuantity}
             </Text>
           )}
         </View>
 
+        {/* Buy Now - First Button */}
+        <Button
+          mode="contained"
+          icon="lightning-bolt"
+          loading={buying}
+          disabled={
+            buying ||
+            adding ||
+            product.stock <= 0
+          }
+          buttonColor={theme.colors.tertiary}
+          textColor={theme.colors.onTertiary}
+          style={styles.actionButton}
+          contentStyle={{ paddingVertical: 7 }}
+          onPress={handleBuyNow}
+        >
+          {product.stock <= 0
+            ? 'Out of Stock'
+            : 'Buy Now'}
+        </Button>
+
+        {/* Add to Cart - Second Button */}
         <Button
           mode="contained"
           icon="cart-plus"
           loading={adding}
-          disabled={adding || product.stock <= 0}
+          disabled={
+            adding ||
+            buying ||
+            product.stock <= 0
+          }
           style={styles.actionButton}
           contentStyle={{ paddingVertical: 7 }}
           onPress={handleAddToCart}
         >
-          {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+          {product.stock <= 0
+            ? 'Out of Stock'
+            : 'Add to Cart'}
         </Button>
 
+        {/* Add to Wishlist - Third Button */}
         <Button
           mode="outlined"
           icon={isFavorite ? 'heart' : 'heart-outline'}
@@ -728,23 +920,38 @@ export default function ProductDetailsScreen() {
           contentStyle={{ paddingVertical: 5 }}
           onPress={handleFavorite}
         >
-          {isFavorite ? 'Remove from Wishlist' : 'Add to Wishlist'}
+          {isFavorite
+            ? 'Remove from Wishlist'
+            : 'Add to Wishlist'}
         </Button>
 
+        {/* Product Specifications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Product Specifications</Text>
+          <Text style={styles.sectionTitle}>
+            Product Specifications
+          </Text>
 
           <View style={styles.infoCard}>
-            <InfoRow label="SKU" value={product.sku} />
-            <InfoRow label="Category" value={product.category} />
+            <InfoRow
+              label="SKU"
+              value={product.sku}
+            />
+
+            <InfoRow
+              label="Category"
+              value={product.category}
+            />
+
             <InfoRow
               label="Availability"
               value={product.availabilityStatus}
             />
+
             <InfoRow
               label="Weight"
               value={`${product.weight} g`}
             />
+
             <InfoRow
               label="Dimensions"
               value={`${product.dimensions.width} × ${product.dimensions.height} × ${product.dimensions.depth} cm`}
@@ -752,18 +959,23 @@ export default function ProductDetailsScreen() {
           </View>
         </View>
 
+        {/* Delivery and Warranty */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery and Warranty</Text>
+          <Text style={styles.sectionTitle}>
+            Delivery and Warranty
+          </Text>
 
           <View style={styles.infoCard}>
             <InfoRow
               label="Shipping"
               value={product.shippingInformation}
             />
+
             <InfoRow
               label="Warranty"
               value={product.warrantyInformation}
             />
+
             <InfoRow
               label="Return Policy"
               value={product.returnPolicy}
@@ -771,6 +983,7 @@ export default function ProductDetailsScreen() {
           </View>
         </View>
 
+        {/* Customer Reviews */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             Customer Reviews ({product.reviews.length})
