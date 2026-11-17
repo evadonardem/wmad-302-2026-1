@@ -1,11 +1,18 @@
 
 /**
  * Profile Screen - Marketplace
- * Displays user information, account options, and settings.
- * Supports dynamic light and dark themes.
+ *
+ * Features:
+ * - Displays signed-in user information.
+ * - Shows actual order count and total spending.
+ * - Displays the user's wishlist count.
+ * - Navigates to My Orders and Wishlist.
+ * - Supports dynamic light and dark themes.
+ * - Refreshes profile statistics whenever the screen is focused.
  */
 
 import React, { useCallback, useState } from 'react';
+
 import {
   View,
   Text,
@@ -14,7 +21,9 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+
 import { router, useFocusEffect } from 'expo-router';
+
 import {
   Card,
   Button,
@@ -23,10 +32,15 @@ import {
   useTheme,
   type MD3Theme,
 } from 'react-native-paper';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useAuth } from '@/context/AuthContext';
-import { favoritesStorage } from '@/utils/storage';
+
+import {
+  favoritesStorage,
+  ordersStorage,
+} from '@/utils/storage';
 
 import { createProfileStyles } from './profileStyles';
 
@@ -57,25 +71,58 @@ export default function ProfileScreen() {
   const styles = createProfileStyles(colors);
 
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [orderCount, setOrderCount] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
 
   /**
-   * Load wishlist count from AsyncStorage.
+   * Load wishlist and order statistics.
+   *
+   * Orders are filtered by the signed-in user's ID.
    */
-  const loadWishlistCount = useCallback(async () => {
-    try {
-      const favoriteIds = await favoritesStorage.getIds();
-      setWishlistCount(favoriteIds.length);
-    } catch (error) {
-      console.error('Unable to load wishlist count:', error);
+  const loadProfileStatistics = useCallback(async () => {
+    if (!user) {
+      setWishlistCount(0);
+      setOrderCount(0);
+      setTotalSpent(0);
+      return;
     }
-  }, []);
 
+    try {
+      const [favoriteIds, savedOrders] = await Promise.all([
+        favoritesStorage.getIds(),
+        ordersStorage.getUserOrders(user.id),
+      ]);
+
+      setWishlistCount(favoriteIds.length);
+      setOrderCount(savedOrders.length);
+
+      const spent = savedOrders.reduce(
+        (sum, order) => sum + order.total,
+        0,
+      );
+
+      setTotalSpent(spent);
+    } catch (error) {
+      console.error(
+        'Unable to load profile statistics:',
+        error,
+      );
+    }
+  }, [user]);
+
+  /**
+   * Refresh statistics whenever Profile receives focus.
+   */
   useFocusEffect(
     useCallback(() => {
       if (isAuthenticated) {
-        loadWishlistCount();
+        void loadProfileStatistics();
+      } else {
+        setWishlistCount(0);
+        setOrderCount(0);
+        setTotalSpent(0);
       }
-    }, [isAuthenticated, loadWishlistCount]),
+    }, [isAuthenticated, loadProfileStatistics]),
   );
 
   /**
@@ -136,11 +183,11 @@ export default function ProfileScreen() {
     );
   };
 
+  /**
+   * Navigate to My Orders.
+   */
   const handleOrders = () => {
-    showMessage(
-      'My Orders',
-      'Order history will be implemented in the next development step.',
-    );
+    router.push('/(app)/my-orders');
   };
 
   const handleAddresses = () => {
@@ -157,6 +204,9 @@ export default function ProfileScreen() {
     );
   };
 
+  /**
+   * Navigate to Wishlist.
+   */
   const handleWishlist = () => {
     router.push('/(app)/(tabs)/favorites');
   };
@@ -251,7 +301,11 @@ export default function ProfileScreen() {
 
       {/* Profile Statistics */}
       <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
+        <TouchableOpacity
+          style={styles.statItem}
+          onPress={handleOrders}
+          activeOpacity={0.7}
+        >
           <MaterialCommunityIcons
             name="package-variant"
             size={22}
@@ -259,17 +313,21 @@ export default function ProfileScreen() {
           />
 
           <Text style={styles.statValue}>
-            0
+            {orderCount}
           </Text>
 
           <Text style={styles.statLabel}>
             Orders
           </Text>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.statDivider} />
 
-        <View style={styles.statItem}>
+        <TouchableOpacity
+          style={styles.statItem}
+          onPress={handleOrders}
+          activeOpacity={0.7}
+        >
           <MaterialCommunityIcons
             name="cash-multiple"
             size={22}
@@ -277,13 +335,13 @@ export default function ProfileScreen() {
           />
 
           <Text style={styles.statValue}>
-            $0.00
+            ${totalSpent.toFixed(2)}
           </Text>
 
           <Text style={styles.statLabel}>
             Spent
           </Text>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.statDivider} />
 
@@ -308,7 +366,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Account Section */}
+      {/* Shopping Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
           SHOPPING

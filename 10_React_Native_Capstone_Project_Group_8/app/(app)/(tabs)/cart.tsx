@@ -1,12 +1,17 @@
 
 /**
  * Cart Screen - Marketplace
- * Manages cart items using AsyncStorage.
- * Supports item removal on Web, Android, and iOS.
- * Includes a back button with a Shop fallback.
+ *
+ * Features:
+ * - Manages cart items using AsyncStorage.
+ * - Supports item removal on Web, Android, and iOS.
+ * - Includes quantity controls and stock validation.
+ * - Includes a back button with a Shop fallback.
+ * - Navigates to the Checkout screen.
  */
 
 import React, { useCallback, useState } from 'react';
+
 import {
   View,
   Text,
@@ -17,16 +22,22 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+
 import { useFocusEffect, useRouter } from 'expo-router';
+
 import {
   Button,
   IconButton,
   useTheme,
   type MD3Theme,
 } from 'react-native-paper';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import type { CartItem } from '@/types/product';
+
 import { cartStorage } from '@/utils/storage';
+
 import { createCartStyles } from './cartStyles';
 
 const showBrowserConfirm = (message: string): boolean => {
@@ -47,8 +58,10 @@ const showBrowserAlert = (message: string): void => {
 
 export default function CartScreen() {
   const router = useRouter();
+
   const theme = useTheme<MD3Theme>();
   const colors = theme.colors;
+
   const styles = createCartStyles(colors);
 
   const [items, setItems] = useState<CartItem[]>([]);
@@ -74,9 +87,13 @@ export default function CartScreen() {
       setLoading(true);
 
       const savedItems = await cartStorage.getCart();
+
       setItems(savedItems);
     } catch {
-      Alert.alert('Error', 'Unable to load your cart.');
+      Alert.alert(
+        'Error',
+        'Unable to load your cart.',
+      );
     } finally {
       setLoading(false);
     }
@@ -92,7 +109,8 @@ export default function CartScreen() {
    * Calculates cart totals.
    */
   const subtotal = items.reduce(
-    (total, item) => total + item.price * item.quantity,
+    (total, item) =>
+      total + item.price * item.quantity,
     0,
   );
 
@@ -108,7 +126,8 @@ export default function CartScreen() {
   const totalDiscount = subtotal - discountedTotal;
 
   const totalQuantity = items.reduce(
-    (total, item) => total + item.quantity,
+    (total, item) =>
+      total + item.quantity,
     0,
   );
 
@@ -121,7 +140,8 @@ export default function CartScreen() {
   ) => {
     try {
       const item = items.find(
-        (cartItem) => cartItem.productId === productId,
+        (cartItem) =>
+          cartItem.productId === productId,
       );
 
       if (!item) return;
@@ -137,18 +157,24 @@ export default function CartScreen() {
 
       await loadCart();
     } catch {
-      Alert.alert('Error', 'Unable to update the cart.');
+      Alert.alert(
+        'Error',
+        'Unable to update the cart.',
+      );
     }
   };
 
   /**
    * Removes a product from the cart.
    */
-  const performRemoveItem = async (productId: number) => {
+  const performRemoveItem = async (
+    productId: number,
+  ) => {
     try {
       await cartStorage.removeItem(productId);
 
       const updatedItems = await cartStorage.getCart();
+
       setItems(updatedItems);
     } catch {
       if (Platform.OS === 'web') {
@@ -167,8 +193,12 @@ export default function CartScreen() {
   /**
    * Uses the correct confirmation dialog for each platform.
    */
-  const removeItem = (productId: number, title: string) => {
-    const message = `Are you sure you want to remove "${title}" from your cart?`;
+  const removeItem = (
+    productId: number,
+    title: string,
+  ) => {
+    const message =
+      `Are you sure you want to remove "${title}" from your cart?`;
 
     if (Platform.OS === 'web') {
       const confirmed = showBrowserConfirm(message);
@@ -200,21 +230,32 @@ export default function CartScreen() {
   };
 
   /**
-   * Checkout placeholder.
+   * Navigates to the Checkout screen.
    */
   const handleCheckout = () => {
-    Alert.alert(
-      'Checkout',
-      'Your cart is ready! Checkout functionality will be implemented in the next step.',
-    );
+    if (items.length === 0) {
+      Alert.alert(
+        'Empty Cart',
+        'Please add products to your cart before checking out.',
+      );
+
+      return;
+    }
+
+    router.push('/(app)/checkout');
   };
 
   /**
    * Renders each cart item.
    */
-  const renderItem = ({ item }: { item: CartItem }) => {
+  const renderItem = ({
+    item,
+  }: {
+    item: CartItem;
+  }) => {
     const itemDiscountedPrice =
-      item.price * (1 - item.discountPercentage / 100);
+      item.price *
+      (1 - item.discountPercentage / 100);
 
     return (
       <View style={styles.cartItem}>
@@ -225,7 +266,10 @@ export default function CartScreen() {
         />
 
         <View style={styles.itemInfo}>
-          <Text style={styles.itemTitle} numberOfLines={2}>
+          <Text
+            style={styles.itemTitle}
+            numberOfLines={2}
+          >
             {item.title}
           </Text>
 
@@ -283,7 +327,10 @@ export default function CartScreen() {
             <TouchableOpacity
               style={styles.removeButton}
               onPress={() =>
-                removeItem(item.productId, item.title)
+                removeItem(
+                  item.productId,
+                  item.title,
+                )
               }
               activeOpacity={0.7}
               accessibilityRole="button"
@@ -425,7 +472,9 @@ export default function CartScreen() {
       <FlatList
         data={items}
         renderItem={renderItem}
-        keyExtractor={(item) => item.productId.toString()}
+        keyExtractor={(item) =>
+          item.productId.toString()
+        }
         ItemSeparatorComponent={() => (
           <View style={styles.separator} />
         )}

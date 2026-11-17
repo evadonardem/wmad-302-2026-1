@@ -4,7 +4,11 @@
  */
 
 import React from 'react';
-import { Stack, Redirect } from 'expo-router';
+
+import {
+  Stack,
+  Redirect,
+} from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
 
@@ -20,10 +24,24 @@ export default function AppLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="(tabs)" />
+
       <Stack.Screen name="product/[id]" />
+
       <Stack.Screen name="settings" />
+
+      <Stack.Screen name="checkout" />
+
+      <Stack.Screen name="my-orders" />
+
+      <Stack.Screen name="order-confirmation" />
+
+      <Stack.Screen name="order-details/[id]" />
     </Stack>
   );
 }
