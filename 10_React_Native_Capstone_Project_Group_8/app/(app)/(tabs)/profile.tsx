@@ -1,4 +1,3 @@
-
 /**
  * Profile Screen - Marketplace
  *
@@ -7,6 +6,7 @@
  * - Shows actual order count and total spending.
  * - Displays the user's wishlist count.
  * - Navigates to My Orders and Wishlist.
+ * - Navigates to Edit Profile.
  * - Navigates to Contact Information management.
  * - Navigates to Shipping Address management.
  * - Supports dynamic light and dark themes.
@@ -232,13 +232,10 @@ export default function ProfileScreen() {
   };
 
   /**
-   * Existing Edit Profile placeholder.
+   * Navigate to Edit Profile.
    */
   const handleEditProfile = () => {
-    showMessage(
-      'Edit Profile',
-      'Profile editing will be implemented in the next development step.',
-    );
+    router.push('/(app)/edit-profile');
   };
 
   /**

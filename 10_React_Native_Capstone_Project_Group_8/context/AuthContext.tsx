@@ -1,7 +1,8 @@
-
 /**
  * Auth Context with useReducer
+ *
  * Restores saved login sessions from local storage.
+ * Supports locally saved profile updates.
  */
 
 import React, {
@@ -13,10 +14,20 @@ import React, {
   type ReactNode,
 } from 'react';
 
-import type { AuthState, AuthAction } from '@/types/auth';
+import type {
+  AuthState,
+  AuthAction,
+  AuthUser,
+} from '@/types/auth';
+
 import { authApi } from '@/services/authApi';
 
-// Initial state
+import {
+  authStorage,
+  profileOverridesStorage,
+  type ProfileOverrides,
+} from '@/utils/storage';
+
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
@@ -24,7 +35,6 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Reducer
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'AUTH_START':
@@ -89,37 +99,59 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-// Context interface
+type RegisterInput = {
+  firstName: string;
+  lastName: string;
+  username: string;
+  password: string;
+  email: string;
+  age?: number;
+  gender?: 'male' | 'female';
+};
+
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
-  register: (data: {
-    firstName: string;
-    lastName: string;
-    username: string;
-    password: string;
-    email: string;
-    age?: number;
-    gender?: 'male' | 'female';
-  }) => Promise<void>;
+  register: (data: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
+  updateProfile: (updates: ProfileOverrides) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(
   undefined,
 );
 
-// Provider
-export function AuthProvider({ children }: { children: ReactNode }) {
+/**
+ * Applies locally saved profile edits to a user.
+ */
+async function applyProfileOverrides(
+  user: AuthUser,
+): Promise<AuthUser> {
+  const overrides = await profileOverridesStorage.get(user.id);
+
+  if (!overrides) {
+    return user;
+  }
+
+  return {
+    ...user,
+    ...overrides,
+    token: user.token,
+    refreshToken: user.refreshToken,
+  };
+}
+
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   /**
    * Restore the locally saved session.
-   *
-   * Do not call DummyJSON during initial hydration.
-   * This prevents temporary API failures or expired demo tokens
-   * from automatically logging the user out on browser refresh.
+   * Apply any previously saved profile edits.
    */
   useEffect(() => {
     let isMounted = true;
@@ -134,22 +166,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           storedUser.username &&
           storedUser.token
         ) {
+          const userWithOverrides =
+            await applyProfileOverrides(storedUser);
+
           if (isMounted) {
             dispatch({
               type: 'AUTH_HYDRATE',
-              payload: storedUser,
+              payload: userWithOverrides,
             });
           }
-        } else {
-          if (isMounted) {
-            dispatch({
-              type: 'AUTH_HYDRATE',
-              payload: null,
-            });
-          }
+        } else if (isMounted) {
+          dispatch({
+            type: 'AUTH_HYDRATE',
+            payload: null,
+          });
         }
       } catch (error) {
-        console.error('Failed to restore saved login session:', error);
+        console.error(
+          'Failed to restore saved login session:',
+          error,
+        );
 
         if (isMounted) {
           dispatch({
@@ -160,14 +196,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    hydrateAuth();
+    void hydrateAuth();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // Login
+  /**
+   * Login
+   */
   const login = useCallback(
     async (username: string, password: string) => {
       dispatch({ type: 'AUTH_START' });
@@ -178,9 +216,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password,
         });
 
+        const userWithOverrides =
+          await applyProfileOverrides(user);
+
+        await authStorage.setUser(userWithOverrides);
+
         dispatch({
           type: 'AUTH_SUCCESS',
-          payload: user,
+          payload: userWithOverrides,
         });
       } catch (error: unknown) {
         const message =
@@ -197,21 +240,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  // Register
+  /**
+   * Register
+   *
+   * Existing registration implementation is intentionally
+   * left unchanged in this update.
+   */
   const register = useCallback(
-    async (data: {
-      firstName: string;
-      lastName: string;
-      username: string;
-      password: string;
-      email: string;
-      age?: number;
-      gender?: 'male' | 'female';
-    }) => {
+    async (data: RegisterInput) => {
       dispatch({ type: 'AUTH_START' });
 
       try {
-        // Registration implementation remains unchanged.
         void data;
 
         throw new Error(
@@ -234,7 +273,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  // Logout
+  /**
+   * Logout
+   */
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -243,14 +284,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Clear authentication error
+  /**
+   * Clear authentication error.
+   */
   const clearError = useCallback(() => {
     dispatch({ type: 'AUTH_CLEAR_ERROR' });
   }, []);
 
   /**
+   * Update the signed-in user's editable profile information.
+   *
+   * The profile is saved separately for the current user.
+   * Authentication tokens and other user properties are preserved.
+   */
+  const updateProfile = useCallback(
+    async (updates: ProfileOverrides) => {
+      const currentUser = state.user;
+
+      if (!currentUser) {
+        throw new Error(
+          'You must be logged in to update your profile.',
+        );
+      }
+
+      const updatedProfile: ProfileOverrides = {
+        firstName: updates.firstName.trim(),
+        lastName: updates.lastName.trim(),
+        username: updates.username.trim(),
+        email: updates.email.trim(),
+        gender: updates.gender,
+      };
+
+      const updatedUser: AuthUser = {
+        ...currentUser,
+        ...updatedProfile,
+      };
+
+      // Save the editable profile separately for this user.
+      await profileOverridesStorage.save(
+        currentUser.id,
+        updatedProfile,
+      );
+
+      // Update the locally stored authenticated user.
+      await authStorage.setUser(updatedUser);
+
+      // Immediately update the app's authentication state.
+      dispatch({
+        type: 'AUTH_UPDATE_USER',
+        payload: updatedProfile,
+      });
+    },
+    [state.user],
+  );
+
+  /**
    * Refresh user information from DummyJSON.
-   * If the API is unavailable, keep the locally saved session.
+   *
+   * Local profile edits take priority over API profile data.
+   * Existing authentication tokens are preserved.
    */
   const refreshUser = useCallback(async () => {
     if (!state.isAuthenticated) {
@@ -262,18 +354,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUser = await authApi.getStoredUser();
 
       if (storedUser) {
-        const mergedUser = {
+        const mergedUser: AuthUser = {
           ...storedUser,
           ...user,
           token: storedUser.token,
           refreshToken: storedUser.refreshToken,
         };
 
-        await authApi.setTokens(mergedUser);
+        const userWithOverrides =
+          await applyProfileOverrides(mergedUser);
+
+        await authStorage.setUser(userWithOverrides);
 
         dispatch({
           type: 'AUTH_SUCCESS',
-          payload: mergedUser,
+          payload: userWithOverrides,
         });
       }
     } catch (error) {
@@ -293,6 +388,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         clearError,
         refreshUser,
+        updateProfile,
       }}
     >
       {children}
@@ -300,7 +396,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook
+/**
+ * Custom authentication hook.
+ */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 
