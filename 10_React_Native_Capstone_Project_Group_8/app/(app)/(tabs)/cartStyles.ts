@@ -19,36 +19,59 @@ export const createCartStyles = (
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingTop: 22,
-      paddingBottom: 18,
+      paddingHorizontal: 14,
+      paddingTop: 18,
+      paddingBottom: 16,
+      gap: 8,
+    },
+
+    backButton: {
+      margin: 0,
+    },
+
+    headerTextContainer: {
+      flex: 1,
+      minWidth: 0,
+    },
+
+    emptyHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingTop: 18,
+      gap: 10,
+    },
+
+    emptyHeaderTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.onSurface,
     },
 
     eyebrow: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
-      letterSpacing: 1.4,
+      letterSpacing: 1.2,
       color: colors.primary,
-      marginBottom: 6,
+      marginBottom: 5,
     },
 
     headerTitle: {
-      fontSize: 28,
+      fontSize: 26,
       fontWeight: '800',
       color: colors.onBackground,
     },
 
     headerSubtitle: {
-      fontSize: 13,
+      fontSize: 12,
       color: colors.onSurfaceVariant,
       marginTop: 4,
     },
 
     headerIconContainer: {
-      width: 55,
-      height: 55,
-      borderRadius: 18,
+      width: 50,
+      height: 50,
+      borderRadius: 17,
       backgroundColor: colors.primaryContainer,
       alignItems: 'center',
       justifyContent: 'center',
@@ -216,9 +239,12 @@ export const createCartStyles = (
       height: 12,
     },
 
+    /**
+     * Keeps Order Summary above the floating bottom navigation.
+     */
     summaryContainer: {
       position: 'absolute',
-      bottom: 0,
+      bottom: 92,
       left: 0,
       right: 0,
       backgroundColor: colors.surface,
@@ -228,7 +254,7 @@ export const createCartStyles = (
       borderTopRightRadius: 22,
       paddingHorizontal: 20,
       paddingTop: 17,
-      paddingBottom: 30,
+      paddingBottom: 18,
       elevation: 10,
       shadowColor: '#000000',
       shadowOffset: {

@@ -3,6 +3,7 @@
  * Cart Screen - Marketplace
  * Manages cart items using AsyncStorage.
  * Supports item removal on Web, Android, and iOS.
+ * Includes a back button with a Shop fallback.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -28,10 +29,6 @@ import type { CartItem } from '@/types/product';
 import { cartStorage } from '@/utils/storage';
 import { createCartStyles } from './cartStyles';
 
-/**
- * Browser confirmation and alert helpers.
- * Avoids TypeScript errors when using browser dialogs.
- */
 const showBrowserConfirm = (message: string): boolean => {
   const browser = globalThis as typeof globalThis & {
     confirm?: (message: string) => boolean;
@@ -56,6 +53,18 @@ export default function CartScreen() {
 
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  /**
+   * Returns to the previous screen.
+   * If there is no previous screen, returns to Shop.
+   */
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(app)/(tabs)/home');
+    }
+  };
 
   /**
    * Loads cart items from AsyncStorage.
@@ -133,8 +142,7 @@ export default function CartScreen() {
   };
 
   /**
-   * Removes a product from the cart
-   * and immediately refreshes the displayed items.
+   * Removes a product from the cart.
    */
   const performRemoveItem = async (productId: number) => {
     try {
@@ -162,7 +170,6 @@ export default function CartScreen() {
   const removeItem = (productId: number, title: string) => {
     const message = `Are you sure you want to remove "${title}" from your cart?`;
 
-    // Browser confirmation for React Native Web.
     if (Platform.OS === 'web') {
       const confirmed = showBrowserConfirm(message);
 
@@ -173,7 +180,6 @@ export default function CartScreen() {
       return;
     }
 
-    // Native confirmation for Android and iOS.
     Alert.alert(
       'Remove Product',
       message,
@@ -325,6 +331,22 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <View style={styles.container}>
+        <View style={styles.emptyHeader}>
+          <IconButton
+            icon="arrow-left"
+            size={23}
+            mode="contained"
+            containerColor={colors.primaryContainer}
+            iconColor={colors.primary}
+            onPress={handleGoBack}
+            accessibilityLabel="Go back"
+          />
+
+          <Text style={styles.emptyHeaderTitle}>
+            My Cart
+          </Text>
+        </View>
+
         <View style={styles.emptyState}>
           <View style={styles.emptyIconContainer}>
             <MaterialCommunityIcons
@@ -365,7 +387,18 @@ export default function CartScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
+        <IconButton
+          icon="arrow-left"
+          size={23}
+          mode="contained"
+          containerColor={colors.primaryContainer}
+          iconColor={colors.primary}
+          onPress={handleGoBack}
+          style={styles.backButton}
+          accessibilityLabel="Go back"
+        />
+
+        <View style={styles.headerTextContainer}>
           <Text style={styles.eyebrow}>
             YOUR SHOPPING BAG
           </Text>

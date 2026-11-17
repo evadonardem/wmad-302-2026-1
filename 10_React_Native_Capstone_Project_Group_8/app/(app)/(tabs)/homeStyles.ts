@@ -87,13 +87,78 @@ export function createHomeStyles(colors: MD3Theme['colors']) {
       fontWeight: '700',
     },
 
+    // Search and cart header
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 18,
+      paddingTop: 18,
+      paddingBottom: 12,
+      gap: 12,
+    },
+
+    searchBox: {
+      flex: 1,
+      minHeight: 52,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      borderRadius: 16,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      gap: 9,
+    },
+
+    searchInput: {
+      flex: 1,
+      height: 50,
+      paddingVertical: 0,
+      fontSize: 14,
+      color: colors.onSurface,
+    },
+
+    cartButton: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+    },
+
+    cartBadge: {
+      position: 'absolute',
+      top: -6,
+      right: -6,
+      minWidth: 19,
+      height: 19,
+      borderRadius: 10,
+      paddingHorizontal: 4,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.error,
+      borderWidth: 1.5,
+      borderColor: colors.background,
+    },
+
+    cartBadgeText: {
+      color: '#FFFFFF',
+      fontSize: 9,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+
     // Welcome header
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 20,
-      paddingTop: 22,
+      paddingTop: 8,
       paddingBottom: 20,
     },
 
@@ -121,19 +186,6 @@ export function createHomeStyles(colors: MD3Theme['colors']) {
       fontSize: 13,
       color: colors.onSurfaceVariant,
       marginTop: 5,
-    },
-
-    storeIconContainer: {
-      width: 58,
-      height: 58,
-      borderRadius: 20,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: colors.primaryContainer,
-    },
-
-    storeIcon: {
-      fontSize: 29,
     },
 
     // Promotional banner

@@ -3,6 +3,8 @@
  * Home Screen - Marketplace Shop Tab
  *
  * Features:
+ * - Shop search bar with navigation to Search
+ * - Cart shortcut with live quantity badge
  * - Personalized welcome header
  * - Promotional banner
  * - Product categories
@@ -10,8 +12,6 @@
  * - Two-column recommended products
  * - Pull-to-refresh
  * - Dynamic Light and Dark Mode
- *
- * API: https://dummyjson.com/docs/products
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -24,10 +24,13 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { cartStorage } from '@/utils/storage';
 import { useTheme, type MD3Theme } from 'react-native-paper';
 
 import { createHomeStyles } from './homeStyles';
@@ -99,6 +102,44 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [cartCount, setCartCount] = useState(0);
+
+  /**
+   * Load the current cart quantity whenever the Shop screen
+   * becomes active again.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const loadCartCount = async () => {
+        try {
+          const items = await cartStorage.getCart();
+
+          if (isActive) {
+            const totalQuantity = items.reduce(
+              (total, item) => total + item.quantity,
+              0,
+            );
+
+            setCartCount(totalQuantity);
+          }
+        } catch {
+          if (isActive) {
+            setCartCount(0);
+          }
+        }
+      };
+
+      void loadCartCount();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
+
   /**
    * Fetch products and categories.
    */
@@ -120,9 +161,7 @@ export default function HomeScreen() {
       }
 
       const productsData: ProductsResponse = await productsRes.json();
-
-      const categoriesData: ProductCategory[] =
-        await categoriesRes.json();
+      const categoriesData: ProductCategory[] = await categoriesRes.json();
 
       setProducts(productsData.products);
       setCategories(categoriesData);
@@ -151,6 +190,29 @@ export default function HomeScreen() {
   };
 
   /**
+   * Navigate to Search with the entered search term.
+   */
+  const openSearch = () => {
+    const trimmedQuery = searchQuery.trim();
+
+    if (trimmedQuery) {
+      router.push({
+        pathname: '/(app)/(tabs)/search',
+        params: { q: trimmedQuery },
+      });
+    } else {
+      router.push('/(app)/(tabs)/search');
+    }
+  };
+
+  /**
+   * Navigate to the Cart screen.
+   */
+  const openCart = () => {
+    router.push('/(app)/(tabs)/cart');
+  };
+
+  /**
    * Open product details.
    */
   const openProduct = (productId: number) => {
@@ -160,10 +222,7 @@ export default function HomeScreen() {
   /**
    * Render an individual product card.
    */
-  const renderProductCard = (
-    item: Product,
-    compact = false,
-  ) => {
+  const renderProductCard = (item: Product, compact = false) => {
     const discountedPrice =
       item.price * (1 - item.discountPercentage / 100);
 
@@ -293,6 +352,7 @@ export default function HomeScreen() {
       style={styles.scrollView}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -302,6 +362,63 @@ export default function HomeScreen() {
         />
       }
     >
+      {/* Search Bar and Cart Button */}
+      <View style={styles.topBar}>
+        <View style={styles.searchBox}>
+          <MaterialCommunityIcons
+            name="magnify"
+            size={22}
+            color={theme.colors.onSurfaceVariant}
+          />
+
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search products..."
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+            returnKeyType="search"
+            onSubmitEditing={openSearch}
+            accessibilityLabel="Search products"
+          />
+
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              activeOpacity={0.7}
+              accessibilityLabel="Clear search"
+            >
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={19}
+                color={theme.colors.onSurfaceVariant}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={openCart}
+          activeOpacity={0.8}
+          accessibilityLabel={`Open cart, ${cartCount} items`}
+        >
+          <MaterialCommunityIcons
+            name="cart-outline"
+            size={25}
+            color={theme.colors.onSurface}
+          />
+
+          {cartCount > 0 && (
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>
+                {cartCount > 99 ? '99+' : cartCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
       {/* Welcome Header */}
       <View style={styles.header}>
         <View style={styles.headerTextContainer}>
@@ -316,10 +433,6 @@ export default function HomeScreen() {
           <Text style={styles.welcomeSubtitle}>
             What are you looking for today?
           </Text>
-        </View>
-
-        <View style={styles.storeIconContainer}>
-          <Text style={styles.storeIcon}>🛍️</Text>
         </View>
       </View>
 

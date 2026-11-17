@@ -1,14 +1,24 @@
 
 /**
  * Search Screen - Marketplace
+ *
  * Features:
  * - Search products using DummyJSON
+ * - Accept search keywords from the Shop screen
+ * - Automatically search when opened with a query parameter
  * - Filter products by category
  * - Sort by price, rating, discount, and newest
  * - Load more products
  * - Dynamic light and dark theme support
  */
-import React, { useCallback, useMemo, useState } from 'react';
+
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
 import {
   ActivityIndicator,
   Image,
@@ -17,12 +27,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+
+import {
+  useLocalSearchParams,
+  useRouter,
+} from 'expo-router';
+
 import {
   TextInput as PaperTextInput,
   useTheme,
   MD3Theme,
 } from 'react-native-paper';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createSearchStyles } from './searchStyles';
 
@@ -69,8 +85,12 @@ const sortOptions: { label: string; value: SortOption }[] = [
 
 export default function SearchScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string }>();
+
   const theme = useTheme<MD3Theme>();
   const styles = createSearchStyles(theme.colors);
+
+  const routeQuery = typeof params.q === 'string' ? params.q : '';
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
@@ -83,12 +103,15 @@ export default function SearchScreen() {
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
 
+  /**
+   * Fetch products from DummyJSON.
+   */
   const fetchProducts = useCallback(
     async (
       searchTerm: string,
       category: string | null,
       nextSkip = 0,
-      append = false
+      append = false,
     ) => {
       if (append) {
         setLoadingMore(true);
@@ -108,6 +131,7 @@ export default function SearchScreen() {
         }
 
         const separator = endpoint.includes('?') ? '&' : '?';
+
         endpoint += `${separator}limit=${PAGE_SIZE}&skip=${nextSkip}`;
 
         const response = await fetch(endpoint);
@@ -121,18 +145,18 @@ export default function SearchScreen() {
         const filteredProducts =
           category && searchTerm.trim()
             ? data.products.filter(
-                (product) => product.category === category
+                (product) => product.category === category,
               )
             : data.products;
 
         setResults((previous) =>
-          append ? [...previous, ...filteredProducts] : filteredProducts
+          append ? [...previous, ...filteredProducts] : filteredProducts,
         );
 
         setTotal(
           category && searchTerm.trim()
             ? filteredProducts.length
-            : data.total
+            : data.total,
         );
 
         setSkip(nextSkip + data.products.length);
@@ -153,21 +177,45 @@ export default function SearchScreen() {
         setLoadingMore(false);
       }
     },
-    []
+    [],
   );
 
+  /**
+   * Automatically search when the Shop screen passes a query.
+   */
+  useEffect(() => {
+    const nextQuery = routeQuery.trim();
+
+    if (!nextQuery) {
+      return;
+    }
+
+    setQuery(nextQuery);
+    setSelectedCategory(null);
+    setSkip(0);
+
+    void fetchProducts(nextQuery, null, 0, false);
+  }, [routeQuery, fetchProducts]);
+
+  /**
+   * Perform a manual search.
+   */
   const handleSearch = () => {
     if (!query.trim() && !selectedCategory) {
       setResults([]);
+      setTotal(0);
       setHasSearched(false);
       setError('');
       return;
     }
 
     setSkip(0);
-    fetchProducts(query, selectedCategory, 0, false);
+    void fetchProducts(query, selectedCategory, 0, false);
   };
 
+  /**
+   * Select or deselect a category.
+   */
   const handleCategorySelect = (category: string) => {
     const nextCategory =
       selectedCategory === category ? null : category;
@@ -176,7 +224,7 @@ export default function SearchScreen() {
     setSkip(0);
 
     if (query.trim() || nextCategory) {
-      fetchProducts(query, nextCategory, 0, false);
+      void fetchProducts(query, nextCategory, 0, false);
     } else {
       setResults([]);
       setTotal(0);
@@ -185,12 +233,18 @@ export default function SearchScreen() {
     }
   };
 
+  /**
+   * Load the next page of products.
+   */
   const handleLoadMore = () => {
     if (!loadingMore && !loading && results.length < total) {
-      fetchProducts(query, selectedCategory, skip, true);
+      void fetchProducts(query, selectedCategory, skip, true);
     }
   };
 
+  /**
+   * Sort the displayed products.
+   */
   const sortedResults = useMemo(() => {
     const products = [...results];
 
@@ -203,7 +257,7 @@ export default function SearchScreen() {
 
       case 'discount':
         return products.sort(
-          (a, b) => b.discountPercentage - a.discountPercentage
+          (a, b) => b.discountPercentage - a.discountPercentage,
         );
 
       case 'newest':
@@ -214,16 +268,25 @@ export default function SearchScreen() {
     }
   }, [results, sortBy]);
 
+  /**
+   * Format category names.
+   */
   const formatCategory = (category: string) =>
     category
       .split('-')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
 
+  /**
+   * Open product details.
+   */
   const openProduct = (productId: number) => {
     router.push(`/(app)/product/${productId}`);
   };
 
+  /**
+   * Render a product result.
+   */
   const renderProduct = (item: Product) => {
     const discountedPrice =
       item.price * (1 - item.discountPercentage / 100);
@@ -285,6 +348,7 @@ export default function SearchScreen() {
                 size={15}
                 color="#F5B301"
               />
+
               <Text style={styles.resultDetails}>
                 {item.rating.toFixed(1)}
               </Text>
@@ -320,8 +384,14 @@ export default function SearchScreen() {
       {/* Screen Heading */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>DISCOVER SOMETHING NEW</Text>
-          <Text style={styles.heading}>Search Products</Text>
+          <Text style={styles.eyebrow}>
+            DISCOVER SOMETHING NEW
+          </Text>
+
+          <Text style={styles.heading}>
+            Search Products
+          </Text>
+
           <Text style={styles.subtitle}>
             Find products you&apos;ll love.
           </Text>
@@ -387,7 +457,10 @@ export default function SearchScreen() {
                 size={20}
                 color="#FFFFFF"
               />
-              <Text style={styles.searchButtonText}>Search</Text>
+
+              <Text style={styles.searchButtonText}>
+                Search
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -396,13 +469,17 @@ export default function SearchScreen() {
       {/* Category Filters */}
       <View style={styles.filterSection}>
         <View style={styles.sectionHeadingRow}>
-          <Text style={styles.sectionTitle}>Categories</Text>
+          <Text style={styles.sectionTitle}>
+            Categories
+          </Text>
 
           {selectedCategory ? (
             <TouchableOpacity
               onPress={() => handleCategorySelect(selectedCategory)}
             >
-              <Text style={styles.clearFilterText}>Clear filter</Text>
+              <Text style={styles.clearFilterText}>
+                Clear filter
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -441,7 +518,9 @@ export default function SearchScreen() {
 
       {/* Sorting */}
       <View style={styles.sortSection}>
-        <Text style={styles.sectionTitle}>Sort By</Text>
+        <Text style={styles.sectionTitle}>
+          Sort By
+        </Text>
 
         <View style={styles.sortOptions}>
           {sortOptions.map((option) => {
@@ -497,8 +576,14 @@ export default function SearchScreen() {
 
         {loading ? (
           <View style={styles.loadingCenter}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Finding products...</Text>
+            <ActivityIndicator
+              size="large"
+              color={theme.colors.primary}
+            />
+
+            <Text style={styles.loadingText}>
+              Finding products...
+            </Text>
           </View>
         ) : error ? (
           <View style={styles.emptyState}>
@@ -507,14 +592,22 @@ export default function SearchScreen() {
               size={54}
               color={theme.colors.error}
             />
-            <Text style={styles.emptyTitle}>Something went wrong</Text>
-            <Text style={styles.emptySubtext}>{error}</Text>
+
+            <Text style={styles.emptyTitle}>
+              Something went wrong
+            </Text>
+
+            <Text style={styles.emptySubtext}>
+              {error}
+            </Text>
 
             <TouchableOpacity
               style={styles.retryButton}
               onPress={handleSearch}
             >
-              <Text style={styles.retryButtonText}>Try Again</Text>
+              <Text style={styles.retryButtonText}>
+                Try Again
+              </Text>
             </TouchableOpacity>
           </View>
         ) : sortedResults.length > 0 ? (
@@ -550,7 +643,11 @@ export default function SearchScreen() {
               size={58}
               color={theme.colors.onSurfaceVariant}
             />
-            <Text style={styles.emptyTitle}>No products found</Text>
+
+            <Text style={styles.emptyTitle}>
+              No products found
+            </Text>
+
             <Text style={styles.emptySubtext}>
               Try another search term or choose a different category.
             </Text>
@@ -564,9 +661,11 @@ export default function SearchScreen() {
                 color={theme.colors.primary}
               />
             </View>
+
             <Text style={styles.initialTitle}>
               What are you looking for?
             </Text>
+
             <Text style={styles.initialSubtitle}>
               Enter a product name above or select a category to discover
               available products.
