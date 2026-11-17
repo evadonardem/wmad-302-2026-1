@@ -1,25 +1,36 @@
 
 /**
  * Home Screen - Marketplace Shop Tab
- * Features: Product grid, categories, flash deals, recommendations
+ *
+ * Features:
+ * - Personalized welcome header
+ * - Promotional banner
+ * - Product categories
+ * - Horizontal flash deals
+ * - Two-column recommended products
+ * - Pull-to-refresh
+ * - Dynamic Light and Dark Mode
+ *
  * API: https://dummyjson.com/docs/products
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+
 import {
   View,
   Text,
   ScrollView,
-  FlatList,
   TouchableOpacity,
   Image,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Avatar, Button, Badge } from 'react-native-paper';
-import { styles } from './homeStyles';
+import { useTheme, type MD3Theme } from 'react-native-paper';
+
+import { createHomeStyles } from './homeStyles';
 
 // Product type from DummyJSON Products API
 interface Product {
@@ -78,6 +89,9 @@ interface ProductsResponse {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme<MD3Theme>();
+
+  const styles = createHomeStyles(theme.colors);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -85,8 +99,10 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch products and categories
-  const fetchData = async (isRefresh = false) => {
+  /**
+   * Fetch products and categories.
+   */
+  const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) {
         setLoading(true);
@@ -100,10 +116,11 @@ export default function HomeScreen() {
       ]);
 
       if (!productsRes.ok || !categoriesRes.ok) {
-        throw new Error('Failed to fetch marketplace data.');
+        throw new Error('Unable to load marketplace data. Please try again.');
       }
 
       const productsData: ProductsResponse = await productsRes.json();
+
       const categoriesData: ProductCategory[] =
         await categoriesRes.json();
 
@@ -113,229 +130,369 @@ export default function HomeScreen() {
       setError(
         err instanceof Error
           ? err.message
-          : 'Failed to load marketplace data.',
+          : 'Something went wrong while loading products.',
       );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, []);
 
-  // Pull-to-refresh
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
+
+  /**
+   * Pull-to-refresh.
+   */
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData(true);
+    void fetchData(true);
   };
 
-  // Product card
-  const renderProduct = ({ item }: { item: Product }) => {
+  /**
+   * Open product details.
+   */
+  const openProduct = (productId: number) => {
+    router.push(`/(app)/product/${productId}`);
+  };
+
+  /**
+   * Render an individual product card.
+   */
+  const renderProductCard = (
+    item: Product,
+    compact = false,
+  ) => {
     const discountedPrice =
       item.price * (1 - item.discountPercentage / 100);
 
     return (
       <TouchableOpacity
-        style={styles.productCard}
-        onPress={() =>
-          router.push(`/(app)/product/${item.id}`)
-        }
-        activeOpacity={0.8}
+        key={item.id}
+        style={[
+          styles.productCard,
+          compact && styles.compactProductCard,
+        ]}
+        onPress={() => openProduct(item.id)}
+        activeOpacity={0.85}
       >
-        <Card style={styles.card} elevation={2}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: item.thumbnail }}
-              style={styles.productImage}
-              resizeMode="contain"
-            />
+        <View style={styles.productImageContainer}>
+          <Image
+            source={{ uri: item.thumbnail }}
+            style={styles.productImage}
+            resizeMode="contain"
+          />
+
+          {item.discountPercentage > 0 && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountBadgeText}>
+                -{Math.round(item.discountPercentage)}%
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.productInfo}>
+          <Text style={styles.productCategory} numberOfLines={1}>
+            {item.category}
+          </Text>
+
+          <Text style={styles.productTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.currentPrice}>
+              ${discountedPrice.toFixed(2)}
+            </Text>
 
             {item.discountPercentage > 0 && (
-              <Badge style={styles.discountBadge}>
-                {'-' + Math.round(item.discountPercentage) + '%'}
-              </Badge>
+              <Text style={styles.originalPrice}>
+                ${item.price.toFixed(2)}
+              </Text>
             )}
           </View>
 
-          <Card.Content style={styles.cardContent}>
-            <Text style={styles.productCategory}>
-              {item.category}
+          <View style={styles.productMetaRow}>
+            <Text style={styles.ratingText}>
+              ★ {item.rating.toFixed(1)}
             </Text>
 
-            <Title style={styles.productTitle} numberOfLines={2}>
-              {item.title}
-            </Title>
-
-            <View style={styles.priceRow}>
-              <Text style={styles.currentPrice}>
-                ${discountedPrice.toFixed(2)}
-              </Text>
-
-              {item.discountPercentage > 0 && (
-                <Text style={styles.originalPrice}>
-                  ${item.price.toFixed(2)}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.ratingRow}>
-              <Text style={styles.ratingText}>
-                ⭐ {item.rating.toFixed(1)} ·{' '}
-                {item.stock > 0 ? 'In Stock' : 'Out of Stock'}
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
+            <Text
+              style={[
+                styles.stockText,
+                item.stock > 0
+                  ? styles.inStockText
+                  : styles.outOfStockText,
+              ]}
+            >
+              {item.stock > 0 ? 'In Stock' : 'Out of Stock'}
+            </Text>
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
 
-  // Loading screen
+  /**
+   * Loading screen.
+   */
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#43A52F" />
-        <Text style={styles.loadingText}>Loading products...</Text>
+        <ActivityIndicator
+          size="large"
+          color={theme.colors.primary}
+        />
+
+        <Text style={styles.loadingText}>
+          Preparing your marketplace...
+        </Text>
       </View>
     );
   }
 
-  // Error screen
+  /**
+   * Error screen.
+   */
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={styles.errorIcon}>!</Text>
 
-        <Button
-          mode="contained"
-          onPress={() => fetchData()}
+        <Text style={styles.errorTitle}>
+          Something went wrong
+        </Text>
+
+        <Text style={styles.errorText}>
+          {error}
+        </Text>
+
+        <TouchableOpacity
           style={styles.retryButton}
+          onPress={() => void fetchData()}
+          activeOpacity={0.85}
         >
-          Retry
-        </Button>
+          <Text style={styles.retryButtonText}>
+            Try Again
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
+
+  const flashDeals = products
+    .filter((product) => product.discountPercentage > 20)
+    .slice(0, 8);
+
+  const recommendedProducts = products.slice(0, 10);
 
   return (
     <ScrollView
       style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={['#43A52F']}
+          colors={[theme.colors.primary]}
+          tintColor={theme.colors.primary}
         />
       }
-      contentContainerStyle={styles.scrollContent}
     >
       {/* Welcome Header */}
-      <View style={styles.welcomeContainer}>
-        <View style={styles.welcomeTextContainer}>
+      <View style={styles.header}>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerEyebrow}>
+            YOUR DAILY SHOPPING DESTINATION
+          </Text>
+
           <Text style={styles.welcomeGreeting}>
-            {user
-              ? `Welcome, ${user.firstName}!`
-              : 'Welcome to Marketplace!'}
+            Hello, {user?.firstName || 'Shopper'}!
           </Text>
 
           <Text style={styles.welcomeSubtitle}>
-            Discover amazing deals
+            What are you looking for today?
           </Text>
         </View>
 
-        <Avatar.Icon
-          size={56}
-          icon="storefront"
-          style={styles.welcomeAvatar}
-        />
+        <View style={styles.storeIconContainer}>
+          <Text style={styles.storeIcon}>🛍️</Text>
+        </View>
+      </View>
+
+      {/* Promotional Banner */}
+      <View style={styles.promoBanner}>
+        <View style={styles.promoTextContainer}>
+          <Text style={styles.promoEyebrow}>
+            SPECIAL OFFERS
+          </Text>
+
+          <Text style={styles.promoTitle}>
+            Find your next{'\n'}favorite thing.
+          </Text>
+
+          <Text style={styles.promoSubtitle}>
+            Discover products and amazing deals.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.promoButton}
+            onPress={() => router.push('/(app)/(tabs)/search')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.promoButtonText}>
+              Explore Products →
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.promoDecoration}>
+          <Text style={styles.promoEmoji}>🎁</Text>
+          <Text style={styles.promoSmallEmoji}>✨</Text>
+        </View>
       </View>
 
       {/* Categories */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Categories</Title>
+          <View>
+            <Text style={styles.sectionTitle}>
+              Shop by Category
+            </Text>
+
+            <Text style={styles.sectionSubtitle}>
+              Explore your favorite collections
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/(tabs)/categories')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.seeAllText}>
+              See All
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={categories.slice(0, 10)}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-          keyExtractor={(item) => item.slug}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.categoryChip}
-              onPress={() =>
-                router.push(
-                  `/(app)/(tabs)/categories?category=${encodeURIComponent(item.slug)}`,
-                )
-              }
-            >
-              <Text style={styles.categoryChipText}>
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
+        {categories.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryList}
+          >
+            {categories.slice(0, 10).map((item) => (
+              <TouchableOpacity
+                key={item.slug}
+                style={styles.categoryChip}
+                onPress={() =>
+                  router.push(
+                    `/(app)/(tabs)/categories?category=${encodeURIComponent(item.slug)}`,
+                  )
+                }
+                activeOpacity={0.8}
+              >
+                <Text style={styles.categoryChipText}>
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          <Text style={styles.emptyText}>
+            No categories available.
+          </Text>
+        )}
       </View>
 
       {/* Flash Deals */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>
-            ⚡ Flash Deals
-          </Title>
+          <View>
+            <View style={styles.flashTitleRow}>
+              <Text style={styles.flashIcon}>⚡</Text>
 
-          <TouchableOpacity style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
+              <Text style={styles.sectionTitle}>
+                Flash Deals
+              </Text>
+            </View>
+
+            <Text style={styles.sectionSubtitle}>
+              Limited-time discounts you might love
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/(tabs)/search')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.seeAllText}>
+              See All
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={products
-            .filter((product) => product.discountPercentage > 20)
-            .slice(0, 5)}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id.toString()}
-          ItemSeparatorComponent={() => (
-            <View style={styles.cardSeparator} />
-          )}
-        />
+        {flashDeals.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.flashDealsList}
+          >
+            {flashDeals.map((product) =>
+              renderProductCard(product, true),
+            )}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyDealsContainer}>
+            <Text style={styles.emptyText}>
+              No flash deals available right now.
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Recommended Products */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>
-            Recommended for You
-          </Title>
+          <View>
+            <Text style={styles.sectionTitle}>
+              Recommended for You
+            </Text>
+
+            <Text style={styles.sectionSubtitle}>
+              Products worth checking out
+            </Text>
+          </View>
 
           <TouchableOpacity
             onPress={() => router.push('/(app)/(tabs)/search')}
-            style={styles.seeAll}
+            activeOpacity={0.7}
           >
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>
+              See All
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={products.slice(0, 10)}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id.toString()}
-          ItemSeparatorComponent={() => (
-            <View style={styles.cardSeparator} />
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                No products found
-              </Text>
-            </View>
-          }
-        />
+        {recommendedProducts.length > 0 ? (
+          <View style={styles.productGrid}>
+            {recommendedProducts.map((product) =>
+              renderProductCard(product),
+            )}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No products found.
+            </Text>
+          </View>
+        )}
       </View>
+
+      <View style={styles.bottomSpacing} />
     </ScrollView>
   );
 }

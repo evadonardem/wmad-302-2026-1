@@ -3,25 +3,66 @@
  * Auth API Service - DummyJSON Authentication
  * Docs: https://dummyjson.com/docs/auth
  * Base URL: https://dummyjson.com/auth
+ *
+ * Converts DummyJSON's accessToken into the local
+ * AuthUser.token property so sessions can be restored.
  */
 
 import axios, {
-  AxiosInstance,
-  InternalAxiosRequestConfig,
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
 } from 'axios';
-import {
+
+import type {
   LoginCredentials,
   RegisterData,
   AuthUser,
   RefreshTokenResponse,
 } from '@/types/auth';
+
 import { authStorage } from '@/utils/storage';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
 
+/**
+ * Actual user response returned by DummyJSON.
+ */
+interface DummyJSONAuthResponse {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  gender: 'male' | 'female';
+  image: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+/**
+ * Convert DummyJSON response into our local AuthUser format.
+ */
+function normalizeAuthUser(
+  data: DummyJSONAuthResponse,
+): AuthUser {
+  return {
+    id: data.id,
+    username: data.username,
+    email: data.email,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    gender: data.gender,
+    image: data.image,
+    token: data.accessToken,
+    refreshToken: data.refreshToken,
+  };
+}
+
 class AuthApiService {
   private client: AxiosInstance;
-  private refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
+
+  private refreshTokenPromise: Promise<RefreshTokenResponse> | null =
+    null;
 
   constructor() {
     this.client = axios.create({
@@ -32,8 +73,10 @@ class AuthApiService {
       },
     });
 
-    // Request interceptor to add auth token.
-    // AsyncStorage requires asynchronous access.
+    /**
+     * Request interceptor:
+     * Automatically attach the saved access token.
+     */
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         const token = await this.getAccessToken();
@@ -47,13 +90,15 @@ class AuthApiService {
       (error) => Promise.reject(error),
     );
 
-    // Response interceptor for token refresh.
+    /**
+     * Response interceptor:
+     * Refresh the access token if the API returns 401.
+     */
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
-        // Do not retry a refresh request itself.
         const isRefreshRequest =
           typeof originalRequest?.url === 'string' &&
           originalRequest.url.includes('/refresh');
@@ -75,7 +120,11 @@ class AuthApiService {
             return this.client(originalRequest);
           } catch (refreshError) {
             await this.clearTokens();
-            console.warn('Token refresh failed, user logged out');
+
+            console.warn(
+              'Token refresh failed. The saved session was cleared.',
+            );
+
             return Promise.reject(refreshError);
           }
         }
@@ -85,6 +134,9 @@ class AuthApiService {
     );
   }
 
+  /**
+   * Get saved access token.
+   */
   private async getAccessToken(): Promise<string | null> {
     try {
       const user = await authStorage.getUser();
@@ -94,6 +146,9 @@ class AuthApiService {
     }
   }
 
+  /**
+   * Get saved refresh token.
+   */
   private async getRefreshToken(): Promise<string | null> {
     try {
       const user = await authStorage.getUser();
@@ -103,58 +158,86 @@ class AuthApiService {
     }
   }
 
+  /**
+   * Save normalized user and authentication tokens.
+   */
   async setTokens(user: AuthUser): Promise<void> {
     await authStorage.setUser(user);
   }
 
+  /**
+   * Clear saved authentication information.
+   */
   private async clearTokens(): Promise<void> {
     await authStorage.clearUser();
   }
 
   /**
-   * Login user with username/email and password
+   * Login user.
    * POST /auth/login
+   *
+   * IMPORTANT:
+   * DummyJSON returns accessToken.
+   * Our application stores it as token.
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await this.client.post<AuthUser>('/login', {
-      username: credentials.username,
-      password: credentials.password,
-      expiresInMins: credentials.expiresInMins || 60,
-    });
+    const response = await this.client.post<DummyJSONAuthResponse>(
+      '/login',
+      {
+        username: credentials.username,
+        password: credentials.password,
+        expiresInMins: credentials.expiresInMins || 60,
+      },
+    );
 
-    await this.setTokens(response.data);
+    const user = normalizeAuthUser(response.data);
 
-    return response.data;
+    // Save the correctly normalized user.
+    await this.setTokens(user);
+
+    return user;
   }
 
   /**
-   * Register new user
-   * POST /auth/register
-   * TODO: Student implementation
+   * Register user.
+   * TODO: Student implementation.
    */
   async register(_data: RegisterData): Promise<AuthUser> {
-    // TODO: Student implementation
-    // 1. Call POST /auth/register with data
-    // 2. On success, call login() to get tokens
-    // 3. Return user with tokens
-    throw new Error('TODO: Implement register - call /auth/register then login');
+    throw new Error(
+      'TODO: Implement register - call /auth/register then login',
+    );
   }
 
   /**
-   * Get current user profile (requires valid token)
+   * Get current authenticated user.
    * GET /auth/me
    */
   async getMe(): Promise<AuthUser> {
-    const response = await this.client.get<AuthUser>('/me');
-    return response.data;
+    const response = await this.client.get<
+      Omit<DummyJSONAuthResponse, 'accessToken' | 'refreshToken'> &
+      Partial<Pick<DummyJSONAuthResponse, 'accessToken' | 'refreshToken'>>
+    >('/me');
+
+    const storedUser = await this.getStoredUser();
+
+    if (!storedUser) {
+      throw new Error('No saved user session found.');
+    }
+
+    return {
+      ...storedUser,
+      ...response.data,
+      token: storedUser.token,
+      refreshToken: storedUser.refreshToken,
+    };
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token.
    * POST /auth/refresh
    */
   async refreshAccessToken(): Promise<RefreshTokenResponse> {
-    // Prevent multiple simultaneous refresh calls.
+    // Reuse an existing refresh request if one is running.
     if (this.refreshTokenPromise) {
       return this.refreshTokenPromise;
     }
@@ -162,29 +245,43 @@ class AuthApiService {
     const refreshToken = await this.getRefreshToken();
 
     if (!refreshToken) {
-      throw new Error('No refresh token available');
+      throw new Error('No refresh token available.');
     }
 
     this.refreshTokenPromise = this.client
-      .post<RefreshTokenResponse>('/refresh', {
+      .post<{
+        accessToken: string;
+        refreshToken: string;
+        id: number;
+        username: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        gender: 'male' | 'female';
+        image: string;
+      }>('/refresh', {
         refreshToken,
         expiresInMins: 60,
       })
       .then(async (response) => {
-        // Update stored tokens with new ones.
         const currentUser = await this.getStoredUser();
 
-        if (currentUser) {
-          const updatedUser: AuthUser = {
-            ...currentUser,
-            token: response.data.accessToken,
-            refreshToken: response.data.refreshToken,
-          };
-
-          await this.setTokens(updatedUser);
+        if (!currentUser) {
+          throw new Error('Saved user session not found.');
         }
 
-        return response.data;
+        const updatedUser: AuthUser = {
+          ...currentUser,
+          token: response.data.accessToken,
+          refreshToken: response.data.refreshToken,
+        };
+
+        // Persist the newly refreshed tokens.
+        await this.setTokens(updatedUser);
+
+        return {
+          ...response.data,
+        };
       })
       .catch(async (error) => {
         await this.clearTokens();
@@ -198,7 +295,7 @@ class AuthApiService {
   }
 
   /**
-   * Get stored user data
+   * Get locally saved user.
    */
   async getStoredUser(): Promise<AuthUser | null> {
     try {
@@ -209,19 +306,24 @@ class AuthApiService {
   }
 
   /**
-   * Logout - clear local tokens
-   * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only.
+   * Logout.
+   * DummyJSON has no logout endpoint.
+   * Clear the local session.
    */
   async logout(): Promise<void> {
     await this.clearTokens();
   }
 
   /**
-   * Check if user has valid tokens stored
+   * Check whether authentication tokens are saved.
    */
   async hasValidTokens(): Promise<boolean> {
     const user = await this.getStoredUser();
-    return !!(user?.token && user?.refreshToken);
+
+    return !!(
+      user?.token &&
+      user?.refreshToken
+    );
   }
 }
 

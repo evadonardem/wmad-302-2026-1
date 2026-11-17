@@ -1,48 +1,102 @@
-/**
- * React Native Paper Theme - Marketplace App
- * Clean, commerce-friendly color palette
- */
-import { MD3LightTheme } from 'react-native-paper';
 
-export const theme = {
+/**
+ * Marketplace App Theme
+ * Light: Cool Slate + Pale Teal
+ * Dark: Deep Navy + Neon Teal
+ */
+
+import {
+  MD3LightTheme,
+  MD3DarkTheme,
+  type MD3Theme,
+} from 'react-native-paper';
+
+export const lightTheme: MD3Theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#1A73E8',      // Google/Trust blue
-    primaryContainer: '#E8F0FE',
-    secondary: '#5C6BC0',    // Indigo
-    secondaryContainer: '#E8EAF6',
-    tertiary: '#34A853',     // Success green
-    tertiaryContainer: '#E6F4EA',
+
+    primary: '#0F766E',
+    primaryContainer: '#D5EFEC',
+    secondary: '#64748B',
+    secondaryContainer: '#E2EAF0',
+    tertiary: '#4D9D96',
+    tertiaryContainer: '#DDF2EF',
+
     surface: '#FFFFFF',
-    surfaceVariant: '#F8F9FA',
-    background: '#F8F9FA',
-    error: '#EA4335',
-    errorContainer: '#FCE8E6',
+    surfaceVariant: '#EAF2F2',
+    background: '#F3F8F8',
+
+    error: '#DC5757',
+    errorContainer: '#FCE8E8',
+
     onPrimary: '#FFFFFF',
     onSecondary: '#FFFFFF',
     onTertiary: '#FFFFFF',
-    onSurface: '#202124',
-    onSurfaceVariant: '#5F6368',
-    onBackground: '#202124',
-    outline: '#DADCE0',
-    outlineVariant: '#E8EAED',
+    onSurface: '#263746',
+    onSurfaceVariant: '#647782',
+    onBackground: '#263746',
+
+    outline: '#C7D6D7',
+    outlineVariant: '#DFE9E9',
+
+    elevation: {
+      ...MD3LightTheme.colors.elevation,
+      level0: 'transparent',
+      level1: '#FFFFFF',
+      level2: '#F7FAFA',
+      level3: '#F0F6F5',
+      level4: '#EAF2F1',
+      level5: '#E5EFEE',
+    },
   },
-  roundness: 8,
-  fonts: {
-    ...MD3LightTheme.fonts,
-    displayLarge: { fontFamily: 'System', fontWeight: '700' as const, fontSize: 57, lineHeight: 64, letterSpacing: -0.25 },
-    headlineLarge: { fontFamily: 'System', fontWeight: '600' as const, fontSize: 32, lineHeight: 40 },
-    headlineMedium: { fontFamily: 'System', fontWeight: '600' as const, fontSize: 28, lineHeight: 36 },
-    headlineSmall: { fontFamily: 'System', fontWeight: '600' as const, fontSize: 24, lineHeight: 32 },
-    titleLarge: { fontFamily: 'System', fontWeight: '600' as const, fontSize: 22, lineHeight: 28 },
-    titleMedium: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 16, lineHeight: 24, letterSpacing: 0.15 },
-    titleSmall: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 14, lineHeight: 20, letterSpacing: 0.1 },
-    bodyLarge: { fontFamily: 'System', fontWeight: '400' as const, fontSize: 16, lineHeight: 24, letterSpacing: 0.5 },
-    bodyMedium: { fontFamily: 'System', fontWeight: '400' as const, fontSize: 14, lineHeight: 20, letterSpacing: 0.25 },
-    bodySmall: { fontFamily: 'System', fontWeight: '400' as const, fontSize: 12, lineHeight: 16, letterSpacing: 0.4 },
-    labelLarge: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 14, lineHeight: 20, letterSpacing: 0.1 },
-    labelMedium: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 12, lineHeight: 16, letterSpacing: 0.5 },
-    labelSmall: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 11, lineHeight: 16, letterSpacing: 0.5 },
-  },
+  roundness: 16,
 };
+
+export const darkTheme: MD3Theme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+
+    primary: '#2DD4BF',
+    primaryContainer: '#115E59',
+    secondary: '#A5B4C4',
+    secondaryContainer: '#263F4A',
+    tertiary: '#A3E635',
+    tertiaryContainer: '#365314',
+
+    surface: '#102B35',
+    surfaceVariant: '#183944',
+    background: '#071A22',
+
+    error: '#FF8A80',
+    errorContainer: '#5C2529',
+
+    onPrimary: '#003731',
+    onSecondary: '#172B3A',
+    onTertiary: '#243500',
+    onSurface: '#E7F4F3',
+    onSurfaceVariant: '#B1C5C8',
+    onBackground: '#E7F4F3',
+
+    outline: '#45616A',
+    outlineVariant: '#294650',
+
+    elevation: {
+      ...MD3DarkTheme.colors.elevation,
+      level0: 'transparent',
+      level1: '#102B35',
+      level2: '#14313B',
+      level3: '#183944',
+      level4: '#1B3E49',
+      level5: '#204651',
+    },
+  },
+  roundness: 16,
+};
+
+/**
+ * Backward compatibility for any existing imports
+ * that still use the old `theme` export.
+ */
+export const theme = lightTheme;

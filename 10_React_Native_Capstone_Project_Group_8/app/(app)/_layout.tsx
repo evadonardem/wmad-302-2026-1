@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Stack, Redirect } from 'expo-router';
+
 import { useAuth } from '@/context/AuthContext';
 
 export default function AppLayout() {
@@ -22,6 +23,7 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="product/[id]" />
+      <Stack.Screen name="settings" />
     </Stack>
   );
 }

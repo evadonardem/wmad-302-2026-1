@@ -1,32 +1,54 @@
+
 /**
  * Tabs Layout - Marketplace App Navigation
- * Tabs: Home (Shop), Categories, Cart, Profile
+ * Dynamic light/dark themed bottom navigation.
  */
+
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme, type MD3Theme } from 'react-native-paper';
 
 export default function TabsLayout() {
+  const { colors } = useTheme<MD3Theme>();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1A73E8',
-        tabBarInactiveTintColor: '#5F6368',
+
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.onSurfaceVariant,
+
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          position: 'absolute',
+          left: 14,
+          right: 14,
+          bottom: 12,
+          height: 68,
+
+          backgroundColor: colors.surface,
           borderTopWidth: 0,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
+          borderRadius: 24,
+
+          elevation: 10,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+
           paddingTop: 8,
           paddingBottom: 8,
         },
+
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
       }}
     >
@@ -43,6 +65,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="categories"
         options={{
@@ -56,6 +79,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="cart"
         options={{
@@ -69,6 +93,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{

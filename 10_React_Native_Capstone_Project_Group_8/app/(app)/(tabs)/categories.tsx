@@ -14,19 +14,24 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Card, Title } from 'react-native-paper';
+import { useTheme, type MD3Theme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { productApi, ProductCategory } from '@/services/productApi';
-import { styles } from './categoriesStyles';
+import { productApi, type ProductCategory } from '@/services/productApi';
+import { createCategoriesStyles } from './categoriesStyles';
 
 interface Category extends ProductCategory {
   count?: number;
 }
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = React.ComponentProps<
+  typeof MaterialCommunityIcons
+>['name'];
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const theme = useTheme<MD3Theme>();
+  const colors = theme.colors;
+  const styles = createCategoriesStyles(colors);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +68,9 @@ export default function CategoriesScreen() {
       setCategories(categoriesWithCounts);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load categories',
+        err instanceof Error
+          ? err.message
+          : 'Failed to load categories. Please try again.',
       );
     } finally {
       setLoading(false);
@@ -80,6 +87,11 @@ export default function CategoriesScreen() {
     loadCategories();
   };
 
+  const onRetry = () => {
+    setLoading(true);
+    loadCategories();
+  };
+
   const openCategory = (category: Category) => {
     router.push({
       pathname: '/(app)/(tabs)/search',
@@ -91,37 +103,47 @@ export default function CategoriesScreen() {
     <TouchableOpacity
       style={styles.categoryCard}
       onPress={() => openCategory(item)}
-      activeOpacity={0.8}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={`Browse ${item.name}`}
     >
-      <Card style={styles.card} elevation={1}>
-        <Card.Content style={styles.cardContent}>
+      <View style={styles.card}>
+        <View style={styles.cardTopRow}>
           <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name={getCategoryIcon(item.slug)}
-              size={32}
-              color="#43A52F"
+              size={30}
+              color={colors.primary}
             />
           </View>
 
-          <Title style={styles.categoryName}>
-            {item.name}
-          </Title>
+          <MaterialCommunityIcons
+            name="arrow-top-right"
+            size={19}
+            color={colors.onSurfaceVariant}
+          />
+        </View>
 
-          {item.count !== undefined && (
-            <Text style={styles.categoryCount}>
-              {item.count} products
-            </Text>
-          )}
-        </Card.Content>
-      </Card>
+        <Text style={styles.categoryName} numberOfLines={2}>
+          {item.name}
+        </Text>
+
+        <Text style={styles.categoryCount}>
+          {item.count ?? 0}{' '}
+          {(item.count ?? 0) === 1 ? 'product' : 'products'}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#43A52F" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading categories...</Text>
+        <Text style={styles.loadingSubtext}>
+          Finding products for you
+        </Text>
       </View>
     );
   }
@@ -129,12 +151,31 @@ export default function CategoriesScreen() {
   if (error) {
     return (
       <View style={styles.errorContainer}>
+        <View style={styles.errorIconContainer}>
+          <MaterialCommunityIcons
+            name="wifi-alert"
+            size={38}
+            color={colors.error}
+          />
+        </View>
+
+        <Text style={styles.errorTitle}>
+          Unable to load categories
+        </Text>
+
         <Text style={styles.errorText}>{error}</Text>
 
-        <TouchableOpacity onPress={loadCategories}>
-          <Text style={{ color: '#43A52F', marginTop: 12 }}>
-            Tap to try again
-          </Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={onRetry}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons
+            name="refresh"
+            size={18}
+            color={colors.onPrimary}
+          />
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -142,11 +183,47 @@ export default function CategoriesScreen() {
 
   return (
     <View style={styles.container}>
-      <Title style={styles.pageTitle}>Categories</Title>
+      <View style={styles.header}>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.eyebrow}>EXPLORE OUR STORE</Text>
+          <Text style={styles.pageTitle}>Categories</Text>
+          <Text style={styles.pageSubtitle}>
+            Find exactly what you&apos;re looking for.
+          </Text>
+        </View>
 
-      <Text style={styles.pageSubtitle}>
-        Browse products by category
-      </Text>
+        <View style={styles.headerIconContainer}>
+          <MaterialCommunityIcons
+            name="shape-outline"
+            size={30}
+            color={colors.primary}
+          />
+        </View>
+      </View>
+
+      <View style={styles.banner}>
+        <View style={styles.bannerTextContainer}>
+          <Text style={styles.bannerTitle}>
+            Shop by category
+          </Text>
+          <Text style={styles.bannerSubtitle}>
+            Explore our collection and discover something new.
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons
+          name="shopping-outline"
+          size={38}
+          color={colors.primary}
+        />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>All Categories</Text>
+        <Text style={styles.sectionCount}>
+          {categories.length} available
+        </Text>
+      </View>
 
       <FlatList
         data={categories}
@@ -155,31 +232,31 @@ export default function CategoriesScreen() {
         numColumns={2}
         columnWrapperStyle={styles.gridWrapper}
         contentContainerStyle={styles.gridContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#43A52F']}
-            tintColor="#43A52F"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons
+              name="shape-outline"
+              size={42}
+              color={colors.onSurfaceVariant}
+            />
+            <Text style={styles.emptyTitle}>
+              No categories available
+            </Text>
+            <Text style={styles.emptyText}>
+              Pull down to refresh and try again.
+            </Text>
+          </View>
+        }
       />
-
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>
-          📝 Student Implementation Guide
-        </Text>
-
-        <Text style={styles.guideText}>
-          Enhance the categories screen:{'\n'}
-          1. Add category images/banners{'\n'}
-          2. Show product count per category{'\n'}
-          3. Add sub-categories navigation{'\n'}
-          4. Add &quot;Featured Brands&quot; section{'\n'}
-          5. Implement pull-to-refresh
-        </Text>
-      </View>
     </View>
   );
 }
