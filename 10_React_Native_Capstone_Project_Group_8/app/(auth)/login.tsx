@@ -1,6 +1,6 @@
 
 /**
- * Login Screen - Marketplace App
+ * CartlyX Sign In Screen
  *
  * Features:
  * - Supabase email and password login.
@@ -14,11 +14,11 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 
@@ -91,10 +91,7 @@ export default function LoginScreen() {
    */
   const handleDemoLogin = async () => {
     try {
-      await loginDemo(
-        'emilys',
-        'emilyspass',
-      );
+      await loginDemo('emilys', 'emilyspass');
 
       router.replace(
         redirect || '/(app)/(tabs)/home',
@@ -125,11 +122,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : 'height'
-      }
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
       <ScrollView
@@ -137,34 +130,34 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo and Brand */}
+        {/* CartlyX Brand */}
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>🛒</Text>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+            accessibilityLabel="CartlyX logo"
+          />
 
-          <Text style={styles.appName}>
-            Marketplace
-          </Text>
+          <Text style={styles.appName}>CartlyX</Text>
 
           <Text style={styles.tagline}>
-            Shop Smart, Save More
+            YOUR SHOPPING. REDEFINED.
           </Text>
         </View>
 
-        {/* Login Card */}
-        <Card
-          style={styles.card}
-          elevation={3}
-        >
+        {/* Sign In Card */}
+        <Card style={styles.card} elevation={3}>
           <Card.Content style={styles.cardContent}>
             <Text style={styles.title}>
-              Welcome Back
+              Welcome Back!
             </Text>
 
             <Text style={styles.subtitle}>
-              Sign in to continue shopping
+              Sign in to your CartlyX account and continue shopping.
             </Text>
 
-            {/* Email Field */}
+            {/* Email */}
             <PaperTextInput
               label="Email Address"
               mode="outlined"
@@ -178,9 +171,12 @@ export default function LoginScreen() {
               keyboardType="email-address"
               returnKeyType="next"
               disabled={isLoading}
+              left={
+                <PaperTextInput.Icon icon="email-outline" />
+              }
             />
 
-            {/* Password Field */}
+            {/* Password */}
             <PaperTextInput
               label="Password"
               mode="outlined"
@@ -193,13 +189,12 @@ export default function LoginScreen() {
               returnKeyType="go"
               onSubmitEditing={handleLogin}
               disabled={isLoading}
+              left={
+                <PaperTextInput.Icon icon="lock-outline" />
+              }
               right={
                 <PaperTextInput.Icon
-                  icon={
-                    showPassword
-                      ? 'eye-off'
-                      : 'eye'
-                  }
+                  icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() =>
                     setShowPassword(!showPassword)
                   }
@@ -207,7 +202,7 @@ export default function LoginScreen() {
               }
             />
 
-            {/* Error Display */}
+            {/* Authentication Error */}
             {error && (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>
@@ -216,7 +211,7 @@ export default function LoginScreen() {
               </View>
             )}
 
-            {/* Sign In Button */}
+            {/* Sign In */}
             <Button
               mode="contained"
               onPress={handleLogin}
@@ -224,20 +219,16 @@ export default function LoginScreen() {
               style={styles.loginButton}
               disabled={isLoading}
               contentStyle={styles.buttonContent}
+              buttonColor={theme.colors.primary}
             >
-              {isLoading ? (
-                <ActivityIndicator
-                  color="white"
-                  size="small"
-                />
-              ) : (
+              {!isLoading && (
                 <Text style={styles.buttonText}>
                   Sign In
                 </Text>
               )}
             </Button>
 
-            {/* Demo Login */}
+            {/* Demo Account */}
             <View style={styles.demoContainer}>
               <Divider style={styles.divider} />
 
@@ -245,17 +236,23 @@ export default function LoginScreen() {
                 onPress={handleDemoLogin}
                 disabled={isLoading}
                 style={styles.demoButton}
+                accessibilityRole="button"
+                accessibilityLabel="Try the demo account"
               >
                 <Text style={styles.demoButtonText}>
-                  Try Demo Account (emilys / emilyspass)
+                  <Text>Explore CartlyX with a Demo Account</Text>
+                  {'\n'}
+                  <Text style={{ fontWeight: '400' }}>
+                    emilys / emilyspass
+                  </Text>
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Registration Link */}
+            {/* Sign Up Link */}
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>
-                Don&apos;t have an account?{' '}
+                New to CartlyX?{' '}
               </Text>
 
               <TouchableOpacity
@@ -266,7 +263,7 @@ export default function LoginScreen() {
                 disabled={isLoading}
               >
                 <Text style={styles.linkText}>
-                  Sign Up
+                  Create an Account
                 </Text>
               </TouchableOpacity>
             </View>
@@ -277,7 +274,7 @@ export default function LoginScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             By signing in, you agree to our Terms of
-            Service and Privacy Policy
+            Service and Privacy Policy.
           </Text>
         </View>
       </ScrollView>

@@ -1,8 +1,9 @@
 
 /**
- * Shared Dynamic Styles for Authentication Screens
+ * CartlyX Authentication Styles
  *
- * Supports both Light and Dark themes using React Native Paper.
+ * Shared responsive styles for Sign In and Sign Up.
+ * Supports dynamic Light and Dark themes.
  */
 
 import { StyleSheet } from 'react-native';
@@ -19,15 +20,24 @@ export const createAuthStyles = (theme: MD3Theme) => {
 
     scrollContent: {
       flexGrow: 1,
-      paddingHorizontal: 24,
-      paddingVertical: 40,
+      paddingHorizontal: 20,
+      paddingVertical: 36,
       justifyContent: 'center',
+      alignItems: 'center',
       backgroundColor: colors.background,
     },
 
     logoContainer: {
+      width: '100%',
       alignItems: 'center',
-      marginBottom: 40,
+      marginBottom: 28,
+    },
+
+    logoImage: {
+      width: 82,
+      height: 82,
+      marginBottom: 12,
+      borderRadius: 20,
     },
 
     logoText: {
@@ -36,45 +46,54 @@ export const createAuthStyles = (theme: MD3Theme) => {
     },
 
     appName: {
-      fontSize: 32,
-      fontWeight: '700',
+      fontSize: 34,
+      fontWeight: '800',
       color: colors.primary,
-      letterSpacing: -0.5,
+      letterSpacing: -1,
     },
 
     tagline: {
-      fontSize: 16,
+      fontSize: 12,
+      fontWeight: '700',
       color: colors.onSurfaceVariant,
-      marginTop: 4,
+      letterSpacing: 2,
+      marginTop: 6,
+      textAlign: 'center',
     },
 
     card: {
+      width: '100%',
+      maxWidth: 480,
       backgroundColor: colors.surface,
-      borderRadius: 12,
+      borderRadius: 22,
       padding: 0,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
     },
 
     cardContent: {
-      padding: 28,
+      padding: 24,
     },
 
     title: {
-      fontSize: 24,
-      fontWeight: '700',
+      fontSize: 25,
+      fontWeight: '800',
       color: colors.onSurface,
       textAlign: 'center',
-      marginBottom: 4,
+      marginBottom: 6,
     },
 
     subtitle: {
       fontSize: 14,
       color: colors.onSurfaceVariant,
       textAlign: 'center',
-      marginBottom: 28,
+      marginBottom: 26,
+      lineHeight: 21,
     },
 
     input: {
-      marginBottom: 16,
+      marginBottom: 15,
+      backgroundColor: colors.surface,
     },
 
     eyeIcon: {
@@ -87,8 +106,8 @@ export const createAuthStyles = (theme: MD3Theme) => {
 
     errorContainer: {
       backgroundColor: colors.errorContainer,
-      borderRadius: 8,
-      padding: 12,
+      borderRadius: 10,
+      padding: 13,
       marginBottom: 16,
       borderWidth: 1,
       borderColor: colors.error,
@@ -98,28 +117,31 @@ export const createAuthStyles = (theme: MD3Theme) => {
       color: colors.onErrorContainer,
       fontSize: 14,
       textAlign: 'center',
+      lineHeight: 20,
     },
 
     loginButton: {
       marginTop: 8,
       marginBottom: 16,
-      borderRadius: 8,
-      height: 52,
+      borderRadius: 12,
+      height: 54,
+      justifyContent: 'center',
     },
 
     buttonContent: {
+      height: 54,
       paddingHorizontal: 24,
     },
 
     buttonText: {
       fontSize: 16,
-      fontWeight: '600',
-      letterSpacing: 0.5,
+      fontWeight: '700',
+      letterSpacing: 0.4,
       color: colors.onPrimary,
     },
 
     demoContainer: {
-      marginTop: 8,
+      marginTop: 4,
     },
 
     divider: {
@@ -127,20 +149,28 @@ export const createAuthStyles = (theme: MD3Theme) => {
     },
 
     demoButton: {
-      paddingVertical: 12,
+      paddingVertical: 13,
+      paddingHorizontal: 10,
       alignItems: 'center',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.outline,
+      backgroundColor: colors.surfaceVariant,
     },
 
     demoButtonText: {
-      fontSize: 14,
+      fontSize: 13,
       color: colors.primary,
-      fontWeight: '500',
+      fontWeight: '700',
+      textAlign: 'center',
     },
 
     registerContainer: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'center',
-      marginTop: 20,
+      alignItems: 'center',
+      marginTop: 22,
     },
 
     registerText: {
@@ -150,16 +180,19 @@ export const createAuthStyles = (theme: MD3Theme) => {
 
     link: {
       paddingHorizontal: 4,
+      paddingVertical: 4,
     },
 
     linkText: {
       fontSize: 14,
       color: colors.primary,
-      fontWeight: '600',
+      fontWeight: '800',
     },
 
     footer: {
-      marginTop: 32,
+      width: '100%',
+      maxWidth: 480,
+      marginTop: 24,
       alignItems: 'center',
     },
 
@@ -167,22 +200,23 @@ export const createAuthStyles = (theme: MD3Theme) => {
       fontSize: 12,
       color: colors.onSurfaceVariant,
       textAlign: 'center',
-      lineHeight: 18,
+      lineHeight: 19,
     },
 
     nameRow: {
       flexDirection: 'row',
-      gap: 12,
+      gap: 10,
     },
 
     optionalRow: {
       flexDirection: 'row',
-      gap: 12,
+      gap: 10,
       alignItems: 'flex-start',
     },
 
     halfInput: {
       flex: 1,
+      minWidth: 0,
     },
 
     genderSelector: {
@@ -191,7 +225,7 @@ export const createAuthStyles = (theme: MD3Theme) => {
 
     genderLabel: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '700',
       color: colors.onSurface,
       marginBottom: 8,
     },
@@ -203,8 +237,8 @@ export const createAuthStyles = (theme: MD3Theme) => {
 
     genderOption: {
       flex: 1,
-      paddingVertical: 10,
-      borderRadius: 8,
+      paddingVertical: 12,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: colors.outline,
       backgroundColor: colors.surfaceVariant,
@@ -217,14 +251,14 @@ export const createAuthStyles = (theme: MD3Theme) => {
     },
 
     genderOptionText: {
-      fontSize: 14,
-      fontWeight: '500',
+      fontSize: 13,
+      fontWeight: '600',
       color: colors.onSurfaceVariant,
     },
 
     genderOptionTextSelected: {
       color: colors.onPrimaryContainer,
-      fontWeight: '600',
+      fontWeight: '800',
     },
 
     termsContainer: {
@@ -239,7 +273,7 @@ export const createAuthStyles = (theme: MD3Theme) => {
 
     termsText: {
       flex: 1,
-      fontSize: 14,
+      fontSize: 13,
       color: colors.onSurfaceVariant,
       lineHeight: 20,
     },
@@ -247,13 +281,16 @@ export const createAuthStyles = (theme: MD3Theme) => {
     registerButton: {
       marginTop: 8,
       marginBottom: 16,
-      borderRadius: 8,
-      height: 52,
+      borderRadius: 12,
+      height: 54,
+      justifyContent: 'center',
     },
 
     loginContainer: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'center',
+      alignItems: 'center',
       marginTop: 20,
     },
 

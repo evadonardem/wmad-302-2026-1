@@ -1,6 +1,6 @@
 
 /**
- * Register Screen - Marketplace App
+ * CartlyX Sign Up Screen
  *
  * Features:
  * - Real Supabase account registration.
@@ -10,7 +10,7 @@
  * - Terms agreement.
  * - Email confirmation handling.
  * - Automatic session handling.
- * - Visible success and error messages for web and mobile.
+ * - Visible success and error messages.
  * - Dynamic Light/Dark theme support.
  */
 
@@ -19,10 +19,10 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 
@@ -65,14 +65,11 @@ export default function RegisterScreen() {
   });
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
-
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
   const [formError, setFormError] = useState('');
-
   const [successMessage, setSuccessMessage] = useState('');
 
   const [successAction, setSuccessAction] = useState<
@@ -192,21 +189,20 @@ export default function RegisterScreen() {
         gender: formData.gender,
       });
 
-      // Only clear the form after registration succeeds.
+      // Clear the form only after successful registration.
       resetForm();
 
       if (result.needsEmailConfirmation) {
         setSuccessMessage(
-          'Your Marketplace account has been created successfully! Please check your email and verify your account before signing in.',
+          'Your CartlyX account has been created successfully! Please check your email and verify your account before signing in.',
         );
 
         setSuccessAction('login');
-
         return;
       }
 
       setSuccessMessage(
-        'Congratulations! Your Marketplace account has been created successfully. You can now start shopping!',
+        'Congratulations! Your CartlyX account has been created successfully. You can now start shopping!',
       );
 
       setSuccessAction('home');
@@ -263,53 +259,50 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : 'height'
-      }
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo and Brand */}
+        {/* CartlyX Brand */}
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>🛒</Text>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+            accessibilityLabel="CartlyX logo"
+          />
 
           <Text style={styles.appName}>
-            Marketplace
+            CartlyX
           </Text>
 
           <Text style={styles.tagline}>
-            Create Your Account
+            YOUR SHOPPING. REDEFINED.
           </Text>
         </View>
 
         {/* Registration Card */}
-        <Card
-          style={styles.card}
-          elevation={3}
-        >
+        <Card style={styles.card} elevation={3}>
           <Card.Content style={styles.cardContent}>
             <Text style={styles.title}>
               Create Account
             </Text>
 
             <Text style={styles.subtitle}>
-              Start shopping smarter today
+              Join CartlyX and discover a smarter shopping experience.
             </Text>
 
             {/* Success Message */}
             {successMessage ? (
               <View
                 style={{
-                  backgroundColor:
-                    theme.colors.secondaryContainer,
-                  borderRadius: 10,
-                  padding: 14,
-                  marginBottom: 16,
+                  backgroundColor: theme.colors.secondaryContainer,
+                  borderRadius: 12,
+                  padding: 15,
+                  marginBottom: 18,
                   borderWidth: 1,
                   borderColor: theme.colors.outline,
                 }}
@@ -318,8 +311,8 @@ export default function RegisterScreen() {
                   style={{
                     color: theme.colors.onSecondaryContainer,
                     fontSize: 16,
-                    fontWeight: 'bold',
-                    marginBottom: 6,
+                    fontWeight: '800',
+                    marginBottom: 8,
                   }}
                 >
                   ✓ Registration Successful!
@@ -338,12 +331,12 @@ export default function RegisterScreen() {
                 <Button
                   mode="contained"
                   onPress={handleSuccessContinue}
-                  style={{ marginTop: 14 }}
+                  style={{ marginTop: 14, borderRadius: 10 }}
                   buttonColor={theme.colors.primary}
                 >
                   {successAction === 'login'
                     ? 'Go to Sign In'
-                    : 'Continue to Marketplace'}
+                    : 'Continue to CartlyX'}
                 </Button>
               </View>
             ) : null}
@@ -354,7 +347,7 @@ export default function RegisterScreen() {
                 style={{
                   backgroundColor: theme.colors.errorContainer,
                   borderRadius: 10,
-                  padding: 12,
+                  padding: 13,
                   marginBottom: 16,
                   borderWidth: 1,
                   borderColor: theme.colors.error,
@@ -363,8 +356,8 @@ export default function RegisterScreen() {
                 <Text
                   style={{
                     color: theme.colors.onErrorContainer,
-                    fontWeight: 'bold',
-                    marginBottom: 4,
+                    fontWeight: '800',
+                    marginBottom: 5,
                   }}
                 >
                   Registration Failed
@@ -396,6 +389,9 @@ export default function RegisterScreen() {
                 autoComplete="given-name"
                 returnKeyType="next"
                 disabled={isLoading || !!successMessage}
+                left={
+                  <PaperTextInput.Icon icon="account-outline" />
+                }
               />
 
               <PaperTextInput
@@ -410,6 +406,9 @@ export default function RegisterScreen() {
                 autoComplete="family-name"
                 returnKeyType="next"
                 disabled={isLoading || !!successMessage}
+                left={
+                  <PaperTextInput.Icon icon="account-outline" />
+                }
               />
             </View>
 
@@ -427,6 +426,9 @@ export default function RegisterScreen() {
               autoComplete="username"
               returnKeyType="next"
               disabled={isLoading || !!successMessage}
+              left={
+                <PaperTextInput.Icon icon="at" />
+              }
             />
 
             {/* Email */}
@@ -445,6 +447,9 @@ export default function RegisterScreen() {
               textContentType="emailAddress"
               returnKeyType="next"
               disabled={isLoading || !!successMessage}
+              left={
+                <PaperTextInput.Icon icon="email-outline" />
+              }
             />
 
             {/* Password */}
@@ -461,13 +466,12 @@ export default function RegisterScreen() {
               textContentType="newPassword"
               returnKeyType="next"
               disabled={isLoading || !!successMessage}
+              left={
+                <PaperTextInput.Icon icon="lock-outline" />
+              }
               right={
                 <PaperTextInput.Icon
-                  icon={
-                    showPassword
-                      ? 'eye-off'
-                      : 'eye'
-                  }
+                  icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() =>
                     setShowPassword(!showPassword)
                   }
@@ -481,10 +485,7 @@ export default function RegisterScreen() {
               mode="outlined"
               value={formData.confirmPassword}
               onChangeText={(value) =>
-                handleFieldChange(
-                  'confirmPassword',
-                  value,
-                )
+                handleFieldChange('confirmPassword', value)
               }
               style={styles.input}
               secureTextEntry={!showConfirmPassword}
@@ -492,17 +493,16 @@ export default function RegisterScreen() {
               textContentType="newPassword"
               returnKeyType="next"
               disabled={isLoading || !!successMessage}
+              left={
+                <PaperTextInput.Icon icon="lock-check-outline" />
+              }
               right={
                 <PaperTextInput.Icon
                   icon={
-                    showConfirmPassword
-                      ? 'eye-off'
-                      : 'eye'
+                    showConfirmPassword ? 'eye-off' : 'eye'
                   }
                   onPress={() =>
-                    setShowConfirmPassword(
-                      !showConfirmPassword,
-                    )
+                    setShowConfirmPassword(!showConfirmPassword)
                   }
                 />
               }
@@ -521,6 +521,9 @@ export default function RegisterScreen() {
                 keyboardType="numeric"
                 returnKeyType="next"
                 disabled={isLoading || !!successMessage}
+                left={
+                  <PaperTextInput.Icon icon="calendar-outline" />
+                }
               />
 
               <View
@@ -552,7 +555,7 @@ export default function RegisterScreen() {
                           styles.genderOptionTextSelected,
                       ]}
                     >
-                      ♂ Male
+                      Male
                     </Text>
                   </TouchableOpacity>
 
@@ -574,7 +577,7 @@ export default function RegisterScreen() {
                           styles.genderOptionTextSelected,
                       ]}
                     >
-                      ♀ Female
+                      Female
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -586,14 +589,13 @@ export default function RegisterScreen() {
               <View style={styles.checkbox}>
                 <Checkbox
                   status={
-                    agreedToTerms
-                      ? 'checked'
-                      : 'unchecked'
+                    agreedToTerms ? 'checked' : 'unchecked'
                   }
                   onPress={() =>
                     setAgreedToTerms(!agreedToTerms)
                   }
                   disabled={isLoading || !!successMessage}
+                  color={theme.colors.primary}
                 />
               </View>
 
@@ -618,13 +620,9 @@ export default function RegisterScreen() {
                 style={styles.registerButton}
                 disabled={isLoading}
                 contentStyle={styles.buttonContent}
+                buttonColor={theme.colors.primary}
               >
-                {isLoading ? (
-                  <ActivityIndicator
-                    color="white"
-                    size="small"
-                  />
-                ) : (
+                {!isLoading && (
                   <Text style={styles.buttonText}>
                     Create Account
                   </Text>
