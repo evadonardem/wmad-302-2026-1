@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "Marketplace Capstone",
@@ -12,15 +11,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
-    "ios": { 
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wmad302.marketplace"  
-    },  
-    "android": {  
+      "bundleIdentifier": "com.wmad302.marketplace"
+    },
+    "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"  
+        "backgroundColor": "#ffffff"
       },
       "package": "com.wmad302.marketplace"
     },
@@ -37,9 +38,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "marketplace-capstone"
+        "projectId": "465da7f8-29f7-4218-a7c4-8246bcb523b9"
       }
     },
-    "owner": "wmad302"
+    "owner": "mavz8"
   }
 }
