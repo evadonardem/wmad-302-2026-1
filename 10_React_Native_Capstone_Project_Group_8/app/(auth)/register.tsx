@@ -11,7 +11,7 @@
  * - Email confirmation handling.
  * - Automatic session handling.
  * - Visible success and error messages for web and mobile.
- * - Dynamic light/dark theme support.
+ * - Dynamic Light/Dark theme support.
  */
 
 import React, { useState } from 'react';
@@ -36,13 +36,15 @@ import {
   TextInput as PaperTextInput,
   Checkbox,
   useTheme,
+  type MD3Theme,
 } from 'react-native-paper';
 
-import { styles } from './styles';
+import { createAuthStyles } from './styles';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const theme = useTheme();
+  const theme = useTheme<MD3Theme>();
+  const styles = createAuthStyles(theme);
 
   const {
     register,

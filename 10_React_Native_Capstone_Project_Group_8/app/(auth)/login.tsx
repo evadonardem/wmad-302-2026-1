@@ -5,7 +5,7 @@
  * Features:
  * - Supabase email and password login.
  * - Separate DummyJSON demo account login.
- * - Dynamic existing styles and theme.
+ * - Dynamic Light/Dark theme support.
  * - Supports protected-route redirects.
  */
 
@@ -34,12 +34,16 @@ import {
   Button,
   TextInput as PaperTextInput,
   Divider,
+  useTheme,
+  type MD3Theme,
 } from 'react-native-paper';
 
-import { styles } from './styles';
+import { createAuthStyles } from './styles';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const theme = useTheme<MD3Theme>();
+  const styles = createAuthStyles(theme);
 
   const {
     login,
