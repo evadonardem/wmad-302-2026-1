@@ -1,12 +1,15 @@
+
 /**
  * Edit Profile Screen
  *
- * Marketplace App
+ * CartlyX
  *
  * Features:
- * - Updates first name and last name.
- * - Updates username and email.
+ * - Updates first name, last name, username, and email.
  * - Updates gender.
+ * - Selects and crops a profile picture.
+ * - Previews the selected profile picture.
+ * - Allows the user to remove their profile picture.
  * - Validates required fields.
  * - Saves profile changes locally.
  * - Supports dynamic Light and Dark themes.
@@ -15,12 +18,12 @@
 import React, { useEffect, useState } from 'react';
 
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   View,
-  Alert,
 } from 'react-native';
 
 import {
@@ -36,6 +39,7 @@ import {
   type MD3Theme,
 } from 'react-native-paper';
 
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
@@ -59,7 +63,6 @@ export default function EditProfileScreen() {
 
   const theme = useTheme<MD3Theme>();
   const colors = theme.colors;
-
   const styles = createStyles(colors);
 
   const [firstName, setFirstName] = useState('');
@@ -68,7 +71,9 @@ export default function EditProfileScreen() {
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState<Gender>('male');
 
+  const [profileImage, setProfileImage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [selectingImage, setSelectingImage] = useState(false);
   const [error, setError] = useState('');
 
   /**
@@ -84,7 +89,83 @@ export default function EditProfileScreen() {
     setUsername(user.username ?? '');
     setEmail(user.email ?? '');
     setGender(user.gender ?? 'male');
+    setProfileImage(user.image ?? '');
   }, [user]);
+
+  /**
+   * Open the device gallery and select a profile picture.
+   */
+  const handleChoosePhoto = async () => {
+    try {
+      setError('');
+      setSelectingImage(true);
+
+      if (Platform.OS !== 'web') {
+        const permission =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+          showMessage(
+            'Permission Required',
+            'Please allow photo library access to choose a profile picture.',
+          );
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const selectedAsset = result.assets?.[0];
+
+      if (!selectedAsset) {
+        showMessage(
+          'Unable to Select Photo',
+          'Please choose another image and try again.',
+        );
+        return;
+      }
+
+      if (!selectedAsset.base64) {
+        showMessage(
+          'Unable to Process Photo',
+          'The selected image could not be prepared for saving. Please try another image.',
+        );
+        return;
+      }
+
+      const mimeType = selectedAsset.mimeType || 'image/jpeg';
+
+      const imageData = `data:${mimeType};base64,${selectedAsset.base64}`;
+
+      setProfileImage(imageData);
+    } catch (imageError) {
+      console.error('Failed to select profile picture:', imageError);
+
+      showMessage(
+        'Photo Selection Failed',
+        'Something went wrong while selecting your picture. Please try again.',
+      );
+    } finally {
+      setSelectingImage(false);
+    }
+  };
+
+  /**
+   * Remove the selected profile picture.
+   */
+  const handleRemovePhoto = () => {
+    setProfileImage('');
+  };
 
   /**
    * Validate and save profile changes.
@@ -133,11 +214,12 @@ export default function EditProfileScreen() {
         username: cleanUsername,
         email: cleanEmail,
         gender,
+        image: profileImage,
       });
 
       showMessage(
         'Profile Updated',
-        'Your profile information has been successfully updated.',
+        'Your profile information and picture have been successfully updated.',
       );
 
       router.back();
@@ -189,14 +271,14 @@ export default function EditProfileScreen() {
 
         <Card style={styles.profileCard} mode="elevated">
           <Card.Content style={styles.profileContent}>
-            {user?.image ? (
+            {profileImage ? (
               <Avatar.Image
-                size={88}
-                source={{ uri: user.image }}
+                size={104}
+                source={{ uri: profileImage }}
               />
             ) : (
               <Avatar.Text
-                size={88}
+                size={104}
                 label={initials}
                 style={styles.avatar}
                 color={colors.onPrimary}
@@ -209,6 +291,36 @@ export default function EditProfileScreen() {
 
             <Text variant="bodySmall" style={styles.previewUsername}>
               @{username || 'username'}
+            </Text>
+
+            <View style={styles.photoButtons}>
+              <Button
+                mode="contained"
+                icon="camera-outline"
+                onPress={() => void handleChoosePhoto()}
+                loading={selectingImage}
+                disabled={saving || selectingImage}
+                style={styles.changePhotoButton}
+              >
+                {profileImage ? 'Change Photo' : 'Add Photo'}
+              </Button>
+
+              {profileImage !== '' && (
+                <Button
+                  mode="outlined"
+                  icon="delete-outline"
+                  onPress={handleRemovePhoto}
+                  disabled={saving || selectingImage}
+                  style={styles.removePhotoButton}
+                  textColor={colors.error}
+                >
+                  Remove
+                </Button>
+              )}
+            </View>
+
+            <Text variant="bodySmall" style={styles.photoHint}>
+              Choose a photo from your device gallery.
             </Text>
           </Card.Content>
         </Card>
@@ -272,27 +384,19 @@ export default function EditProfileScreen() {
 
             <View style={styles.genderContainer}>
               <RadioButton.Group
-                onValueChange={(value) =>
-                  setGender(value as Gender)
-                }
+                onValueChange={(value) => setGender(value as Gender)}
                 value={gender}
               >
                 <View style={styles.genderOption}>
-                  <RadioButton value="male" />
-                  <Text
-                    variant="bodyMedium"
-                    style={styles.genderLabel}
-                  >
+                  <RadioButton value="male" disabled={saving} />
+                  <Text variant="bodyMedium" style={styles.genderLabel}>
                     Male
                   </Text>
                 </View>
 
                 <View style={styles.genderOption}>
-                  <RadioButton value="female" />
-                  <Text
-                    variant="bodyMedium"
-                    style={styles.genderLabel}
-                  >
+                  <RadioButton value="female" disabled={saving} />
+                  <Text variant="bodyMedium" style={styles.genderLabel}>
                     Female
                   </Text>
                 </View>
@@ -310,7 +414,7 @@ export default function EditProfileScreen() {
                 mode="outlined"
                 onPress={() => router.back()}
                 style={styles.cancelButton}
-                disabled={saving}
+                disabled={saving || selectingImage}
               >
                 Cancel
               </Button>
@@ -319,7 +423,7 @@ export default function EditProfileScreen() {
                 mode="contained"
                 onPress={() => void handleSave()}
                 style={styles.saveButton}
-                disabled={saving}
+                disabled={saving || selectingImage}
                 icon="content-save-outline"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
@@ -399,6 +503,29 @@ function createStyles(colors: MD3Theme['colors']) {
     previewUsername: {
       color: colors.onSurfaceVariant,
       marginTop: 4,
+    },
+
+    photoButtons: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 16,
+    },
+
+    changePhotoButton: {
+      borderRadius: 10,
+    },
+
+    removePhotoButton: {
+      borderRadius: 10,
+      borderColor: colors.error,
+    },
+
+    photoHint: {
+      color: colors.onSurfaceVariant,
+      marginTop: 10,
+      textAlign: 'center',
     },
 
     formCard: {

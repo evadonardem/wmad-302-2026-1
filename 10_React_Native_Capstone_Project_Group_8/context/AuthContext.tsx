@@ -1,12 +1,14 @@
 
 /**
- * Authentication Context - Marketplace App
+ * Authentication Context - CartlyX
  *
  * Supports:
  * - Supabase registered accounts.
  * - DummyJSON demo account.
  * - Persistent session restoration.
  * - Locally saved profile updates.
+ * - Profile picture updates.
+ * - Account-specific profile persistence.
  */
 
 import React, {
@@ -411,7 +413,8 @@ export function AuthProvider({
   /**
    * Update the signed-in user's editable profile.
    *
-   * Profile edits are saved locally per account.
+   * Profile edits, including the profile picture,
+   * are saved locally and separately per account.
    */
   const updateProfile = useCallback(
     async (updates: ProfileOverrides) => {
@@ -423,12 +426,26 @@ export function AuthProvider({
         );
       }
 
+      // Retrieve previously saved profile information.
+      const existingOverrides =
+        await profileOverridesStorage.get(
+          currentUser.id,
+        );
+
+      // Preserve existing information while applying
+      // the latest profile changes.
       const updatedProfile: ProfileOverrides = {
+        ...existingOverrides,
+
         firstName: updates.firstName.trim(),
         lastName: updates.lastName.trim(),
         username: updates.username.trim(),
         email: updates.email.trim(),
         gender: updates.gender,
+
+        ...(updates.image !== undefined
+          ? { image: updates.image }
+          : {}),
       };
 
       const updatedUser: AuthUser = {
@@ -436,13 +453,16 @@ export function AuthProvider({
         ...updatedProfile,
       };
 
+      // Save the complete profile for this account.
       await profileOverridesStorage.save(
         currentUser.id,
         updatedProfile,
       );
 
+      // Update the locally stored authenticated user.
       await authStorage.setUser(updatedUser);
 
+      // Immediately update the application state.
       dispatch({
         type: 'AUTH_UPDATE_USER',
         payload: updatedProfile,

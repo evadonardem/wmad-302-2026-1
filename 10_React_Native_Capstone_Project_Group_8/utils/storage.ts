@@ -46,7 +46,8 @@ export type StorageKey =
 export type ProfileOverrides = Pick<
   AuthUser,
   'firstName' | 'lastName' | 'username' | 'email' | 'gender'
->;
+> &
+  Partial<Pick<AuthUser, 'image'>>;
 
 // =====================================================
 // USER-SPECIFIC STORAGE KEYS
