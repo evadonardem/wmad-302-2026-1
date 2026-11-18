@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { useTheme, type MD3Theme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { productApi, type ProductCategory } from '@/services/productApi';
-import { createCategoriesStyles } from './categoriesStyles';
+import { createCategoriesStyles } from '../../../appStyles/categoriesStyles';
 
 interface Category extends ProductCategory {
   count?: number;

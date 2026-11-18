@@ -44,7 +44,7 @@ import {
   ordersStorage,
 } from '@/utils/storage';
 
-import { createProfileStyles } from './profileStyles';
+import { createProfileStyles } from '../../../appStyles/profileStyles';
 
 type MenuRowProps = {
   icon: React.ComponentProps<

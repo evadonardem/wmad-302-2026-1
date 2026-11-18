@@ -38,7 +38,7 @@ import type { CartItem } from '@/types/product';
 
 import { cartStorage } from '@/utils/storage';
 
-import { createCartStyles } from './cartStyles';
+import { createCartStyles } from '../../../appStyles/cartStyles';
 
 const showBrowserConfirm = (message: string): boolean => {
   const browser = globalThis as typeof globalThis & {

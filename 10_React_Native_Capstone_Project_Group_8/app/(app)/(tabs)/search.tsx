@@ -40,7 +40,7 @@ import {
 } from 'react-native-paper';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { createSearchStyles } from './searchStyles';
+import { createSearchStyles } from '../../../appStyles/searchStyles';
 
 interface Product {
   id: number;

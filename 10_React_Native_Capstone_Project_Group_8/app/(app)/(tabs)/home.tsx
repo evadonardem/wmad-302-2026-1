@@ -33,7 +33,7 @@ import { useAuth } from '@/context/AuthContext';
 import { cartStorage } from '@/utils/storage';
 import { useTheme, type MD3Theme } from 'react-native-paper';
 
-import { createHomeStyles } from './homeStyles';
+import { createHomeStyles } from '../../../appStyles/homeStyles';
 
 // Product type from DummyJSON Products API
 interface Product {
