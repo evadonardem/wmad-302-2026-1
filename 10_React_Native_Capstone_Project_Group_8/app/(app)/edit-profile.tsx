@@ -5,6 +5,7 @@
  * CartlyX
  *
  * Features:
+ * - Includes a back button in the header.
  * - Updates first name, last name, username, and email.
  * - Updates gender.
  * - Selects and crops a profile picture.
@@ -32,6 +33,7 @@ import {
   Button,
   Card,
   HelperText,
+  IconButton,
   RadioButton,
   Text,
   TextInput,
@@ -91,6 +93,13 @@ export default function EditProfileScreen() {
     setGender(user.gender ?? 'male');
     setProfileImage(user.image ?? '');
   }, [user]);
+
+  /**
+   * Navigate back to the previous screen.
+   */
+  const handleGoBack = () => {
+    router.back();
+  };
 
   /**
    * Open the device gallery and select a profile picture.
@@ -259,16 +268,31 @@ export default function EditProfileScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Header with Back Button */}
         <View style={styles.header}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Edit Profile
-          </Text>
+          <View style={styles.headerRow}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={handleGoBack}
+              iconColor={colors.onBackground}
+              style={styles.backButton}
+              accessibilityLabel="Go back"
+            />
 
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Update your personal account information.
-          </Text>
+            <View style={styles.headerText}>
+              <Text variant="headlineSmall" style={styles.title}>
+                Edit Profile
+              </Text>
+
+              <Text variant="bodyMedium" style={styles.subtitle}>
+                Update your personal account information.
+              </Text>
+            </View>
+          </View>
         </View>
 
+        {/* Profile Picture Preview */}
         <Card style={styles.profileCard} mode="elevated">
           <Card.Content style={styles.profileContent}>
             {profileImage ? (
@@ -325,6 +349,7 @@ export default function EditProfileScreen() {
           </Card.Content>
         </Card>
 
+        {/* Personal Information Form */}
         <Card style={styles.formCard} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -409,10 +434,11 @@ export default function EditProfileScreen() {
               </HelperText>
             )}
 
+            {/* Form Actions */}
             <View style={styles.buttons}>
               <Button
                 mode="outlined"
-                onPress={() => router.back()}
+                onPress={handleGoBack}
                 style={styles.cancelButton}
                 disabled={saving || selectingImage}
               >
@@ -449,6 +475,9 @@ export default function EditProfileScreen() {
   );
 }
 
+/**
+ * Dynamic Light and Dark Theme Styles
+ */
 function createStyles(colors: MD3Theme['colors']) {
   return StyleSheet.create({
     screen: {
@@ -467,6 +496,20 @@ function createStyles(colors: MD3Theme['colors']) {
 
     header: {
       marginBottom: 20,
+    },
+
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+
+    backButton: {
+      marginLeft: -8,
+      marginRight: 4,
+    },
+
+    headerText: {
+      flex: 1,
     },
 
     title: {
