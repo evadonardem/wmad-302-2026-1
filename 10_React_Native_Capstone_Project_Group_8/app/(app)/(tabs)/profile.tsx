@@ -1,5 +1,6 @@
+
 /**
- * Profile Screen - Marketplace
+ * Profile Screen - CartlyX
  *
  * Features:
  * - Displays signed-in user information.
@@ -9,6 +10,7 @@
  * - Navigates to Edit Profile.
  * - Navigates to Contact Information management.
  * - Navigates to Shipping Address management.
+ * - Navigates to Payment Methods management.
  * - Supports dynamic light and dark themes.
  * - Refreshes profile statistics whenever the screen is focused.
  */
@@ -107,7 +109,7 @@ function MenuRow({
 }
 
 /**
- * Browser-compatible dialog helpers.
+ * Browser-compatible confirmation helper.
  */
 const showBrowserConfirm = (message: string): boolean => {
   const browser = globalThis as typeof globalThis & {
@@ -115,14 +117,6 @@ const showBrowserConfirm = (message: string): boolean => {
   };
 
   return browser.confirm ? browser.confirm(message) : false;
-};
-
-const showBrowserAlert = (message: string): void => {
-  const browser = globalThis as typeof globalThis & {
-    alert?: (message: string) => void;
-  };
-
-  browser.alert?.(message);
 };
 
 export default function ProfileScreen() {
@@ -184,17 +178,6 @@ export default function ProfileScreen() {
       }
     }, [isAuthenticated, loadProfileStatistics]),
   );
-
-  /**
-   * Displays a message on the appropriate platform.
-   */
-  const showMessage = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      showBrowserAlert(`${title}\n\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
 
   /**
    * Logout confirmation.
@@ -260,13 +243,10 @@ export default function ProfileScreen() {
   };
 
   /**
-   * Existing Payment Methods placeholder.
+   * Navigate to Payment Methods.
    */
   const handlePayment = () => {
-    showMessage(
-      'Payment Methods',
-      'Payment method management will be implemented in the next development step.',
-    );
+    router.push('/(app)/payment-methods');
   };
 
   /**
@@ -550,7 +530,7 @@ export default function ProfileScreen() {
         />
 
         <Text style={styles.versionText}>
-          Marketplace v1.0.0
+          CartlyX v1.0.0
         </Text>
 
         <Text style={styles.versionSubtext}>
