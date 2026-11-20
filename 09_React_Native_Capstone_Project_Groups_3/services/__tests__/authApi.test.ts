@@ -73,6 +73,18 @@ describe('authApi.login', () => {
     expect(JSON.parse((await AsyncStorage.getItem('auth_user')) ?? 'null')).toEqual(user);
   });
 
+  it('stores the accessToken DummyJSON returns as the token', async () => {
+    const { token: _token, ...profile } = user;
+    client.post.mockResolvedValueOnce({ data: { ...profile, accessToken: 'real-access' } });
+
+    const result = await authApi.login({ username: 'emilys', password: 'emilyspass' });
+
+    expect(result.token).toBe('real-access');
+    expect(result).not.toHaveProperty('accessToken');
+    expect(authApi.hasValidTokens()).toBe(true);
+    expect(onRequest({ headers: {} }).headers.Authorization).toBe('Bearer real-access');
+  });
+
   it('passes errors from the server on to the caller', async () => {
     client.post.mockRejectedValueOnce(new Error('Invalid credentials'));
     await expect(authApi.login({ username: 'x', password: 'y' })).rejects.toThrow('Invalid credentials');

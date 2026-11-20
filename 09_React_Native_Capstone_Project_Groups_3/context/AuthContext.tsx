@@ -13,6 +13,7 @@ import React, {
 } from 'react';
 import { AuthState, AuthAction, AuthUser } from '@/types/auth';
 import { authApi } from '@/services/authApi';
+import { getAuthErrorMessage } from '@/utils/authErrors';
 
 // Initial state
 export const initialState: AuthState = {
@@ -163,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = await authApi.login({ username, password });
       dispatch({ type: 'AUTH_SUCCESS', payload: user });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Login failed';
+      const message = getAuthErrorMessage(error, 'Login failed. Please try again.');
       dispatch({ type: 'AUTH_FAILURE', payload: message });
       throw error;
     }
@@ -188,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const user = await authApi.register(data);
         dispatch({ type: 'AUTH_SUCCESS', payload: user });
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Registration failed';
+        const message = getAuthErrorMessage(error, 'Registration failed. Please try again.');
         dispatch({ type: 'AUTH_FAILURE', payload: message });
         throw error;
       }

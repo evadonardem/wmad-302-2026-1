@@ -12,6 +12,9 @@ import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '
 const API_BASE_URL = 'https://dummyjson.com/auth';
 const AUTH_STORAGE_KEY = 'auth_user';
 
+/** POST /auth/login returns the user with "accessToken" (older code/tests use "token") */
+type LoginResponse = Omit<AuthUser, 'token'> & { accessToken?: string; token?: string };
+
 class AuthApiService {
   private client: AxiosInstance;
   private refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
@@ -48,9 +51,13 @@ class AuthApiService {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
+        const url: string = originalRequest?.url ?? '';
+        // A 401 from login/refresh themselves must not trigger another refresh
+        // (refreshing from inside the refresh request would wait on itself forever)
+        const isAuthRequest = url.includes('/login') || url.includes('/refresh');
 
         // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRequest) {
           originalRequest._retry = true;
 
           try {
@@ -97,13 +104,16 @@ class AuthApiService {
    * POST /auth/login
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await this.client.post<AuthUser>('/login', {
+    const response = await this.client.post<LoginResponse>('/login', {
       username: credentials.username,
       password: credentials.password,
       expiresInMins: credentials.expiresInMins || 60,
     });
-    this.setTokens(response.data);
-    return response.data;
+    // DummyJSON sends the access token as "accessToken"; the app keeps it as "token"
+    const { accessToken, ...rest } = response.data;
+    const user: AuthUser = { ...rest, token: accessToken ?? rest.token ?? '' };
+    this.setTokens(user);
+    return user;
   }
 
   /**
