@@ -2,90 +2,36 @@
  * Reusable UI Components
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  Animated,
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ActivityIndicator,
   DimensionValue,
   StyleProp,
   ViewStyle,
 } from 'react-native';
-import { Card, Title, Chip, Button } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Recipe } from '@/types/recipe';
+import { fontFamily, makeStyles, radius, useAppTheme } from '@/constants/theme';
+import { RecipeTile } from './RecipeTile';
 
 /** Any valid MaterialCommunityIcons icon name */
 export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 interface RecipeCardProps {
-  recipe: {
-    id: number;
-    name: string;
-    image: string;
-    difficulty: string;
-    cuisine: string;
-    prepTimeMinutes: number;
-    cookTimeMinutes: number;
-    servings: number;
-    rating: number;
-    reviewCount: number;
-    caloriesPerServing: number;
-  };
+  recipe: Recipe;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
+/** Full-width photo card used in lists */
 export function RecipeCard({ recipe, onPress, style }: RecipeCardProps) {
-  return (
-    <TouchableOpacity
-      style={[styles.cardWrapper, style]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Card style={styles.card} elevation={2}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: recipe.image }}
-            style={styles.recipeImage}
-            resizeMode="cover"
-          />
-          <View style={styles.difficultyBadge}>
-            <Chip style={[
-              styles.difficultyChip,
-              recipe.difficulty === 'Easy' && styles.easy,
-              recipe.difficulty === 'Medium' && styles.medium,
-              recipe.difficulty === 'Hard' && styles.hard,
-            ]}>
-              {recipe.difficulty}
-            </Chip>
-          </View>
-        </View>
-        <Card.Content style={styles.cardContent}>
-          <Title style={styles.recipeTitle} numberOfLines={1}>
-            {recipe.name}
-          </Title>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              ⏱️ {recipe.prepTimeMinutes + recipe.cookTimeMinutes} min
-            </Text>
-            <Text style={styles.metaText}>👥 {recipe.servings} servings</Text>
-            <Text style={styles.metaText}>🔥 {recipe.caloriesPerServing} cal</Text>
-          </View>
-          <View style={styles.cuisineRow}>
-            <Chip style={styles.cuisineChip}>{recipe.cuisine}</Chip>
-          </View>
-          <View style={styles.ratingRow}>
-            <Text style={styles.ratingText}>
-              ⭐ {recipe.rating.toFixed(1)} ({recipe.reviewCount} reviews)
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
+  return <RecipeTile recipe={recipe} onPress={onPress} size="wide" style={[{ marginBottom: 14 }, style]} />;
 }
 
 interface CategoryChipProps {
@@ -97,29 +43,22 @@ interface CategoryChipProps {
 }
 
 export function CategoryChip({ label, selected, onPress, icon, style }: CategoryChipProps) {
+  const styles = useStyles();
+  const theme = useAppTheme();
   return (
     <TouchableOpacity
-      style={[
-        styles.categoryChip,
-        selected && styles.categoryChipSelected,
-        style,
-      ]}
+      style={[styles.categoryChip, selected && styles.categoryChipSelected, style]}
       onPress={onPress}
     >
       {icon && (
         <MaterialCommunityIcons
           name={icon}
           size={16}
-          color={selected ? '#FFFFFF' : '#E85D04'}
+          color={selected ? theme.colors.onPrimary : theme.colors.primary}
           style={{ marginRight: 4 }}
         />
       )}
-      <Text style={[
-        styles.categoryChipText,
-        selected && styles.categoryChipTextSelected,
-      ]}>
-        {label}
-      </Text>
+      <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -130,32 +69,47 @@ interface LoadingOverlayProps {
 }
 
 export function LoadingOverlay({ visible, message = 'Loading...' }: LoadingOverlayProps) {
+  const styles = useStyles();
+  const theme = useAppTheme();
   if (!visible) return null;
 
   return (
     <View style={styles.loadingOverlay}>
-      <ActivityIndicator size="large" color="#E85D04" />
+      <ActivityIndicator size="large" color={theme.colors.primary} />
       <Text style={styles.loadingText}>{message}</Text>
     </View>
   );
 }
 
 interface EmptyStateProps {
-  icon: IconName;
+  /** Big emoji used as a friendly illustration, e.g. "🍳" */
+  emoji?: string;
+  /** Icon used when no emoji is given */
+  icon?: IconName;
   title: string;
   message: string;
   actionLabel?: string;
   onAction?: () => void;
 }
 
-export function EmptyState({ icon, title, message, actionLabel, onAction }: EmptyStateProps) {
+/** Friendly empty screen with an illustration and a clear next step */
+export function EmptyState({ emoji, icon = 'silverware-fork-knife', title, message, actionLabel, onAction }: EmptyStateProps) {
+  const styles = useStyles();
+  const theme = useAppTheme();
   return (
     <View style={styles.emptyState}>
-      <MaterialCommunityIcons name={icon} size={80} color="#BCAAA4" />
+      <View style={styles.illustration}>
+        <View style={styles.illustrationRing} />
+        {emoji ? (
+          <Text style={styles.emoji}>{emoji}</Text>
+        ) : (
+          <MaterialCommunityIcons name={icon} size={56} color={theme.colors.primary} />
+        )}
+      </View>
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptyMessage}>{message}</Text>
       {actionLabel && onAction && (
-        <Button mode="contained" onPress={onAction} style={styles.actionButton}>
+        <Button mode="contained" onPress={onAction} style={styles.actionButton} contentStyle={styles.actionContent}>
           {actionLabel}
         </Button>
       )}
@@ -167,195 +121,132 @@ interface SkeletonProps {
   height?: number;
   width?: DimensionValue;
   borderRadius?: number;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function Skeleton({ height = 20, width = '100%', borderRadius = 8 }: SkeletonProps) {
+/** Grey placeholder that gently pulses while content loads */
+export function Skeleton({ height = 20, width = '100%', borderRadius = 8, style }: SkeletonProps) {
+  const styles = useStyles();
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.45, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [opacity]);
+
+  return <Animated.View style={[styles.skeleton, { height, width, borderRadius, opacity }, style]} />;
+}
+
+/** Placeholder shaped like a list of recipe cards */
+export function RecipeListSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <View
-      style={[
-        styles.skeleton,
-        { height, width, borderRadius },
-      ]}
-    />
+    <View>
+      {Array.from({ length: count }, (_, i) => (
+        <Skeleton key={i} height={220} borderRadius={radius.lg} style={{ marginBottom: 14 }} />
+      ))}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  cardWrapper: {
-    marginBottom: 12,
-  },
-  card: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-  },
-  imageContainer: {
-    position: 'relative',
-    height: 180,
-  },
-  recipeImage: {
-    width: '100%',
-    height: '100%',
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-    maxWidth: '90%',
-    maxHeight: '90%',
-  },
-  difficultyBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    zIndex: 1,
-  },
-  difficultyChip: {
-    borderRadius: 12,
-  },
-  easy: {
-    backgroundColor: '#E8F5E9',
-  },
-  medium: {
-    backgroundColor: '#FFF3E0',
-  },
-  hard: {
-    backgroundColor: '#FDEDED',
-  },
-  discountBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    zIndex: 1,
-  },
-  cardContent: {
-    padding: 16,
-  },
-  recipeTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginBottom: 8,
-  },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#202124',
-    marginBottom: 8,
-  },
-  productCategory: {
-    fontSize: 12,
-    color: '#1A73E8',
-    fontWeight: '500',
-    marginBottom: 4,
-    textTransform: 'capitalize',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  metaText: {
-    fontSize: 12,
-    color: '#8D6E63',
-    fontWeight: '500',
-  },
-  cuisineRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
-  },
-  cuisineChip: {
-    backgroundColor: '#FFF3E0',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontSize: 13,
-    color: '#8D6E63',
-    fontWeight: '500',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  currentPrice: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A73E8',
-  },
-  originalPrice: {
-    fontSize: 14,
-    color: '#9E9E9E',
-    textDecorationLine: 'line-through',
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  categoryChipSelected: {
-    backgroundColor: '#E85D04',
-    borderColor: '#E85D04',
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#E85D04',
-  },
-  categoryChipTextSelected: {
-    color: '#FFFFFF',
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    zIndex: 100,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#8D6E63',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#3E2723',
-    marginTop: 20,
-  },
-  emptyMessage: {
-    fontSize: 16,
-    color: '#8D6E63',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  actionButton: {
-    marginTop: 24,
-    borderRadius: 12,
-    height: 52,
-  },
-  skeleton: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 8,
-  },
-});
+const useStyles = makeStyles((c) =>
+  StyleSheet.create({
+    categoryChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    categoryChipSelected: {
+      backgroundColor: c.primary,
+      borderColor: c.primary,
+    },
+    categoryChipText: {
+      fontFamily: fontFamily.medium,
+      fontSize: 13,
+      color: c.primary,
+    },
+    categoryChipTextSelected: {
+      color: c.onPrimary,
+    },
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: c.overlay,
+      zIndex: 100,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontFamily: fontFamily.regular,
+      fontSize: 16,
+      color: c.muted,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 32,
+      paddingVertical: 48,
+    },
+    illustration: {
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      backgroundColor: c.primaryContainer,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    illustrationRing: {
+      position: 'absolute',
+      width: 172,
+      height: 172,
+      borderRadius: 86,
+      borderWidth: 2,
+      borderColor: c.primaryContainer,
+      borderStyle: 'dashed',
+    },
+    emoji: {
+      fontSize: 60,
+    },
+    emptyTitle: {
+      fontFamily: fontFamily.display,
+      fontSize: 24,
+      color: c.onSurface,
+      marginTop: 28,
+      textAlign: 'center',
+    },
+    emptyMessage: {
+      fontFamily: fontFamily.regular,
+      fontSize: 15,
+      lineHeight: 22,
+      color: c.muted,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    actionButton: {
+      marginTop: 24,
+      borderRadius: radius.pill,
+    },
+    actionContent: {
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    skeleton: {
+      backgroundColor: c.border,
+    },
+  })
+);

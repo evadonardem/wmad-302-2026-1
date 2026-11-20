@@ -1,7 +1,9 @@
 /**
  * Search Screen - Cookbook
  *
- * - Query search: GET /recipes/search?q=  (debounced while typing)
+ * - Query search: GET /recipes/search?q=  (debounced while typing), plus matches
+ *   inside ingredients and tags (e.g. "garlic", "spicy")
+ * - No results: suggestions of words that do exist in the data
  * - Filters: category (meal type), cuisine, difficulty
  * - Sort: rating, total time, calories, name
  * - Opened from Categories / Home with ?category=Dinner to show a filtered list
@@ -17,7 +19,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { recipeApi } from '@/services/recipeApi';
 import { Recipe } from '@/types/recipe';
 import { useDebounce } from '@/hooks';
-import { styles } from './searchStyles';
+import { useSearchStyles } from './searchStyles';
+import { useAppTheme } from '@/constants/theme';
 
 type Difficulty = Recipe['difficulty'];
 type SortOption = 'rating' | 'time' | 'calories' | 'name';
@@ -30,11 +33,16 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'name', label: 'A–Z' },
 ];
 
+/** Words that do appear in the DummyJSON recipes */
+const SUGGESTIONS = ['Chicken', 'Beef', 'Shrimp', 'Pasta', 'Curry', 'Salad', 'Smoothie', 'Pizza'];
+
 const totalTime = (recipe: Recipe) => recipe.prepTimeMinutes + recipe.cookTimeMinutes;
 
 export default function SearchScreen() {
+  const styles = useSearchStyles();
+  const theme = useAppTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ category?: string }>();
+  const params = useLocalSearchParams<{ category?: string; q?: string }>();
 
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [searchResults, setSearchResults] = useState<Recipe[] | null>(null);
@@ -53,6 +61,11 @@ export default function SearchScreen() {
   useEffect(() => {
     if (params.category) setCategory(params.category);
   }, [params.category]);
+
+  // Opening Search from a recipe tag fills in the search box
+  useEffect(() => {
+    if (params.q) setQuery(params.q);
+  }, [params.q]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -105,8 +118,28 @@ export default function SearchScreen() {
     [allRecipes]
   );
 
+  // Recipes that mention the query in their ingredients, tags, cuisine or name
+  const localMatches = useMemo(() => {
+    const q = debouncedQuery.toLowerCase();
+    if (!q) return [];
+    return allRecipes.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.cuisine.toLowerCase().includes(q) ||
+        r.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+        r.ingredients.some((ingredient) => ingredient.toLowerCase().includes(q))
+    );
+  }, [allRecipes, debouncedQuery]);
+
   const results = useMemo(() => {
-    const base = searchResults ?? allRecipes;
+    // Combine the API's results with the ingredient/tag matches (no duplicates)
+    const base = debouncedQuery
+      ? Array.from(
+          new Map<number, Recipe>(
+            [...(searchResults ?? []), ...localMatches].map((r): [number, Recipe] => [r.id, r])
+          ).values()
+        )
+      : allRecipes;
     const filtered = base.filter(
       (r) =>
         (!category || r.mealType.includes(category)) &&
@@ -129,7 +162,7 @@ export default function SearchScreen() {
         break;
     }
     return sorted;
-  }, [searchResults, allRecipes, category, cuisine, difficulty, sort]);
+  }, [searchResults, localMatches, debouncedQuery, allRecipes, category, cuisine, difficulty, sort]);
 
   const hasFilters = !!(query || category || cuisine || difficulty);
   const clearAll = () => {
@@ -241,7 +274,7 @@ export default function SearchScreen() {
   if (error && allRecipes.length === 0) {
     return (
       <View style={[styles.container, styles.emptyState]}>
-        <MaterialCommunityIcons name="wifi-off" size={64} color="#BCAAA4" />
+        <MaterialCommunityIcons name="wifi-off" size={64} color={theme.colors.outline} />
         <Text style={styles.emptyText}>{error}</Text>
         <Button mode="contained" onPress={loadAll} style={styles.retryButton}>
           Try Again
@@ -262,9 +295,20 @@ export default function SearchScreen() {
       ListHeaderComponent={header}
       ListEmptyComponent={
         <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="magnify" size={64} color="#BCAAA4" />
+          <Text style={styles.emptyEmoji}>🔍</Text>
           <Text style={styles.emptyText}>No recipes found</Text>
-          <Text style={styles.emptySubtext}>Try a different search or clear the filters</Text>
+          <Text style={styles.emptySubtext}>
+            {query ? `Nothing matches “${query.trim()}”. Try one of these:` : 'Try a different search or clear the filters'}
+          </Text>
+          {query ? (
+            <View style={styles.suggestions}>
+              {SUGGESTIONS.map((word) => (
+                <Chip key={word} onPress={() => setQuery(word)} style={styles.suggestionChip}>
+                  {word}
+                </Chip>
+              ))}
+            </View>
+          ) : null}
           {hasFilters && (
             <Button mode="contained" onPress={clearAll} style={styles.retryButton}>
               Clear filters

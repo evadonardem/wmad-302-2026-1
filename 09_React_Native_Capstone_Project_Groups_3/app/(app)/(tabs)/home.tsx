@@ -1,158 +1,119 @@
 /**
  * Home Screen - Cookbook Discover Tab
- * Students implement: Recipe grid, categories, featured recipes
- * API: https://dummyjson.com/docs/recipes
+ *
+ * - Greeting that follows the time of day ("Good evening, Emily — what's for dinner?")
+ * - Recipe of the day (changes every day)
+ * - Shortcuts: shopping list, meal planner, fridge, collections
+ * - Horizontal shelves: right for this meal, recently viewed, quick, top rated, easy, desserts
+ * - "Surprise me": tap the dice or shake the phone for a random recipe
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable, RefreshControl, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Chip, Avatar, Button } from 'react-native-paper';
-import { styles } from './homeStyles';
+import { useCookbook } from '@/context/CookbookContext';
+import { useAllRecipes, totalMinutes } from '@/hooks/useRecipes';
+import { useShake } from '@/hooks/useShake';
+import { RecipeTile } from '@/components/RecipeTile';
+import { RecipeShelf } from '@/components/RecipeShelf';
+import { EmptyState, IconName, Skeleton } from '@/components/CommonComponents';
+import { useAppTheme } from '@/constants/theme';
+import { Recipe } from '@/types/recipe';
+import { useHomeStyles } from './homeStyles';
 
-// Types for DummyJSON Recipes API
-interface Recipe {
-  id: number;
-  name: string;
-  ingredients: string[];
-  instructions: string[];
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  servings: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  cuisine: string;
-  caloriesPerServing: number;
-  tags: string[];
-  userId: number;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  mealType: string[];
+interface Moment {
+  greeting: string;
+  meal: string;
+  mealType: string;
 }
 
-interface RecipesResponse {
-  recipes: Recipe[];
-  total: number;
-  skip: number;
-  limit: number;
+/** What to suggest depending on the time of day */
+function getMoment(hour: number): Moment {
+  if (hour >= 5 && hour < 11) return { greeting: 'Good morning', meal: 'breakfast', mealType: 'Breakfast' };
+  if (hour >= 11 && hour < 16) return { greeting: 'Good afternoon', meal: 'lunch', mealType: 'Lunch' };
+  if (hour >= 16 && hour < 22) return { greeting: 'Good evening', meal: 'dinner', mealType: 'Dinner' };
+  return { greeting: 'Late night cravings', meal: 'a snack', mealType: 'Snack' };
 }
+
+const byRating = (a: Recipe, b: Recipe) => b.rating - a.rating;
 
 export default function HomeScreen() {
+  const styles = useHomeStyles();
+  const theme = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const { user } = useAuth();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { recent, shopping, collections } = useCookbook();
+  const { recipes, loading, error, reload, pick } = useAllRecipes();
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchRecipes = async (isRefresh = false) => {
-    try {
-      if (!isRefresh) setLoading(true);
-      setError(null);
+  const moment = getMoment(new Date().getHours());
 
-      const response = await fetch('https://dummyjson.com/recipes?limit=20');
-      if (!response.ok) throw new Error('Failed to fetch recipes');
+  const shelves = useMemo(() => {
+    const forNow = recipes.filter((r) => r.mealType.includes(moment.mealType)).sort(byRating);
+    return {
+      forNow: forNow.slice(0, 10),
+      quick: recipes.filter((r) => totalMinutes(r) <= 30).sort((a, b) => totalMinutes(a) - totalMinutes(b)).slice(0, 10),
+      topRated: [...recipes].sort(byRating).slice(0, 10),
+      easy: recipes.filter((r) => r.difficulty === 'Easy').sort(byRating).slice(0, 10),
+      desserts: recipes.filter((r) => r.mealType.includes('Dessert')).sort(byRating).slice(0, 10),
+    };
+  }, [recipes, moment.mealType]);
 
-      const data: RecipesResponse = await response.json();
-      setRecipes(data.recipes);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load recipes');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRecipes();
-  }, []);
-
-  const onRefresh = () => fetchRecipes(true);
-
-  // Categories (meal types) found in the loaded recipes
   const categories = useMemo(
     () => Array.from(new Set(recipes.flatMap((recipe) => recipe.mealType))).sort(),
     [recipes]
   );
 
-  const renderRecipe = ({ item }: { item: Recipe }) => (
-    <TouchableOpacity
-      style={styles.recipeCard}
-      onPress={() => router.push(`/recipe/${item.id}`)}
-      activeOpacity={0.8}
-    >
-      <Card style={styles.card} elevation={2}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: item.image }}
-            style={styles.recipeImage}
-            resizeMode="cover"
-          />
-          <View style={styles.difficultyBadge}>
-            <Chip
-              style={[
-                styles.difficultyChip,
-                item.difficulty === 'Easy' && styles.easy,
-                item.difficulty === 'Medium' && styles.medium,
-                item.difficulty === 'Hard' && styles.hard,
-              ]}
-            >
-              {item.difficulty}
-            </Chip>
-          </View>
-        </View>
-        <Card.Content style={styles.cardContent}>
-          <Title style={styles.recipeTitle} numberOfLines={1}>
-            {item.name}
-          </Title>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaText}>
-              ⏱️ {item.prepTimeMinutes + item.cookTimeMinutes} min
-            </Text>
-            <Text style={styles.metaText}>👥 {item.servings} servings</Text>
-            <Text style={styles.metaText}>🔥 {item.caloriesPerServing} cal</Text>
-          </View>
-          <View style={styles.cuisineRow}>
-            <Chip style={styles.cuisineChip}>{item.cuisine}</Chip>
-            {item.mealType.slice(0, 2).map((meal) => (
-              <Chip key={meal} style={styles.mealChip}>{meal}</Chip>
-            ))}
-          </View>
-          <View style={styles.ratingRow}>
-            <Text style={styles.ratingText}>
-              ⭐ {item.rating.toFixed(1)} ({item.reviewCount} reviews)
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
+  // Same recipe all day, a new one tomorrow
+  const recipeOfTheDay = useMemo(() => {
+    if (recipes.length === 0) return null;
+    const day = Math.floor(Date.now() / (24 * 60 * 60 * 1000));
+    return recipes[day % recipes.length];
+  }, [recipes]);
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
-        <Text style={styles.loadingText}>Loading recipes...</Text>
-      </View>
-    );
-  }
+  const recentRecipes = useMemo(() => pick(recent), [pick, recent]);
 
-  if (error) {
+  const surpriseMe = useCallback(() => {
+    if (recipes.length === 0) return;
+    const random = recipes[Math.floor(Math.random() * recipes.length)];
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    router.push(`/recipe/${random.id}`);
+  }, [recipes, router]);
+
+  // Shake the phone for a random recipe (only while this tab is showing)
+  useShake(surpriseMe, isFocused && recipes.length > 0);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await reload();
+    setRefreshing(false);
+  };
+
+  const openCategory = (category: string) => router.push({ pathname: '/search', params: { category } });
+
+  const tools: { label: string; icon: IconName; route: string; badge?: number }[] = [
+    { label: 'Shopping list', icon: 'cart-outline', route: '/shopping-list', badge: shopping.filter((i) => !i.checked).length },
+    { label: 'Meal plan', icon: 'calendar-week', route: '/meal-plan' },
+    { label: 'My fridge', icon: 'fridge-outline', route: '/fridge' },
+    { label: 'Collections', icon: 'folder-heart-outline', route: '/collections', badge: collections.length },
+  ];
+
+  if (error && recipes.length === 0) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={() => fetchRecipes()} style={styles.retryButton}>
-          Retry
-        </Button>
+      <View style={[styles.scrollView, { paddingTop: insets.top }]}>
+        <EmptyState
+          emoji="📡"
+          title="Can't reach the kitchen"
+          message={error}
+          actionLabel="Try again"
+          onAction={reload}
+        />
       </View>
     );
   }
@@ -160,67 +121,123 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.scrollView}
+      contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E85D04']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />
       }
-      contentContainerStyle={styles.scrollContent}
     >
-      {/* Welcome Header */}
-      <View style={styles.welcomeContainer}>
-        <View style={styles.welcomeTextContainer}>
-          <Text style={styles.welcomeGreeting}>
-            {user ? `Welcome back, ${user.firstName}!` : 'Welcome to Cookbook!'}
+      {/* Greeting */}
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.greeting}>
+            {moment.greeting}
+            {user?.firstName ? `, ${user.firstName}` : ''} 👋
           </Text>
-          <Text style={styles.welcomeSubtitle}>Discover delicious recipes</Text>
+          <Text style={styles.headline}>What's for {moment.meal}?</Text>
         </View>
-        <Avatar.Icon size={56} icon="chef-hat" style={styles.welcomeAvatar} />
+        <Pressable
+          style={styles.diceButton}
+          onPress={surpriseMe}
+          accessibilityRole="button"
+          accessibilityLabel="Surprise me with a random recipe"
+        >
+          <MaterialCommunityIcons name="dice-5-outline" size={26} color={theme.colors.primary} />
+        </Pressable>
+      </View>
+
+      {/* Search shortcut */}
+      <Pressable style={styles.searchPill} onPress={() => router.push('/search')} accessibilityRole="search">
+        <MaterialCommunityIcons name="magnify" size={22} color={theme.colors.muted} />
+        <Text style={styles.searchText}>Search recipes, ingredients...</Text>
+      </Pressable>
+
+      {/* Kitchen tools */}
+      <View style={styles.tools}>
+        {tools.map((tool) => (
+          <Pressable
+            key={tool.label}
+            style={styles.tool}
+            onPress={() => router.push(tool.route)}
+            accessibilityRole="button"
+            accessibilityLabel={tool.label}
+          >
+            <View style={styles.toolIcon}>
+              <MaterialCommunityIcons name={tool.icon} size={28} color={theme.colors.primary} />
+              {tool.badge ? (
+                <View style={styles.toolBadge}>
+                  <Text style={styles.toolBadgeText}>{tool.badge > 99 ? '99+' : tool.badge}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.toolLabel} numberOfLines={1}>
+              {tool.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Recipe of the day */}
+      <View style={styles.section}>
+        {loading || !recipeOfTheDay ? (
+          <Skeleton height={300} borderRadius={22} />
+        ) : (
+          <RecipeTile
+            recipe={recipeOfTheDay}
+            size="hero"
+            badge="Recipe of the day"
+            onPress={() => router.push(`/recipe/${recipeOfTheDay.id}`)}
+          />
+        )}
       </View>
 
       {/* Categories */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Categories</Title>
-          <TouchableOpacity onPress={() => router.push('/categories')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
-        </View>
+      {categories.length > 0 && (
         <FlatList
-          data={categories}
           horizontal
+          data={categories}
+          keyExtractor={(item) => item}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryList}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.categoryChip, { backgroundColor: '#FFF3E0' }]}
-              onPress={() => router.push({ pathname: '/search', params: { category: item } })}
-            >
+            <Pressable style={styles.categoryChip} onPress={() => openCategory(item)}>
               <Text style={styles.categoryChipText}>{item}</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
-          keyExtractor={(item) => item}
         />
-      </View>
+      )}
 
-      {/* Featured Recipes */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Featured Recipes</Title>
-          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/search')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
+      <RecipeShelf
+        title={`Perfect for ${moment.meal}`}
+        subtitle={`Top picks for right now`}
+        recipes={shelves.forNow}
+        loading={loading}
+        onSeeAll={() => openCategory(moment.mealType)}
+      />
+      <RecipeShelf title="Recently viewed" recipes={recentRecipes} />
+      <RecipeShelf
+        title="Ready in 30 minutes"
+        subtitle="Quick wins for busy days"
+        recipes={shelves.quick}
+        loading={loading}
+      />
+      <RecipeShelf title="Top rated" subtitle="Loved by everyone" recipes={shelves.topRated} loading={loading} />
+      <RecipeShelf title="Easy for beginners" recipes={shelves.easy} loading={loading} />
+      <RecipeShelf
+        title="Something sweet"
+        recipes={shelves.desserts}
+        loading={loading}
+        onSeeAll={() => openCategory('Dessert')}
+      />
+
+      {/* Surprise me */}
+      <Pressable style={styles.surpriseCard} onPress={surpriseMe} accessibilityRole="button">
+        <Text style={styles.surpriseEmoji}>🎲</Text>
+        <View style={styles.surpriseText}>
+          <Text style={styles.surpriseTitle}>Can't decide?</Text>
+          <Text style={styles.surpriseBody}>Shake your phone or tap here for a random recipe.</Text>
         </View>
-        <FlatList
-          data={recipes.slice(0, 10)}
-          renderItem={renderRecipe}
-          keyExtractor={(item) => item.id.toString()}
-          ItemSeparatorComponent={() => <View style={styles.cardSeparator} />}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No recipes found</Text>
-            </View>
-          }
-        />
-      </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color={theme.colors.onPrimaryContainer} />
+      </Pressable>
     </ScrollView>
   );
 }

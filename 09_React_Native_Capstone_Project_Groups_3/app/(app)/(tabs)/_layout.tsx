@@ -4,20 +4,25 @@
  */
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Text } from 'react-native';
+import { useAppTheme } from '@/constants/theme';
+
+function TabIcon({ symbol, color }: { symbol: string; color: string }) {
+  return React.createElement(Text, { style: { color, fontSize: 24, lineHeight: 28 } }, symbol);
+}
 
 export default function TabsLayout() {
-  const { user } = useAuth();
+  const theme = useAppTheme();
 
-  return (
-    <Tabs
-      screenOptions={{
+  return React.createElement(
+    Tabs,
+    {
+      screenOptions: {
         headerShown: false,
-        tabBarActiveTintColor: '#E85D04',
-        tabBarInactiveTintColor: '#8D6E63',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.muted,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 0,
           elevation: 8,
           shadowColor: '#000',
@@ -31,69 +36,42 @@ export default function TabsLayout() {
           fontSize: 12,
           fontWeight: '500',
         },
-      }}
-    >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Discover',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="stove"
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons
-              name="magnify"
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="categories"
-        options={{
-          title: 'Categories',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="view-grid" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: 'Favorites',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'heart' : 'heart-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'account' : 'account-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-    </Tabs>
+      },
+    },
+    React.createElement(Tabs.Screen, {
+      name: 'home',
+      options: {
+        title: 'Discover',
+        tabBarIcon: ({ color }: { color: string }) => React.createElement(TabIcon, { symbol: '♨', color }),
+      },
+    }),
+    React.createElement(Tabs.Screen, {
+      name: 'search',
+      options: {
+        title: 'Search',
+        tabBarIcon: ({ color }: { color: string }) => React.createElement(TabIcon, { symbol: '⌕', color }),
+      },
+    }),
+    React.createElement(Tabs.Screen, {
+      name: 'categories',
+      options: {
+        title: 'Categories',
+        tabBarIcon: ({ color }: { color: string }) => React.createElement(TabIcon, { symbol: '▦', color }),
+      },
+    }),
+    React.createElement(Tabs.Screen, {
+      name: 'favorites',
+      options: {
+        title: 'Favorites',
+        tabBarIcon: ({ focused, color }: { focused: boolean; color: string }) => React.createElement(TabIcon, { symbol: focused ? '♥' : '♡', color }),
+      },
+    }),
+    React.createElement(Tabs.Screen, {
+      name: 'profile',
+      options: {
+        title: 'Profile',
+        tabBarIcon: ({ focused, color }: { focused: boolean; color: string }) => React.createElement(TabIcon, { symbol: focused ? '●' : '○', color }),
+      },
+    }),
   );
 }

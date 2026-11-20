@@ -3,14 +3,28 @@
  * Route: /settings  (opened from Profile)
  *
  * Preferences are saved in AsyncStorage under the 'user_settings' key.
+ * Appearance (System / Light / Dark) is handled by ThemeContext.
  * Confirmations use Paper dialogs (React Native's Alert buttons do not work on web).
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Button, Dialog, Divider, List, Portal, Snackbar, Switch, Text, useTheme } from 'react-native-paper';
+import {
+  Button,
+  Dialog,
+  Divider,
+  List,
+  Portal,
+  SegmentedButtons,
+  Snackbar,
+  Switch,
+  Text,
+  useTheme,
+} from 'react-native-paper';
 import { useAuth } from '@/context/AuthContext';
-import { favoritesStorage, getStorageItem, setStorageItem } from '@/utils/storage';
+import { ThemePreference, useThemePreference } from '@/context/ThemeContext';
+import { getStorageItem, setStorageItem } from '@/utils/storage';
+import { useCookbook } from '@/context/CookbookContext';
 
 interface UserSettings {
   recipeReminders: boolean;
@@ -20,25 +34,29 @@ const DEFAULT_SETTINGS: UserSettings = {
   recipeReminders: false,
 };
 
-type ConfirmAction = 'clearFavorites' | 'logout' | null;
+type ConfirmAction = 'clearFavorites' | 'clearShopping' | 'clearHistory' | 'logout';
+
+const CONFIRM_TEXT: Record<ConfirmAction, { title: string; body: string; button: string }> = {
+  clearFavorites: { title: 'Clear favorites', body: 'This removes all your saved recipes. This cannot be undone.', button: 'Clear' },
+  clearShopping: { title: 'Clear shopping list', body: 'This removes every item from your shopping list.', button: 'Clear' },
+  clearHistory: { title: 'Clear cooking history', body: 'This resets your cooked recipes, streak and recently viewed list.', button: 'Clear' },
+  logout: { title: 'Logout', body: 'Are you sure you want to logout?', button: 'Logout' },
+};
 
 export default function SettingsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { logout } = useAuth();
+  const { preference, setPreference } = useThemePreference();
 
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [favoriteCount, setFavoriteCount] = useState(0);
-  const [confirm, setConfirm] = useState<ConfirmAction>(null);
+  const { favorites, shopping, cooked, clearFavorites, clearShopping, clearHistory } = useCookbook();
+  const [confirm, setConfirm] = useState<ConfirmAction | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [stored, favoriteIds] = await Promise.all([
-      getStorageItem<UserSettings>('user_settings'),
-      favoritesStorage.getIds(),
-    ]);
+    const stored = await getStorageItem<UserSettings>('user_settings');
     setSettings({ ...DEFAULT_SETTINGS, ...stored });
-    setFavoriteCount(favoriteIds.length);
   }, []);
 
   useEffect(() => {
@@ -59,9 +77,14 @@ export default function SettingsScreen() {
     const action = confirm;
     setConfirm(null);
     if (action === 'clearFavorites') {
-      await favoritesStorage.setIds([]);
-      setFavoriteCount(0);
+      clearFavorites();
       setMessage('Favorites cleared');
+    } else if (action === 'clearShopping') {
+      clearShopping();
+      setMessage('Shopping list cleared');
+    } else if (action === 'clearHistory') {
+      clearHistory();
+      setMessage('Cooking history cleared');
     } else if (action === 'logout') {
       logout();
     }
@@ -79,6 +102,21 @@ export default function SettingsScreen() {
           left={(props) => <List.Icon {...props} icon="account-edit" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
           onPress={() => router.push('/edit-profile')}
+        />
+      </List.Section>
+      <Divider />
+
+      <List.Section>
+        <List.Subheader>Appearance</List.Subheader>
+        <SegmentedButtons
+          style={styles.segmented}
+          value={preference}
+          onValueChange={(value) => setPreference(value as ThemePreference)}
+          buttons={[
+            { value: 'system', label: 'System', icon: 'theme-light-dark' },
+            { value: 'light', label: 'Light', icon: 'white-balance-sunny' },
+            { value: 'dark', label: 'Dark', icon: 'weather-night' },
+          ]}
         />
       </List.Section>
       <Divider />
@@ -103,10 +141,23 @@ export default function SettingsScreen() {
         <List.Subheader>Data</List.Subheader>
         <List.Item
           title="Clear favorites"
-          description={`${favoriteCount} saved recipe${favoriteCount === 1 ? '' : 's'}`}
+          description={`${favorites.length} saved recipe${favorites.length === 1 ? '' : 's'}`}
           left={(props) => <List.Icon {...props} icon="heart-off-outline" />}
           onPress={() => setConfirm('clearFavorites')}
-          disabled={favoriteCount === 0}
+          disabled={favorites.length === 0}
+        />
+        <List.Item
+          title="Clear shopping list"
+          description={`${shopping.length} item${shopping.length === 1 ? '' : 's'}`}
+          left={(props) => <List.Icon {...props} icon="cart-remove" />}
+          onPress={() => setConfirm('clearShopping')}
+          disabled={shopping.length === 0}
+        />
+        <List.Item
+          title="Clear cooking history"
+          description={`${cooked.length} cooked · recently viewed`}
+          left={(props) => <List.Icon {...props} icon="history" />}
+          onPress={() => setConfirm('clearHistory')}
         />
       </List.Section>
       <Divider />
@@ -137,18 +188,14 @@ export default function SettingsScreen() {
 
       <Portal>
         <Dialog visible={confirm !== null} onDismiss={() => setConfirm(null)}>
-          <Dialog.Title>{confirm === 'logout' ? 'Logout' : 'Clear favorites'}</Dialog.Title>
+          <Dialog.Title>{confirm ? CONFIRM_TEXT[confirm].title : ''}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium">
-              {confirm === 'logout'
-                ? 'Are you sure you want to logout?'
-                : 'This removes all your saved recipes. This cannot be undone.'}
-            </Text>
+            <Text variant="bodyMedium">{confirm ? CONFIRM_TEXT[confirm].body : ''}</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirm(null)}>Cancel</Button>
             <Button textColor={theme.colors.error} onPress={handleConfirm}>
-              {confirm === 'logout' ? 'Logout' : 'Clear'}
+              {confirm ? CONFIRM_TEXT[confirm].button : ''}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -164,6 +211,10 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
+  },
+  segmented: {
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   logoutButton: {
     marginHorizontal: 16,

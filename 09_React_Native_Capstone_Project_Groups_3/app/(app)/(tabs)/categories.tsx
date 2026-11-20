@@ -21,11 +21,14 @@ import { useRouter } from 'expo-router';
 import { Button, Card, Title } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { recipeApi, CategoryCount } from '@/services/recipeApi';
-import { styles } from './categoriesStyles';
+import { useCategoriesStyles } from './categoriesStyles';
+import { useAppTheme } from '@/constants/theme';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 export default function CategoriesScreen() {
+  const styles = useCategoriesStyles();
+  const theme = useAppTheme();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const numColumns = width >= 700 ? 3 : 2;
@@ -72,7 +75,7 @@ export default function CategoriesScreen() {
       <Card style={styles.card} elevation={1}>
         <Card.Content style={styles.cardContent}>
           <View style={styles.iconContainer}>
-            <MaterialCommunityIcons name={getCategoryIcon(item.name)} size={32} color="#E85D04" />
+            <MaterialCommunityIcons name={getCategoryIcon(item.name)} size={32} color={theme.colors.primary} />
           </View>
           <Title style={styles.categoryName}>{item.name}</Title>
           <Text style={styles.categoryCount}>
@@ -86,7 +89,7 @@ export default function CategoriesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E85D04" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading categories...</Text>
       </View>
     );
@@ -115,7 +118,7 @@ export default function CategoriesScreen() {
         columnWrapperStyle={styles.gridWrapper}
         contentContainerStyle={styles.gridContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#E85D04']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
         }
         ListHeaderComponent={
           <View>

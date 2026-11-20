@@ -9,6 +9,8 @@ const STORAGE_KEYS = {
   AUTH_USER: 'auth_user',
   FAVORITES: 'favorite_recipe_ids',
   SETTINGS: 'user_settings',
+  THEME: 'theme_preference',
+  COOKBOOK: 'cookbook_state',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
@@ -83,7 +85,7 @@ export async function getMultipleStorageItems<T extends Record<string, unknown>>
  * Set multiple items at once
  */
 export async function setMultipleStorageItems(
-  items: Array<{ key: StorageKey; value: unknown }>
+  items: { key: StorageKey; value: unknown }[]
 ): Promise<void> {
   try {
     const pairs = items.map(({ key, value }): [string, string] => [key, JSON.stringify(value)]);

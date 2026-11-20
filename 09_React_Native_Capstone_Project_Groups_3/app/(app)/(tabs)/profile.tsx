@@ -1,69 +1,55 @@
 /**
  * Profile Screen - Cookbook
- * - Shows the logged-in user from AuthContext
- * - Stats: own recipes, favorites, cuisines among favorites
- * - Links to Edit Profile (PUT /users/{id}), My Recipes and Settings
- * - Logout with a confirmation dialog (Paper Dialog also works on web,
- *   unlike React Native's Alert buttons)
+ * - Your info, with initials when there is no photo
+ * - Stats: favorites, recipes cooked, cooking streak (days in a row)
+ * - Your kitchen: shopping list, meal planner, collections, fridge, my recipes
+ * - Recently cooked history
+ * - Edit profile, settings, logout (Paper dialog, also works on web)
  */
-import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import {
-  Card,
-  Button,
-  List,
-  Avatar,
-  Divider,
-  Dialog,
-  Portal,
-  Text as PaperText,
-} from 'react-native-paper';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, Image, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Avatar, Button, Dialog, Portal, Text as PaperText } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { recipeApi } from '@/services/recipeApi';
-import { favoritesStorage } from '@/utils/storage';
-import { styles } from './profileStyles';
+import { useAuth } from '@/context/AuthContext';
+import { useCookbook } from '@/context/CookbookContext';
+import { useAllRecipes } from '@/hooks/useRecipes';
+import { IconName } from '@/components/CommonComponents';
+import { useAppTheme } from '@/constants/theme';
+import { cookingStreak } from '@/utils/cookingStats';
+import { useProfileStyles } from './profileStyles';
 
-interface ProfileStats {
-  recipes: number;
-  favorites: number;
-  cuisines: number;
+interface MenuItem {
+  title: string;
+  description: string;
+  icon: IconName;
+  route: string;
 }
 
 export default function ProfileScreen() {
+  const styles = useProfileStyles();
+  const theme = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, logout, isAuthenticated } = useAuth();
-  const [stats, setStats] = useState<ProfileStats>({ recipes: 0, favorites: 0, cuisines: 0 });
+  const { favorites, cooked, shopping, collections, mealPlan } = useCookbook();
+  const { byId } = useAllRecipes();
   const [confirmLogout, setConfirmLogout] = useState(false);
 
-  // Reload stats whenever the tab is opened (favorites may have changed)
-  const loadStats = useCallback(async () => {
-    if (!user) return;
-    try {
-      const [favoriteIds, allRecipes] = await Promise.all([
-        favoritesStorage.getIds(),
-        // limit=0 returns every recipe; only fetch the fields we need
-        recipeApi.getRecipes({ limit: 0, select: 'userId,cuisine' }),
-      ]);
-      const favoriteSet = new Set(favoriteIds);
-      const favoriteCuisines = new Set(
-        allRecipes.recipes.filter((r) => favoriteSet.has(r.id)).map((r) => r.cuisine)
-      );
-      setStats({
-        recipes: allRecipes.recipes.filter((r) => r.userId === user.id).length,
-        favorites: favoriteIds.length,
-        cuisines: favoriteCuisines.size,
-      });
-    } catch (err) {
-      console.error('Failed to load profile stats:', err);
-    }
-  }, [user]);
+  const streak = cookingStreak(cooked);
+  const plannedCount = Object.values(mealPlan).reduce((sum, day) => sum + day.length, 0);
+  const toBuy = shopping.filter((item) => !item.checked).length;
 
-  useFocusEffect(
-    useCallback(() => {
-      loadStats();
-    }, [loadStats])
+  // Last 5 cooking sessions, newest first
+  const recentlyCooked = useMemo(
+    () =>
+      [...cooked]
+        .sort((a, b) => b.cookedAt - a.cookedAt)
+        .slice(0, 5)
+        .map((entry) => ({ ...entry, recipe: byId.get(entry.recipeId) }))
+        .filter((entry) => entry.recipe),
+    [cooked, byId]
   );
 
   if (!isAuthenticated) {
@@ -76,14 +62,48 @@ export default function ProfileScreen() {
 
   const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase() || '?';
 
+  const kitchen: MenuItem[] = [
+    { title: 'Shopping list', description: toBuy ? `${toBuy} items to buy` : 'Nothing to buy', icon: 'cart-outline', route: '/shopping-list' },
+    { title: 'Meal planner', description: plannedCount ? `${plannedCount} meals this week` : 'Plan your week', icon: 'calendar-week', route: '/meal-plan' },
+    { title: 'Collections', description: `${collections.length} folder${collections.length === 1 ? '' : 's'}`, icon: 'folder-heart-outline', route: '/collections' },
+    { title: "What's in my fridge?", description: 'Cook with what you have', icon: 'fridge-outline', route: '/fridge' },
+    { title: 'My Recipes', description: "Recipes you've created", icon: 'book-edit', route: '/my-recipes' },
+  ];
+  const account: MenuItem[] = [
+    { title: 'Edit Profile', description: 'Name and email', icon: 'account-edit', route: '/edit-profile' },
+    { title: 'Settings', description: 'Appearance, data and more', icon: 'cog', route: '/settings' },
+  ];
+
+  const renderMenu = (items: MenuItem[]) => (
+    <View style={styles.menuCard}>
+      {items.map((item, index) => (
+        <Pressable
+          key={item.title}
+          style={[styles.menuRow, index < items.length - 1 && styles.menuRowBorder]}
+          onPress={() => router.push(item.route)}
+          accessibilityRole="button"
+        >
+          <View style={styles.menuIcon}>
+            <MaterialCommunityIcons name={item.icon} size={22} color={theme.colors.primary} />
+          </View>
+          <View style={styles.menuText}>
+            <Text style={styles.menuTitle}>{item.title}</Text>
+            <Text style={styles.menuDescription}>{item.description}</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.muted} />
+        </Pressable>
+      ))}
+    </View>
+  );
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}>
       {/* Profile Header */}
       <View style={styles.header}>
         {user?.image ? (
-          <Avatar.Image size={88} source={{ uri: user.image }} style={styles.avatar} />
+          <Avatar.Image size={84} source={{ uri: user.image }} style={styles.avatar} />
         ) : (
-          <Avatar.Text size={88} label={initials} style={styles.avatar} />
+          <Avatar.Text size={84} label={initials} style={styles.avatar} />
         )}
         <View style={styles.nameContainer}>
           <Text style={styles.name}>
@@ -97,84 +117,69 @@ export default function ProfileScreen() {
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.recipes}</Text>
-          <Text style={styles.statLabel}>Recipes</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.favorites}</Text>
+          <Text style={styles.statValue}>{favorites.length}</Text>
           <Text style={styles.statLabel}>Favorites</Text>
         </View>
+        <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.cuisines}</Text>
-          <Text style={styles.statLabel}>Cuisines</Text>
+          <Text style={styles.statValue}>{cooked.length}</Text>
+          <Text style={styles.statLabel}>Cooked</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>
+            {streak}
+            {streak > 0 ? ' 🔥' : ''}
+          </Text>
+          <Text style={styles.statLabel}>Day streak</Text>
         </View>
       </View>
 
-      {/* Menu Sections */}
-      <View style={styles.section}>
-        <Card style={styles.menuCard} elevation={1}>
-          <List.Section>
-            <List.Item
-              title="My Recipes"
-              description="Recipes you've created"
-              left={(props) => (
-                <MaterialCommunityIcons name="book-edit" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={() => router.push('/my-recipes')}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Favorites"
-              description="Your saved recipes"
-              left={(props) => (
-                <MaterialCommunityIcons name="heart" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={() => router.push('/favorites')}
-            />
-          </List.Section>
-        </Card>
-      </View>
+      <Text style={styles.sectionTitle}>Your kitchen</Text>
+      {renderMenu(kitchen)}
 
-      <View style={styles.section}>
-        <Card style={styles.menuCard} elevation={1}>
-          <List.Section>
-            <List.Item
-              title="Edit Profile"
-              description="Update your information"
-              left={(props) => (
-                <MaterialCommunityIcons name="account-edit" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={() => router.push('/edit-profile')}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Settings"
-              description="Preferences and data"
-              left={(props) => (
-                <MaterialCommunityIcons name="cog" size={24} color="#E85D04" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#8D6E63" style={props.style} />}
-              onPress={() => router.push('/settings')}
-            />
-          </List.Section>
-        </Card>
-      </View>
+      {/* Cooking history */}
+      <Text style={styles.sectionTitle}>Recently cooked</Text>
+      {recentlyCooked.length === 0 ? (
+        <View style={styles.historyEmpty}>
+          <Text style={styles.historyEmptyText}>
+            Open a recipe and tap “I cooked this” to start your cooking history and streak.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.menuCard}>
+          {recentlyCooked.map((entry, index) => (
+            <Pressable
+              key={`${entry.recipeId}-${entry.cookedAt}`}
+              style={[styles.menuRow, index < recentlyCooked.length - 1 && styles.menuRowBorder]}
+              onPress={() => router.push(`/recipe/${entry.recipeId}`)}
+            >
+              <Image source={{ uri: entry.recipe?.image }} style={styles.historyThumb} />
+              <View style={styles.menuText}>
+                <Text style={styles.menuTitle} numberOfLines={1}>
+                  {entry.recipe?.name}
+                </Text>
+                <Text style={styles.menuDescription}>{new Date(entry.cookedAt).toLocaleDateString()}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
+      <Text style={styles.sectionTitle}>Account</Text>
+      {renderMenu(account)}
 
       {/* Logout Button */}
-      <View style={styles.logoutContainer}>
-        <Button
-          mode="outlined"
-          onPress={() => setConfirmLogout(true)}
-          style={styles.logoutButton}
-          contentStyle={styles.logoutButtonContent}
-          icon="logout"
-        >
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </Button>
-      </View>
+      <Button
+        mode="outlined"
+        onPress={() => setConfirmLogout(true)}
+        style={styles.logoutButton}
+        contentStyle={styles.logoutButtonContent}
+        textColor={theme.colors.error}
+        icon="logout"
+      >
+        Logout
+      </Button>
 
       <View style={styles.version}>
         <Text style={styles.versionText}>Cookbook v1.0.0</Text>
@@ -189,7 +194,7 @@ export default function ProfileScreen() {
           <Dialog.Actions>
             <Button onPress={() => setConfirmLogout(false)}>Cancel</Button>
             <Button
-              textColor="#C62828"
+              textColor={theme.colors.error}
               onPress={() => {
                 setConfirmLogout(false);
                 logout();

@@ -20,13 +20,17 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Button, TextInput as PaperTextInput, Checkbox } from 'react-native-paper';
-import { styles } from './styles';
+import { useAuthStyles } from './styles';
+import { useAppTheme } from '@/constants/theme';
 
 export default function RegisterScreen() {
+  const styles = useAuthStyles();
+  const theme = useAppTheme();
   const router = useRouter();
   const { register, isLoading, error, clearError } = useAuth();
 
@@ -302,7 +306,7 @@ export default function RegisterScreen() {
               disabled={isLoading}
               contentStyle={styles.buttonContent}
             >
-              {isLoading ? <ActivityIndicator color="white" size="small" /> : (
+              {isLoading ? <ActivityIndicator color={theme.colors.onPrimary} size="small" /> : (
                 <Text style={styles.buttonText}>Create Account</Text>
               )}
             </Button>
@@ -317,20 +321,7 @@ export default function RegisterScreen() {
           </Card.Content>
         </Card>
 
-        {/* Student Guide */}
-        <View style={styles.guideContainer}>
-          <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-          <Text style={styles.guideText}>
-            Complete the handleRegister function to:\n
-            1. Call authApi.register() with form data\n
-            2. Auto-login or redirect to login\n
-            3. Handle success/error states
-          </Text>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-// Need to import TouchableOpacity for gender options
-import { TouchableOpacity } from 'react-native';

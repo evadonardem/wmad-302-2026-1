@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { recipeApi } from '@/services/recipeApi';
 import { Recipe } from '@/types/recipe';
 import { RecipeCard, EmptyState } from '@/components/CommonComponents';
+import { fontFamily } from '@/constants/theme';
 
 export default function MyRecipesScreen() {
   const router = useRouter();
@@ -117,6 +118,6 @@ const styles = StyleSheet.create({
   },
   count: {
     marginBottom: 12,
-    fontWeight: '700',
+    fontFamily: fontFamily.display,
   },
 });

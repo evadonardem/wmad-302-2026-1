@@ -15,15 +15,15 @@ import { AuthState, AuthAction, AuthUser } from '@/types/auth';
 import { authApi } from '@/services/authApi';
 
 // Initial state
-const initialState: AuthState = {
+export const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
   isLoading: true, // Start with true for hydration
   error: null,
 };
 
-// Reducer
-function authReducer(state: AuthState, action: AuthAction): AuthState {
+// Reducer (exported for unit tests)
+export function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'AUTH_START':
       return {
@@ -133,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Token expired, try refresh
             try {
               await authApi.refreshAccessToken();
-              const freshUser = await authApi.getMe();
+              await authApi.getMe(); // confirm the new token works
               const storedAgain = authApi.getStoredUser();
               if (storedAgain) {
                 dispatch({ type: 'AUTH_HYDRATE', payload: storedAgain });
