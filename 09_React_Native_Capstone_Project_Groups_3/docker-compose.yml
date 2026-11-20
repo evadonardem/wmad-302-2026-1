@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cookbook-capstone-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "8081:8081"   # Metro bundler
+      - "8082:8082"   # Metro websocket
+      - "8083:8083"   # Expo dev tools
+      - "19000:19000" # Expo dev server
+      - "19001:19001" # Expo dev server (alt)
+      - "19002:19002" # Expo dev server (alt)
+      - "19006:19006" # Expo web (Metro serves web on 8081; 19006 is the legacy webpack port)
+    environment:
+      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+      # Hostname used in the manifest / bundle / HMR URLs.
+      # "localhost" makes http://localhost:8081 load in this machine's browser.
+      # To open the app on a phone (or in Expo Go), replace it with this
+      # machine's LAN IP, e.g. REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.50
+      - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
+      - WATCHPACK_POLLING=true
+    stdin_open: true
+    tty: true
+    # --web serves the app in the browser too (http://localhost:8081)
+    command: npx expo start --host lan --web --clear
+
+  # Optional: Add a separate service for running tests
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cookbook-capstone-test
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm test -- --watchAll=false
+    profiles:
+      - test
+
+networks:
+  default:
+    name: cookbook-capstone-network
