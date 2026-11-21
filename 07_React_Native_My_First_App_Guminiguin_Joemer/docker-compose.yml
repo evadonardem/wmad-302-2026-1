@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      # Both sides use EXPO_PORT so the mapping always matches where Metro listens.
+      # Override it in a .env file if 8081 is taken on your machine.
+      - "${EXPO_PORT:-8081}:${EXPO_PORT:-8081}"
+    volumes:
+      - .:/app
+      # Keep the container's dependencies in their own volume so npm installs
+      # Alpine-compatible binaries without overwriting your host node_modules.
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    stdin_open: true
+    tty: true
+    command: sh -c "npm install && npm run start"
