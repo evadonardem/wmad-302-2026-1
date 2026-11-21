@@ -1,0 +1,39 @@
+import { StyleSheet, View } from 'react-native';
+import GeneralSettings, { type SettingsAction } from '@/components/GeneralSettings';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemeMode } from '@/theme';
+
+export default function SettingsScreen() {
+  const theme = useTheme();
+  const { isDarkMode, setIsDarkMode } = useThemeMode();
+
+  // TODO 15 [Data Actions Mapping]: Populate the 'actions' configuration array below.
+  // Ensure the first action toggle object displays an <Ionicons name="sunny" /> icon if 'isDarkMode'
+  // is true, or an <Ionicons name="moon" /> icon if false.
+  // The 'onPress' function must invert the current boolean state value of 'isDarkMode'
+  // (use setIsDarkMode) upon execution.
+  const actions: SettingsAction[] = [
+    {
+      icon: <Ionicons name="moon" size={22} color={theme.colors.text} />, // isDarkMode ? <Ionicons name="sunny" ... /> : <Ionicons name="moon" ... />
+      name: 'Dark Mode', // isDarkMode ? 'Light Mode' : 'Dark Mode',
+      // [Your code here: Add dynamic icon and state-toggling onPress function]
+    },
+    { icon: <Ionicons name="color-palette" size={22} color={theme.colors.text} />, name: 'Theme' },
+    { icon: <Ionicons name="print" size={22} color={theme.colors.text} />, name: 'Print' },
+    { icon: <Ionicons name="share-social" size={22} color={theme.colors.text} />, name: 'Share' },
+  ];
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <GeneralSettings actions={actions} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    width: '100%',
+    padding: 16,
+  },
+});
