@@ -1,0 +1,31 @@
+import { StyleSheet } from 'react-native';
+import { GLASS_PALETTE, DARK_AMBIENT_BG, glassSurface } from '@/constants/glassTheme';
+
+export const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: GLASS_PALETTE.canvasBg, ...DARK_AMBIENT_BG },
+  content: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 120 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  notLoggedIn: { fontSize: 16, color: GLASS_PALETTE.textSecondary },
+  header: { ...glassSurface(0.8, 20, true), flexDirection: 'row', alignItems: 'center', marginBottom: 20, padding: 16 },
+  avatar: { marginRight: 16, backgroundColor: 'rgba(225, 29, 72, 0.25)' },
+  nameContainer: { flex: 1 },
+  name: { fontSize: 22, fontWeight: '800', color: GLASS_PALETTE.crimsonBright },
+  username: { fontSize: 14, color: GLASS_PALETTE.textSecondary, fontWeight: '700', marginTop: 2 },
+  email: { fontSize: 13, color: GLASS_PALETTE.textMuted, marginTop: 2 },
+  statsContainer: { ...glassSurface(0.8, 18, true), flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 20, marginBottom: 20 },
+  statItem: { alignItems: 'center' },
+  statValue: { fontSize: 24, fontWeight: '900', color: '#FFFFFF' },
+  statLabel: { fontSize: 12, color: GLASS_PALETTE.textMuted, fontWeight: '600', marginTop: 4 },
+  section: { marginBottom: 16 },
+  menuCard: { ...glassSurface(0.8, 18, true), overflow: 'hidden' },
+  divider: { marginLeft: 56, backgroundColor: 'rgba(255,255,255,0.08)' },
+  logoutContainer: { marginTop: 20, marginBottom: 20 },
+  logoutButton: { ...glassSurface(0.78, 12, true), borderWidth: 1, borderColor: GLASS_PALETTE.crimson, height: 52 },
+  logoutButtonContent: { paddingHorizontal: 24 },
+  logoutButtonText: { fontSize: 16, fontWeight: '700', color: GLASS_PALETTE.crimsonBright },
+  guideContainer: { ...glassSurface(0.75, 16, true), marginTop: 12, padding: 16 },
+  guideTitle: { fontSize: 14, fontWeight: '800', color: GLASS_PALETTE.crimsonBright, marginBottom: 8 },
+  guideText: { fontSize: 13, color: GLASS_PALETTE.textSecondary, lineHeight: 20 },
+  version: { alignItems: 'center', paddingVertical: 24 },
+  versionText: { fontSize: 12, color: GLASS_PALETTE.textMuted },
+});
