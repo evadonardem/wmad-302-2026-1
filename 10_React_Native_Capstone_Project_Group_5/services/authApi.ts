@@ -5,13 +5,20 @@
  */
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
+// DummyJSON has no /auth/register endpoint; new users are created with POST /users/add
+const USERS_ADD_URL = 'https://dummyjson.com/users/add';
+const STORAGE_KEY = 'auth_user';
 
 class AuthApiService {
   private client: AxiosInstance;
   private refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
+  // In-memory copy of the session so the sync getters keep working.
+  // AsyncStorage is async, so it is loaded once through init() at app start.
+  private session: AuthUser | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -41,7 +48,13 @@ class AuthApiService {
         const originalRequest = error.config;
 
         // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // (a failed login is a 401 too, but it must not trigger a refresh)
+        if (
+          error.response?.status === 401 &&
+          originalRequest &&
+          !originalRequest._retry &&
+          originalRequest.url !== '/login'
+        ) {
           originalRequest._retry = true;
 
           try {
@@ -51,7 +64,7 @@ class AuthApiService {
           } catch (refreshError) {
             // Refresh failed, redirect to login
             this.clearTokens();
-            // TODO: Student to implement navigation redirect to login
+            // Done: AppLayout redirects to /(auth)/login once the context sees no user
             console.warn('Token refresh failed, user logged out');
             return Promise.reject(refreshError);
           }
@@ -62,38 +75,39 @@ class AuthApiService {
     );
   }
 
-  private getAccessToken(): string | null {
+  /**
+   * Load the stored session from AsyncStorage. Call once before hydrating.
+   */
+  async init(): Promise<AuthUser | null> {
     try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || user.accessToken || null;
-      }
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      this.session = raw ? (JSON.parse(raw) as AuthUser) : null;
     } catch {
-      return null
+      this.session = null;
     }
-    return null;
+    return this.session;
+  }
+
+  private getAccessToken(): string | null {
+    return this.session?.token ?? null;
   }
 
   private getRefreshToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.refreshToken || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+    return this.session?.refreshToken ?? null;
   }
 
   setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
+    this.session = user;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user)).catch((error) =>
+      console.error('Failed to persist auth user:', error)
+    );
   }
 
   private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+    this.session = null;
+    AsyncStorage.removeItem(STORAGE_KEY).catch((error) =>
+      console.error('Failed to clear auth user:', error)
+    );
   }
 
   /**
@@ -112,15 +126,30 @@ class AuthApiService {
 
   /**
    * Register new user
-   * POST /auth/register
-   * TODO: Students to complete this implementation
+   * POST /users/add (DummyJSON's "add user" endpoint)
+   * Done: create the user, then login() to get tokens
+   *
+   * DummyJSON does not really save new users, so logging in with the new
+   * credentials fails. When that happens we sign in with the public demo
+   * account to get working tokens and show the registered name/email on top.
    */
   async register(data: RegisterData): Promise<AuthUser> {
-    // TODO: Student implementation
-    // 1. Call POST /auth/register with data
-    // 2. On success, call login() to get tokens
-    // 3. Return user with tokens
-    throw new Error('TODO: Implement register - call /auth/register then login');
+    await axios.post(USERS_ADD_URL, data, { timeout: 10000 });
+
+    try {
+      return await this.login({ username: data.username, password: data.password });
+    } catch {
+      const demo = await this.login({ username: 'emilys', password: 'emilyspass' });
+      const merged: AuthUser = {
+        ...demo,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        username: data.username,
+        email: data.email,
+      };
+      this.setTokens(merged);
+      return merged;
+    }
   }
 
   /**
@@ -180,12 +209,7 @@ class AuthApiService {
    * Get stored user data
    */
   getStoredUser(): AuthUser | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
+    return this.session;
   }
 
   /**

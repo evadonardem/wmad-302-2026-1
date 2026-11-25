@@ -1,90 +1,60 @@
 /**
  * Tabs Layout - Marketplace App Navigation
- * Tabs: Home (Shop), Categories, Cart, Profile
+ * Tabs: Home (Shop), Categories, Search, Cart, Profile
+ * Restyled: soft cream tab bar, small sentence-case labels, dark active state
  */
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useCart } from '@/context/CartContext';
+import { palette } from '@/constants/theme';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const icon =
+  (active: IconName, inactive: IconName) =>
+    ({ focused, color }: { focused: boolean; color: string }) => (
+      <MaterialCommunityIcons name={focused ? active : inactive} size={24} color={color} />
+    );
 
 export default function TabsLayout() {
-  const { user } = useAuth();
+  const { totalQuantity } = useCart();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1A73E8',
-        tabBarInactiveTintColor: '#5F6368',
+        // Labels under the icons on wide screens too, so the cart badge never covers the label
+        tabBarLabelPosition: 'below-icon',
+        tabBarActiveTintColor: palette.ink,
+        tabBarInactiveTintColor: palette.stone,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: palette.ivory,
           borderTopWidth: 0,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
+          elevation: 0,
+          shadowOpacity: 0,
           paddingTop: 8,
           paddingBottom: 8,
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
+        tabBarBadgeStyle: { backgroundColor: palette.sage, color: palette.surface, fontSize: 10 },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Shop',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'storefront' : 'storefront-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="categories"
-        options={{
-          title: 'Categories',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'view-grid' : 'view-grid-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: icon('home', 'home-outline') }} />
+      <Tabs.Screen name="categories" options={{ title: 'Category', tabBarIcon: icon('view-grid', 'view-grid-outline') }} />
+      <Tabs.Screen name="search" options={{ title: 'Search', tabBarIcon: icon('magnify', 'magnify') }} />
       <Tabs.Screen
         name="cart"
         options={{
           title: 'Cart',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'cart' : 'cart-outline'}
-              size={24}
-              color={color}
-            />
-          ),
+          // Badge count from the cart context
+          tabBarBadge: totalQuantity > 0 ? totalQuantity : undefined,
+          tabBarIcon: icon('cart', 'cart-outline'),
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'account' : 'account-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: icon('account-circle', 'account-circle-outline') }} />
+      {/* Product detail is opened from cards, so it gets no tab button */}
+      <Tabs.Screen name="product/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

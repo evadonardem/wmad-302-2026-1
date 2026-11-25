@@ -1,83 +1,149 @@
 /**
  * Categories Screen - Marketplace
  * Browse products by category
+ * Responsive grid of image tiles (2 columns on phones, 3 on tablets, 4 on desktop web).
+ * Student guide, all done: collection banner, product counts, sub-category navigation
+ * (parent groups + sub-category chips), Featured Brands and pull-to-refresh.
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, Image, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Card, Title } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { productApi } from '@/services/productApi';
+import { useCart } from '@/context/CartContext';
+import { Screen } from '@/components/ScreenBackground';
+import { BentoSpec, CategoryBento } from '@/components/CategoryBento';
+import { useResponsive, palette } from '@/constants/theme';
 import { styles } from './categoriesStyles';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface Category {
   name: string;
-  count?: number;
+  count: number;
+  image: string;
 }
+
+interface Brand {
+  name: string;
+  count: number;
+  image: string;
+}
+
+interface Group {
+  key: string;
+  label: string;
+  icon: IconName;
+  /** DummyJSON category slugs inside this group (null = everything) */
+  slugs: string[] | null;
+}
+
+// Sub-categories navigation: DummyJSON categories are flat, so they are grouped into parents
+const GROUPS: Group[] = [
+  { key: 'all', label: 'All', icon: 'view-grid-outline', slugs: null },
+  {
+    key: 'fashion',
+    label: 'Fashion',
+    icon: 'hanger',
+    slugs: ['womens-dresses', 'womens-shoes', 'womens-bags', 'womens-jewellery', 'womens-watches', 'tops', 'mens-shirts', 'mens-shoes', 'mens-watches', 'sunglasses'],
+  },
+  { key: 'beauty', label: 'Beauty', icon: 'face-woman-shimmer-outline', slugs: ['beauty', 'skin-care', 'fragrances'] },
+  { key: 'home', label: 'Home & Grocery', icon: 'sofa-outline', slugs: ['furniture', 'home-decoration', 'kitchen-accessories', 'groceries'] },
+  { key: 'tech', label: 'Tech', icon: 'laptop', slugs: ['laptops', 'smartphones', 'tablets', 'mobile-accessories'] },
+  { key: 'sports', label: 'Sports & Auto', icon: 'motorbike', slugs: ['sports-accessories', 'motorcycle', 'vehicle'] },
+];
+
+const GAP = 10;
+const COLS = 4; // phones / laptops; large monitors use 6 (see colsFor)
+
+// Bento sizes (columns x rows), repeated down the page: one big tile, small ones, wide ones
+const PAGE_PATTERN: BentoSpec[] = [
+  { w: 2, h: 2 }, { w: 1, h: 1 }, { w: 1, h: 1 }, { w: 2, h: 1 },
+  { w: 1, h: 1 }, { w: 1, h: 1 }, { w: 2, h: 1 }, { w: 2, h: 1 },
+  { w: 1, h: 1 }, { w: 1, h: 1 }, { w: 1, h: 1 }, { w: 1, h: 1 },
+];
+
+const pretty = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ');
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const { totalQuantity } = useCart();
+  const { contentWidth, pad, isWide, isUltra } = useResponsive();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [groupKey, setGroupKey] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
+  const load = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
-      const categoryNames = await productApi.getCategories();
-      // Get count for each category
-      const categoriesWithCounts = await Promise.all(
-        categoryNames.slice(0, 12).map(async (name) => {
-          try {
-            const res = await productApi.getProductsByCategory(name, { limit: 1 });
-            return { name, count: res.total };
-          } catch {
-            return { name, count: 0 };
-          }
-        })
+      if (!isRefresh) setLoading(true);
+      setError(null);
+      // One request with only the fields we need gives every count, picture and brand
+      const [names, res] = await Promise.all([
+        productApi.getCategories(),
+        productApi.getProducts({ limit: 200, select: 'category,brand,thumbnail' }),
+      ]);
+      // Get count (and a picture) for each category
+      const stats = new Map<string, { count: number; image: string }>();
+      const brandStats = new Map<string, { count: number; image: string }>();
+      for (const p of res.products) {
+        const c = stats.get(p.category) ?? { count: 0, image: p.thumbnail };
+        c.count += 1;
+        stats.set(p.category, c);
+        if (p.brand) {
+          const b = brandStats.get(p.brand) ?? { count: 0, image: p.thumbnail };
+          b.count += 1;
+          brandStats.set(p.brand, b);
+        }
+      }
+      setCategories(names.map((name) => ({ name, count: stats.get(name)?.count ?? 0, image: stats.get(name)?.image ?? '' })));
+      setBrands(
+        Array.from(brandStats.entries())
+          .map(([name, v]) => ({ name, count: v.count, image: v.image }))
+          .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+          .slice(0, 14)
       );
-      setCategories(categoriesWithCounts);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load categories');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Done: pull-to-refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    load(true);
   };
 
-  const renderCategory = ({ item }: { item: Category }) => (
-    <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={() => router.push(`/app/(tabs)/search?category=${encodeURIComponent(item.name)}`)}
-      activeOpacity={0.8}
-    >
-      <Card style={styles.card} elevation={1}>
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name={getCategoryIcon(item.name)}
-              size={32}
-              color="#1A73E8"
-            />
-          </View>
-          <Title style={styles.categoryName}>
-            {item.name.charAt(0).toUpperCase() + item.name.slice(1).replace('-', ' ')}
-          </Title>
-          {item.count !== undefined && (
-            <Text style={styles.categoryCount}>{item.count} products</Text>
-          )}
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
+  const group = GROUPS.find((g) => g.key === groupKey) ?? GROUPS[0];
+
+  const view = useMemo(() => {
+    const inGroup = categories.filter((c) => !group.slugs || group.slugs.includes(c.name));
+    const byCount = [...inGroup].sort((a, b) => b.count - a.count);
+    return {
+      inGroup,
+      subChips: byCount.slice(0, 10),
+      top: byCount[0] ?? null,
+      products: inGroup.reduce((sum, c) => sum + c.count, 0),
+      collage: byCount.slice(0, 3).map((c) => c.image),
+    };
+  }, [categories, group]);
+
+  // Fixed route: it was /app/(tabs)/search, the group is (app)
+  const openCategory = (slug: string) => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(slug)}`);
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1A73E8" />
+        <ActivityIndicator size="large" color={palette.forest} />
         <Text style={styles.loadingText}>Loading categories...</Text>
       </View>
     );
@@ -87,55 +153,153 @@ export default function CategoriesScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
+        <Pressable onPress={() => load()}>
+          <Text style={styles.retry}>Try again</Text>
+        </Pressable>
       </View>
     );
   }
 
+  // Bento layout: sizes follow PAGE_PATTERN and are packed into 4 columns
+  const bentoWidth = contentWidth - pad * 2;
+  const cols = isUltra ? 6 : COLS;
+  const colWidth = (bentoWidth - GAP * (cols - 1)) / cols;
+  const allProducts = categories.reduce((sum, c) => sum + c.count, 0);
+
   return (
-    <View style={styles.container}>
-      <Title style={styles.pageTitle}>Categories</Title>
-      <Text style={styles.pageSubtitle}>Browse products by category</Text>
+    <Screen>
+      <ScrollView
+        style={[styles.container, { backgroundColor: 'transparent' }]}
+        contentContainerStyle={[styles.listContent, { paddingHorizontal: pad }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[palette.forest]} tintColor={palette.forest} />}
+      >
+        <View>
+          <View style={styles.header}>
+            <Text style={styles.pageTitle}>Categories</Text>
+            <View style={styles.headerButtons}>
+              <Pressable style={styles.roundButton} onPress={() => router.push('/(app)/(tabs)/search')} accessibilityLabel="Search">
+                <MaterialCommunityIcons name="magnify" size={22} color={palette.ink} />
+              </Pressable>
+              <Pressable style={styles.roundButton} onPress={() => router.push('/(app)/(tabs)/cart')} accessibilityLabel="Open cart">
+                <MaterialCommunityIcons name="cart-outline" size={22} color={palette.ink} />
+                {totalQuantity > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{totalQuantity}</Text>
+                  </View>
+                )}
+              </Pressable>
+            </View>
+          </View>
 
-      <FlatList
-        data={categories}
-        renderItem={renderCategory}
-        keyExtractor={(item) => item.name}
-        numColumns={2}
-        columnWrapperStyle={styles.gridWrapper}
-        contentContainerStyle={styles.gridContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+          {/* Sub-categories navigation: parent groups */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupRow}>
+            {GROUPS.map((g) => {
+              const active = g.key === groupKey;
+              return (
+                <Pressable
+                  key={g.key}
+                  style={[styles.group, active && styles.groupActive]}
+                  onPress={() => setGroupKey(g.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <MaterialCommunityIcons name={g.icon} size={18} color={active ? palette.surface : palette.forest} />
+                  <Text style={[styles.groupText, active && styles.groupTextActive]}>{g.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Enhance the categories screen:\n
-          1. Add category images/banners\n
-          2. Show product count per category\n
-          3. Add sub-categories navigation\n
-          4. Add "Featured Brands" section\n
-          5. Implement pull-to-refresh
-        </Text>
-      </View>
-    </View>
+          {/* Category images/banners: the selected group as a featured collection */}
+          <View style={[styles.banner, isWide && styles.bannerWide]}>
+            <View style={styles.bannerCircle} />
+            <View style={styles.bannerImages}>
+              {view.collage[1] ? <Image source={{ uri: view.collage[1] }} style={styles.bannerImageSide} resizeMode="contain" /> : null}
+              {view.collage[0] ? <Image source={{ uri: view.collage[0] }} style={styles.bannerImageMain} resizeMode="contain" /> : null}
+            </View>
+            <View style={styles.bannerText}>
+              <Text style={styles.bannerEyebrow}>Featured collection</Text>
+              <Text style={styles.bannerTitle}>{group.key === 'all' ? 'All Categories' : group.label}</Text>
+              <Text style={styles.bannerSub}>{view.inGroup.length} sub-categories · {view.products} products</Text>
+              {view.top ? (
+                <Pressable style={styles.bannerButton} onPress={() => openCategory(view.top!.name)} accessibilityRole="button">
+                  <Text style={styles.bannerButtonText} numberOfLines={1}>Shop {pretty(view.top.name)}</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={16} color="#3A1E70" />
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+
+          {/* Sub-categories: quick links, most products first */}
+          <Text style={styles.sectionTitle}>{group.key === 'all' ? 'Popular sub-categories' : `${group.label} sub-categories`}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subRow}>
+            {view.subChips.map((c) => (
+              <Pressable key={c.name} style={styles.subChip} onPress={() => openCategory(c.name)} accessibilityRole="button">
+                <Text style={styles.subChipText}>{pretty(c.name)}</Text>
+                <Text style={styles.subChipCount}>{c.count}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.sectionTitle}>All {group.key === 'all' ? 'categories' : group.label.toLowerCase()}</Text>
+        </View>
+
+        {view.inGroup.length === 0 ? (
+          <Text style={styles.emptyText}>No categories in this group.</Text>
+        ) : (
+          <CategoryBento
+            items={view.inGroup}
+            specs={view.inGroup.map((_, i) => PAGE_PATTERN[i % PAGE_PATTERN.length])}
+            columns={cols}
+            width={bentoWidth}
+            unit={Math.round(colWidth * 0.92)}
+            gap={GAP}
+            onOpen={openCategory}
+            footer={{
+              title: 'All categories',
+              subtitle: `${categories.length} categories · ${allProducts} products`,
+              span: { w: 2, h: 1, tone: 'mint' },
+              onPress: () => (groupKey === 'all' ? router.push('/(app)/(tabs)/search') : setGroupKey('all')),
+            }}
+          />
+        )}
+
+        {/* Student Guide */}
+        <View>
+          {/* Featured Brands */}
+          {brands.length > 0 && (
+            <View style={styles.brandsSection}>
+              <Text style={styles.sectionTitle}>Featured Brands</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandRow}>
+                {brands.map((b) => (
+                  <Pressable
+                    key={b.name}
+                    style={styles.brandCard}
+                    onPress={() => router.push(`/(app)/(tabs)/search?brand=${encodeURIComponent(b.name)}`)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${b.name}, ${b.count} products`}
+                  >
+                    <View style={styles.brandCircle}>
+                      {b.image ? <Image source={{ uri: b.image }} style={styles.brandImage} resizeMode="contain" /> : null}
+                    </View>
+                    <Text style={styles.brandName} numberOfLines={1}>{b.name}</Text>
+                    <Text style={styles.brandCount}>{b.count} products</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={styles.guideContainer}>
+            <Text style={styles.guideTitle}>✅ Student Implementation Guide: completed</Text>
+            <Text style={styles.guideText}>✓ 1. Category images/banners</Text>
+            <Text style={styles.guideText}>✓ 2. Product count per category</Text>
+            <Text style={styles.guideText}>✓ 3. Sub-categories navigation</Text>
+            <Text style={styles.guideText}>✓ 4. "Featured Brands" section</Text>
+            <Text style={styles.guideText}>✓ 5. Pull-to-refresh</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </Screen>
   );
-}
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-function getCategoryIcon(category: string): IconName {
-  const icons: Record<string, IconName> = {
-    smartphones: 'cellphone',
-    laptops: 'laptop',
-    fragrances: 'spray',
-    skincare: 'face-woman',
-    groceries: 'cart',
-    'home-decoration': 'home',
-    furniture: 'sofa',
-    'kitchen-accessories': 'silverware',
-    'vehicle-accessories': 'car',
-    'electronics-accessories': 'headphones',
-  };
-  return icons[category] || 'package-variant';
 }

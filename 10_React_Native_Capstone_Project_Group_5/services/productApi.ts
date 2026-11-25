@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
-import { Product, ProductsResponse, ProductSearchParams, Cart, CartAddRequest, CartItem } from '@/types/product';
+import { Product, ProductsResponse, ProductSearchParams, Cart, CartAddRequest } from '@/types/product';
 
 const API_BASE_URL = 'https://dummyjson.com';
 
@@ -61,10 +61,11 @@ class ProductApiService {
 
   /**
    * Get all categories
+   * DummyJSON returns objects ({ slug, name, url }) in newer versions, strings in older ones
    */
   async getCategories(): Promise<string[]> {
-    const response = await this.client.get<string[]>('/products/categories');
-    return response.data;
+    const response = await this.client.get<Array<string | { slug: string }>>('/products/categories');
+    return response.data.map((c) => (typeof c === 'string' ? c : c.slug));
   }
 
   /**
@@ -80,11 +81,12 @@ class ProductApiService {
   // ============ Carts ============
 
   /**
-   * Get user's cart
+   * Get user's carts (DummyJSON wraps them: { carts, total, skip, limit })
+   * Used as the order history.
    */
-  async getUserCart(userId: number): Promise<Cart> {
-    const response = await this.client.get<Cart>(`/carts/user/${userId}`);
-    return response.data;
+  async getUserCarts(userId: number): Promise<Cart[]> {
+    const response = await this.client.get<{ carts: Cart[] }>(`/carts/user/${userId}`);
+    return response.data.carts;
   }
 
   /**
@@ -124,6 +126,22 @@ class ProductApiService {
    */
   async getAllCarts(params: { limit?: number; skip?: number } = {}): Promise<{ carts: Cart[]; total: number }> {
     const response = await this.client.get<{ carts: Cart[]; total: number }>('/carts', { params });
+    return response.data;
+  }
+
+  // ============ Users ============
+
+  /**
+   * Update user profile (DummyJSON simulates the update and returns the merged user)
+   */
+  async updateUser(
+    id: number,
+    data: { firstName?: string; lastName?: string; email?: string }
+  ): Promise<{ id: number; firstName: string; lastName: string; email: string }> {
+    const response = await this.client.put<{ id: number; firstName: string; lastName: string; email: string }>(
+      `/users/${id}`,
+      data
+    );
     return response.data;
   }
 }

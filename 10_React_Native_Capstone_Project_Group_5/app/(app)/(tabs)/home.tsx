@@ -2,145 +2,175 @@
  * Home Screen - Marketplace Shop Tab
  * Students implement: Product grid, categories, flash deals, recommendations
  * APIs: https://dummyjson.com/docs/products
+ * Boutique layout, responsive for phone / tablet / web: header with search + cart, category pills,
+ * best-picks banner with a limited-time offer, and a bento product grid with pagination dots.
  */
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, RefreshControl, LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Button } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Chip, Avatar, Button, Badge } from 'react-native-paper';
+import { useCart } from '@/context/CartContext';
+import { productApi } from '@/services/productApi';
+import { Product } from '@/types/product';
+import { BentoProducts } from '@/components/BentoProducts';
+import { ShowcaseHero } from '@/components/ShowcaseHero';
+import { ScreenBackground } from '@/components/ScreenBackground';
+import { useResponsive, palette } from '@/constants/theme';
 import { styles } from './homeStyles';
 
-// Types for DummyJSON Products API
-interface Product {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  price: number;
-  discountPercentage: number;
-  rating: number;
-  stock: number;
-  tags: string[];
-  brand?: string;
-  sku: string;
-  weight: number;
-  dimensions: { width: number; height: number; depth: number };
-  warrantyInformation: string;
-  shippingInformation: string;
-  availabilityStatus: string;
-  reviews: Array<{ rating: number; comment: string; date: string; reviewerName: string }>;
-  returnPolicy: string;
-  minimumOrderQuantity: number;
-  meta: { createdAt: string; updatedAt: string; barcode: string; qrCode: string };
-  images: string[];
-  thumbnail: string;
+// Types for DummyJSON Products API (shared in @/types/product)
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+interface CategoryPill {
+  key: string;
+  label: string;
+  icon: IconName;
+  /** DummyJSON category slugs this pill covers */
+  slugs: string[];
 }
 
-interface ProductsResponse {
-  products: Product[];
-  total: number;
-  skip: number;
-  limit: number;
-}
+const PILLS: CategoryPill[] = [
+  { key: 'all', label: 'All', icon: 'view-grid-outline', slugs: [] },
+  { key: 'women', label: 'Women', icon: 'human-female', slugs: ['womens-dresses', 'womens-shoes', 'tops'] },
+  { key: 'men', label: 'Men', icon: 'tshirt-crew-outline', slugs: ['mens-shirts', 'mens-shoes'] },
+  { key: 'bags', label: 'Bags', icon: 'bag-personal-outline', slugs: ['womens-bags'] },
+  { key: 'shoes', label: 'Shoes', icon: 'shoe-sneaker', slugs: ['mens-shoes', 'womens-shoes'] },
+  { key: 'jewellery', label: 'Jewellery', icon: 'diamond-stone', slugs: ['womens-jewellery'] },
+  { key: 'eyewear', label: 'Eyewear', icon: 'sunglasses', slugs: ['sunglasses'] },
+  { key: 'fragrance', label: 'Fragrance', icon: 'spray', slugs: ['fragrances'] },
+  { key: 'watches', label: 'Watches', icon: 'watch', slugs: ['womens-watches', 'mens-watches'] },
+  { key: 'beauty', label: 'Beauty', icon: 'face-woman-shimmer-outline', slugs: ['beauty', 'skin-care'] },
+  { key: 'tech', label: 'Tech', icon: 'laptop', slugs: ['laptops', 'smartphones', 'tablets', 'mobile-accessories'] },
+  { key: 'furniture', label: 'Furniture', icon: 'sofa-outline', slugs: ['furniture'] },
+  { key: 'home', label: 'Home', icon: 'home-outline', slugs: ['home-decoration', 'kitchen-accessories'] },
+  { key: 'grocery', label: 'Grocery', icon: 'basket-outline', slugs: ['groceries'] },
+  { key: 'sports', label: 'Sports', icon: 'basketball', slugs: ['sports-accessories'] },
+  { key: 'auto', label: 'Auto', icon: 'motorbike', slugs: ['motorcycle', 'vehicle'] },
+];
+
+// "Shop by Category" cards: one product picture per category, taken from the loaded products
+const SHOP_CARDS: Array<{ label: string; slug: string }> = [
+  { label: 'Women', slug: 'womens-dresses' },
+  { label: 'Men', slug: 'mens-shirts' },
+  { label: 'Bags', slug: 'womens-bags' },
+  { label: 'Shoes', slug: 'mens-shoes' },
+  { label: 'Jewellery', slug: 'womens-jewellery' },
+  { label: 'Eyewear', slug: 'sunglasses' },
+  { label: 'Fragrance', slug: 'fragrances' },
+  { label: 'Watches', slug: 'mens-watches' },
+  { label: 'Beauty', slug: 'beauty' },
+  { label: 'Tech', slug: 'laptops' },
+  { label: 'Furniture', slug: 'furniture' },
+  { label: 'Home', slug: 'home-decoration' },
+  { label: 'Grocery', slug: 'groceries' },
+  { label: 'Sports', slug: 'sports-accessories' },
+];
+
+const byRating = (a: Product, b: Product): number => b.rating - a.rating;
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { totalQuantity } = useCart();
+  const { isWide, isUltra, contentWidth, columns, pad } = useResponsive();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedPill, setSelectedPill] = useState<string | null>(null);
+  const [pillProducts, setPillProducts] = useState<Product[]>([]);
+  const [pillLoading, setPillLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pillsRef = useRef<ScrollView>(null);
+  const [shopWidth, setShopWidth] = useState(0);
+  const pillRequest = useRef(0);
 
-  const fetchData = async (isRefresh = false) => {
+  const load = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
       setError(null);
-
-      const [productsRes, categoriesRes] = await Promise.all([
-        fetch('https://dummyjson.com/products?limit=20'),
-        fetch('https://dummyjson.com/products/categories'),
-      ]);
-
-      if (!productsRes.ok || !categoriesRes.ok) throw new Error('Failed to fetch data');
-
-      const productsData: ProductsResponse = await productsRes.json();
-      const categoriesData: string[] = await categoriesRes.json();
-
-      setProducts(productsData.products);
-      setCategories(categoriesData);
+      // DummyJSON returns objects ({ slug, name, url }) in newer versions, strings in older ones
+      // (productApi normalises both, and the category pills use known category slugs)
+      const res = await productApi.getProducts({ limit: 200 });
+      setProducts(res.products);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, []);
 
-  const onRefresh = () => fetchData(true);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const renderProduct = ({ item }: { item: Product }) => {
-    const discountedPrice = item.price * (1 - item.discountPercentage / 100);
+  // Picking a category pill loads that category's products for the grid
+  useEffect(() => {
+    const pill = PILLS.find((p) => p.key === selectedPill);
+    const id = ++pillRequest.current;
+    if (!pill) {
+      setPillProducts([]);
+      setPillLoading(false);
+      return;
+    }
+    setPillLoading(true);
+    Promise.all(pill.slugs.map((slug) => productApi.getProductsByCategory(slug, { limit: 50 })))
+      .then((results) => {
+        if (id !== pillRequest.current) return;
+        const seen = new Set<number>();
+        const merged = results
+          .flatMap((r) => r.products)
+          .filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)))
+          .sort(byRating);
+        setPillProducts(merged);
+      })
+      .catch(() => {
+        if (id === pillRequest.current) setPillProducts([]);
+      })
+      .finally(() => {
+        if (id === pillRequest.current) setPillLoading(false);
+      });
+  }, [selectedPill]);
 
-    return (
-      <TouchableOpacity
-        style={styles.productCard}
-        onPress={() => router.push(`/(app)/(tabs)/product/${item.id}`)}
-        activeOpacity={0.8}
-      >
-        <Card style={styles.card} elevation={2}>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: item.thumbnail }}
-              style={styles.productImage}
-              resizeMode="contain"
-            />
-            {item.discountPercentage > 0 && (
-              <Badge style={styles.discountBadge}>
-                -{Math.round(item.discountPercentage)}%
-              </Badge>
-            )}
-          </View>
-          <Card.Content style={styles.cardContent}>
-            <Text style={styles.productCategory}>{item.category}</Text>
-            <Title style={styles.productTitle} numberOfLines={2}>
-              {item.title}
-            </Title>
-            <View style={styles.priceRow}>
-              <Text style={styles.currentPrice}>${discountedPrice.toFixed(2)}</Text>
-              {item.discountPercentage > 0 && (
-                <Text style={styles.originalPrice}>${item.price.toFixed(2)}</Text>
-              )}
-            </View>
-            <View style={styles.ratingRow}>
-              <Text style={styles.ratingText}>
-                ⭐ {item.rating.toFixed(1)} · {item.stock > 0 ? 'In Stock' : 'Out of Stock'}
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-      </TouchableOpacity>
-    );
+  const onRefresh = () => {
+    setRefreshing(true);
+    load(true);
   };
+
+  const view = useMemo(() => {
+    const sorted = [...products].sort(byRating);
+    // Showcase carousel: the best-rated product from five different categories
+    const showcase: Product[] = [];
+    const seen = new Set<string>();
+    for (const p of sorted) {
+      if (seen.has(p.category)) continue;
+      seen.add(p.category);
+      showcase.push(p);
+      if (showcase.length === 5) break;
+    }
+    const categoryImages: Record<string, string> = {};
+    for (const p of sorted) if (!categoryImages[p.category]) categoryImages[p.category] = p.thumbnail;
+    return {
+      bentoAll: sorted,
+      categoryImages,
+      showcase,
+      maxDiscount: products.reduce((m, p) => Math.max(m, p.discountPercentage), 0),
+    };
+  }, [products]);
+
+  const bentoSource = selectedPill ? pillProducts : view.bentoAll;
+
+  const openProduct = (id: number) => router.push(`/(app)/(tabs)/product/${id}`);
+  const openCollection = (slug: string) => router.push(`/(app)/(tabs)/search?category=${encodeURIComponent(slug)}`);
+  const goSearch = () => router.push('/(app)/(tabs)/search');
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1A73E8" />
-        <Text style={styles.loadingText}>Loading products...</Text>
+        <ActivityIndicator size="small" color={palette.forest} />
+        <Text style={styles.loadingText}>Loading your selection</Text>
       </View>
     );
   }
@@ -149,92 +179,217 @@ export default function HomeScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <Button mode="contained" onPress={() => fetchData()} style={styles.retryButton}>
-          Retry
-        </Button>
+        <Button mode="contained" onPress={() => load()}>Retry</Button>
       </View>
     );
   }
 
+  const innerWidth = contentWidth - pad * 2;
+  const wideBanner = innerWidth >= 700;
+  const cartButton = (
+    <Pressable style={styles.cartButton} onPress={() => router.push('/(app)/(tabs)/cart')} accessibilityLabel="Open cart">
+      <MaterialCommunityIcons name="cart-outline" size={22} color={palette.surface} />
+      {totalQuantity > 0 && (
+        <View style={styles.cartBadge}>
+          <Text style={styles.cartBadgeText}>{totalQuantity}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+  const accountButton = (
+    <Pressable style={styles.accountButton} onPress={() => router.push('/(app)/(tabs)/profile')} accessibilityLabel="Open profile">
+      <MaterialCommunityIcons name="account-circle-outline" size={30} color={palette.forest} />
+      {isWide && user ? <Text style={styles.accountName}>Hi, {user.firstName}</Text> : null}
+      {isWide && user ? <MaterialCommunityIcons name="chevron-down" size={18} color={palette.ink} /> : null}
+    </Pressable>
+  );
+  const brand = (
+    <View style={styles.brand}>
+      <MaterialCommunityIcons name="shopping" size={38} color={palette.forest} />
+      <View>
+        <Text style={styles.brandText}>MARKETPLACE</Text>
+        <Text style={styles.brandTag}>Shop Smart. Live Better.</Text>
+      </View>
+    </View>
+  );
+  const searchPill = (
+    <Pressable style={[styles.searchPill, !isWide && styles.searchPillStacked]} onPress={goSearch} accessibilityRole="search">
+      <MaterialCommunityIcons name="magnify" size={20} color={palette.ink} />
+      <Text style={styles.searchText}>Search products...</Text>
+    </Pressable>
+  );
+
   return (
-    <ScrollView
-      style={styles.scrollView}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1A73E8']} />
-      }
-      contentContainerStyle={styles.scrollContent}
-    >
-      {/* Welcome Header */}
-      <View style={styles.welcomeContainer}>
-        <View style={styles.welcomeTextContainer}>
-          <Text style={styles.welcomeGreeting}>
-            {user ? `Welcome, ${user.firstName}!` : 'Welcome to Marketplace!'}
-          </Text>
-          <Text style={styles.welcomeSubtitle}>Discover amazing deals</Text>
-        </View>
-        <Avatar.Icon size={56} icon="storefront" style={styles.welcomeAvatar} />
-      </View>
+    <View style={styles.screen}>
+      <ScreenBackground />
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingHorizontal: pad }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.forest} colors={[palette.forest]} />}
+      >
+        {/* Top bar + Search bar: brand, search pill, cart and account */}
+        {isWide ? (
+          <View style={styles.header}>
+            {brand}
+            {searchPill}
+            <View style={styles.headerIcons}>
+              {cartButton}
+              <View style={styles.headerDivider} />
+              {accountButton}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.headerStacked}>
+            <View style={styles.headerTop}>
+              {brand}
+              <View style={styles.headerIcons}>
+                {cartButton}
+                {accountButton}
+              </View>
+            </View>
+            {searchPill}
+          </View>
+        )}
 
-      {/* Categories */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Categories</Title>
-        </View>
-        <FlatList
-          data={categories.slice(0, 10)}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.categoryChip}
-              onPress={() => router.push(`/(app)/(tabs)/categories?category=${item}`)}
-            >
-              <Text style={styles.categoryChipText}>
-                {item.charAt(0).toUpperCase() + item.slice(1).replace('-', ' ')}
-              </Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item}
-        />
-      </View>
+        {/* Categories: pill row, picking one filters the product grid below */}
+        {isWide ? (
+          // Wide screens: every pill is visible, wrapped and centred
+          <View style={styles.pillWrap}>
+            {PILLS.map((pill) => {
+              const active = pill.key === 'all' ? selectedPill === null : selectedPill === pill.key;
+              return (
+                <Pressable
+                  key={pill.key}
+                  style={[styles.pill, active && styles.pillActive]}
+                  onPress={() => setSelectedPill(pill.key === 'all' ? null : pill.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <MaterialCommunityIcons name={pill.icon} size={22} color={active ? palette.surface : palette.forest} />
+                  <Text style={[styles.pillText, active && styles.pillTextActive]}>{pill.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <ScrollView ref={pillsRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
+            {PILLS.map((pill) => {
+              const active = pill.key === 'all' ? selectedPill === null : selectedPill === pill.key;
+              return (
+                <Pressable
+                  key={pill.key}
+                  style={[styles.pill, active && styles.pillActive]}
+                  onPress={() => setSelectedPill(pill.key === 'all' ? null : pill.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <MaterialCommunityIcons name={pill.icon} size={22} color={active ? palette.surface : palette.forest} />
+                  <Text style={[styles.pillText, active && styles.pillTextActive]}>{pill.label}</Text>
+                </Pressable>
+              );
+            })}
+            <Pressable style={styles.pillChevron} onPress={() => pillsRef.current?.scrollToEnd({ animated: true })} accessibilityLabel="More categories">
+              <MaterialCommunityIcons name="chevron-right" size={22} color={palette.ink} />
+            </Pressable>
+          </ScrollView>
+        )}
 
-      {/* Flash Deals */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>⚡ Flash Deals</Title>
-          <TouchableOpacity style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={products.filter((p) => p.discountPercentage > 20).slice(0, 5)}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id.toString()}
-          ItemSeparatorComponent={() => <View style={styles.cardSeparator} />}
-        />
-      </View>
+        {/* Flash Deals + Welcome Header: best-picks banner and the limited-time offer */}
+        <View style={[styles.bannerRow, !wideBanner && styles.bannerRowStacked]}>
+          {/* Product showcase hero carousel: auto-plays, arrows, dots and selectors, background follows the product */}
+          <View style={[styles.bannerSlot, !wideBanner && styles.bannerSlotStacked]}>
+            <ShowcaseHero
+              products={view.showcase}
+              height={isUltra ? 460 : 380}
+              wideAt={560}
+              eyebrowPrefix="Best Picks"
+              onOpenProduct={openProduct}
+              onOpenCollection={openCollection}
+            />
+          </View>
 
-      {/* Recommended Products */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Title style={styles.sectionTitle}>Recommended for You</Title>
-          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/search')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
+          <View style={[styles.offer, !wideBanner && styles.offerStacked]}>
+            <MaterialCommunityIcons name="gift-outline" size={150} color="#FFFFFF" style={styles.offerBag} />
+            <View style={styles.offerTop}>
+              <MaterialCommunityIcons name="lightning-bolt" size={22} color={palette.gold} />
+              <Text style={styles.offerLabel}>Limited Time Offer</Text>
+            </View>
+            <Text style={styles.offerUpTo}>Up to</Text>
+            <Text style={styles.offerBig}>{Math.round(view.maxDiscount)}% OFF</Text>
+            <Text style={styles.offerSub}>On Selected Items</Text>
+            <Pressable style={styles.offerButton} onPress={goSearch} accessibilityRole="button">
+              <Text style={styles.offerButtonText}>Shop the Deal</Text>
+              <MaterialCommunityIcons name="arrow-right" size={16} color="#FBF7FF" />
+            </Pressable>
+          </View>
         </View>
-        <FlatList
-          data={products.slice(0, 10)}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id.toString()}
-          ItemSeparatorComponent={() => <View style={styles.cardSeparator} />}
-          ListEmptyComponent={
+
+        {/* Categories: Shop by Category cards with a product picture each */}
+        <View style={styles.shopSection} onLayout={(e: LayoutChangeEvent) => setShopWidth(Math.floor(e.nativeEvent.layout.width))}>
+          <View style={styles.shopHeader}>
+            <View style={styles.shopAccent} />
+            <Text style={styles.shopTitle}>Shop by Category</Text>
+            <View style={styles.shopLine} />
+            <Pressable onPress={() => router.push('/(app)/(tabs)/categories')} accessibilityRole="link">
+              <Text style={styles.viewAll}>View All →</Text>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shopRow}>
+            {SHOP_CARDS.map((card) => {
+              const perRow = isUltra ? 9 : 7;
+              const cardWidth = isWide ? Math.max(128, Math.floor(((shopWidth || innerWidth) - 12 * (perRow - 1)) / perRow)) : 132;
+              const image = view.categoryImages[card.slug];
+              return (
+                <Pressable
+                  key={card.slug}
+                  style={[styles.shopCard, { width: cardWidth }]}
+                  onPress={() => openCollection(card.slug)}
+                  accessibilityRole="button"
+                  accessibilityLabel={card.label}
+                >
+                  <View style={[styles.shopImageWrap, { height: Math.round(cardWidth * 1.05) }]}>
+                    {image ? <Image source={{ uri: image }} style={styles.shopImage} resizeMode="contain" /> : null}
+                  </View>
+                  <View style={styles.shopLabel}>
+                    <Text style={styles.shopLabelText} numberOfLines={1}>{card.label}</Text>
+                    <View style={styles.shopArrow}>
+                      <MaterialCommunityIcons name="arrow-right" size={16} color={palette.surface} />
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Recommended Products: bento grid with pagination dots */}
+        <View style={styles.section}>
+          {pillLoading ? (
+            <View style={styles.sectionLoading}>
+              <ActivityIndicator size="small" color={palette.forest} />
+            </View>
+          ) : bentoSource.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No products found</Text>
             </View>
-          }
-        />
-      </View>
-    </ScrollView>
+          ) : (
+            <BentoProducts
+              products={bentoSource}
+              width={innerWidth}
+              columns={columns}
+              maxPages={12}
+              onOpenProduct={openProduct}
+              onOpenCollection={openCollection}
+            />
+          )}
+          <View style={styles.browseRow}>
+            <Pressable style={styles.browseButton} onPress={goSearch} accessibilityRole="button">
+              <MaterialCommunityIcons name="view-grid-outline" size={20} color={palette.forest} />
+              <Text style={styles.browseText}>Browse All Products</Text>
+              <MaterialCommunityIcons name="arrow-right" size={18} color={palette.forest} />
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

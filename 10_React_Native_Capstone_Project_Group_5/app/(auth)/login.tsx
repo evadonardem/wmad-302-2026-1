@@ -1,168 +1,119 @@
 /**
- * Login Screen - Complete, working implementation
- * Students can use as reference for building register screen
+ * Login Screen - React Native + React Native Paper, responsive (no fixed widths)
+ * - Sign in with username/email + password (POST /auth/login through AuthContext)
+ * - One tap demo account (emilys / emilyspass)
  */
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Button, HelperText, TextInput } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Button, TextInput as PaperTextInput, Divider } from 'react-native-paper';
+import { Screen } from '@/components/ScreenBackground';
+import { palette } from '@/constants/theme';
 import { styles } from './styles';
+
+const DEMO_USER = 'emilys';
+const DEMO_PASS = 'emilyspass';
+
+const friendly = (message: string): string =>
+  /400|401|invalid/i.test(message) ? 'Incorrect username or password' : message || 'Could not sign in. Try again.';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
-  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
-
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both username and password');
+  const submit = async (user: string, pass: string) => {
+    if (!user.trim() || !pass) {
+      setError('Enter your username and password');
       return;
     }
-
+    setSubmitting(true);
+    setError(null);
     try {
-      await login(username.trim(), password.trim());
-      router.replace(redirect || '/(app)/(tabs)/home');
-    } catch {
-      // Error handled in context
+      await login(user.trim(), pass);
+      router.replace('/(app)/(tabs)/home');
+    } catch (err) {
+      setError(friendly(err instanceof Error ? err.message : ''));
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDemoLogin = async () => {
-    // DummyJSON test credentials: emilys / emilyspass
-    setUsername('emilys');
-    setPassword('emilyspass');
-    try {
-      await login('emilys', 'emilyspass');
-      router.replace(redirect || '/(app)/(tabs)/home');
-    } catch {
-      // Error handled in context
-    }
+  const useDemo = () => {
+    setUsername(DEMO_USER);
+    setPassword(DEMO_PASS);
+    submit(DEMO_USER, DEMO_PASS);
   };
-
-  React.useEffect(() => {
-    if (error) {
-      Alert.alert('Login Failed', error, [{ text: 'OK', onPress: clearError }]);
-    }
-  }, [error, clearError]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Logo/Brand */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>🛒</Text>
-          <Text style={styles.appName}>Marketplace</Text>
-          <Text style={styles.tagline}>Shop Smart, Save More</Text>
-        </View>
-
-        {/* Login Card */}
-        <Card style={styles.card} elevation={3}>
-          <Card.Content style={styles.cardContent}>
+    <Screen>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.card}>
+            <View style={styles.logo}>
+              <MaterialCommunityIcons name="shopping" size={30} color={palette.surface} />
+            </View>
+            <Text style={styles.brand}>MARKETPLACE</Text>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to continue shopping</Text>
 
-            {/* Username Field */}
-            <PaperTextInput
-              label="Username or Email"
+            <TextInput
               mode="outlined"
+              label="Username or Email"
               value={username}
               onChangeText={setUsername}
-              style={styles.input}
               autoCapitalize="none"
-              autoComplete="username"
-              textContentType="username"
-              returnKeyType="next"
-              disabled={isLoading}
+              autoCorrect={false}
+              left={<TextInput.Icon icon="account-outline" />}
+              style={styles.input}
             />
-
-            {/* Password Field */}
-            <PaperTextInput
-              label="Password"
+            <TextInput
               mode="outlined"
+              label="Password"
               value={password}
               onChangeText={setPassword}
-              style={styles.input}
               secureTextEntry={!showPassword}
-              autoComplete="password"
-              textContentType="password"
-              returnKeyType="go"
-              onSubmitEditing={handleLogin}
-              disabled={isLoading}
-              right={<TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
-              </TouchableOpacity>}
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="lock-outline" />}
+              right={<TextInput.Icon icon={showPassword ? 'eye-off-outline' : 'eye-outline'} onPress={() => setShowPassword((v) => !v)} />}
+              onSubmitEditing={() => submit(username, password)}
+              style={styles.input}
             />
+            <HelperText type="error" visible={!!error} style={styles.error}>{error}</HelperText>
 
-            {/* Error Display */}
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            {/* Login Button */}
             <Button
               mode="contained"
-              onPress={handleLogin}
-              loading={isLoading}
-              style={styles.loginButton}
-              disabled={isLoading}
+              onPress={() => submit(username, password)}
+              loading={submitting}
+              disabled={submitting}
+              style={styles.button}
               contentStyle={styles.buttonContent}
+              labelStyle={styles.buttonLabel}
             >
-              {isLoading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
-              )}
+              Sign In
             </Button>
 
-            {/* Demo Login */}
-            <View style={styles.demoContainer}>
-              <Divider style={styles.divider} />
-              <TouchableOpacity onPress={handleDemoLogin} disabled={isLoading} style={styles.demoButton}>
-                <Text style={styles.demoButtonText}>Try Demo Account (emilys / emilyspass)</Text>
-              </TouchableOpacity>
-            </View>
+            <View style={styles.divider} />
 
-            {/* Register Link */}
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
-              <TouchableOpacity
-                onPress={() => router.push('/(auth)/register')}
-                style={styles.link}
-              >
-                <Text style={styles.linkText}>Sign Up</Text>
-              </TouchableOpacity>
-            </View>
-          </Card.Content>
-        </Card>
+            <Button mode="outlined" icon="account-star-outline" onPress={useDemo} disabled={submitting} style={styles.demo}>
+              Try Demo Account ({DEMO_USER} / {DEMO_PASS})
+            </Button>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            By signing in, you agree to our Terms of Service and Privacy Policy
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <Button compact onPress={() => router.push('/(auth)/register')}>Sign Up</Button>
+            </View>
+          </View>
+
+          <Text style={styles.terms}>By signing in, you agree to our Terms of Service and Privacy Policy</Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }

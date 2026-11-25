@@ -1,227 +1,35 @@
 /**
- * Shared Styles for Auth Screens
+ * Auth screens styles (login + register) - React Native + Paper, fully responsive
+ * No fixed widths: the card fills small screens and stops at 440px on big ones.
  */
 import { StyleSheet } from 'react-native';
+import { palette, radius, spacing, typeface, softShadow, themed } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-    justifyContent: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoText: {
-    fontSize: 64,
-    marginBottom: 8,
-  },
-  appName: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1A73E8',
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    fontSize: 16,
-    color: '#5F6368',
-    marginTop: 4,
-  },
-  card: {
-    borderRadius: 12,
-    padding: 0,
-  },
-  cardContent: {
-    padding: 28,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#202124',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#5F6368',
-    textAlign: 'center',
-    marginBottom: 28,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  eyeIcon: {
-    padding: 8,
-  },
-  eyeText: {
-    fontSize: 20,
-  },
-  errorContainer: {
-    backgroundColor: '#FCE8E6',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#EA4335',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  loginButton: {
-    marginTop: 8,
-    marginBottom: 16,
-    borderRadius: 8,
-    height: 52,
-  },
-  buttonContent: {
-    paddingHorizontal: 24,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  demoContainer: {
-    marginTop: 8,
-  },
-  divider: {
-    marginVertical: 16,
-  },
-  demoButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  demoButtonText: {
-    fontSize: 14,
-    color: '#1A73E8',
-    fontWeight: '500',
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  registerText: {
-    fontSize: 14,
-    color: '#5F6368',
-  },
-  link: {
-    paddingHorizontal: 4,
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#1A73E8',
-    fontWeight: '600',
-  },
-  footer: {
-    marginTop: 32,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#5F6368',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  optionalRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-  },
-  halfInput: {
-    flex: 1,
-  },
-  genderSelector: {
-    justifyContent: 'center',
-  },
-  genderLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#202124',
-    marginBottom: 8,
-  },
-  genderOptions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  genderOption: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-  },
-  genderOptionSelected: {
-    borderColor: '#1A73E8',
-    backgroundColor: '#E8F0FE',
-  },
-  genderOptionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#5F6368',
-  },
-  genderOptionTextSelected: {
-    color: '#1A73E8',
-    fontWeight: '600',
-  },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  checkbox: {
-    marginRight: 4,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#5F6368',
-    lineHeight: 20,
-  },
-  registerButton: {
-    marginTop: 8,
-    marginBottom: 16,
-    borderRadius: 8,
-    height: 52,
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  loginText: {
-    fontSize: 14,
-    color: '#5F6368',
-  },
-  guideContainer: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#E8F0FE',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D0E1F9',
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1A73E8',
-    marginBottom: 8,
-  },
-  guideText: {
-    fontSize: 13,
-    color: '#3C4043',
-    lineHeight: 20,
-  },
-});
+const serif = { fontFamily: typeface.display } as const;
+
+export const styles = themed(() =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.xl },
+    card: {
+      width: '100%', maxWidth: 440, alignSelf: 'center', backgroundColor: palette.surface, borderRadius: radius.xl,
+      padding: spacing.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line, ...softShadow('#3A1E70', 0.14, 24, 10, 6),
+    },
+    logo: { width: 56, height: 56, borderRadius: 28, backgroundColor: palette.forest, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: spacing.md },
+    brand: { ...serif, fontSize: 14, letterSpacing: 4, color: palette.forest, textAlign: 'center' },
+    title: { ...serif, fontSize: 30, color: palette.ink, textAlign: 'center', marginTop: spacing.sm },
+    subtitle: { fontSize: 14, color: palette.stone, textAlign: 'center', marginTop: 4, marginBottom: spacing.lg },
+    input: { backgroundColor: palette.surface, marginTop: spacing.sm },
+    row: { flexDirection: 'row', gap: spacing.sm },
+    half: { flex: 1 },
+    button: { marginTop: spacing.md, borderRadius: radius.pill },
+    buttonContent: { height: 52 },
+    buttonLabel: { fontSize: 15, fontWeight: '700' },
+    divider: { height: 1, backgroundColor: palette.line, marginVertical: spacing.lg },
+    demo: { borderRadius: radius.pill },
+    footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', marginTop: spacing.md },
+    footerText: { fontSize: 14, color: palette.stone },
+    terms: { fontSize: 12, lineHeight: 18, color: palette.stone, textAlign: 'center', marginTop: spacing.lg, paddingHorizontal: spacing.md, maxWidth: 440, alignSelf: 'center' },
+    error: { marginTop: spacing.sm },
+  })
+);
