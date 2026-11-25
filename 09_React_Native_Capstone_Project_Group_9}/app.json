@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Cookbook Capstone",
+    "slug": "09-cookbook-capstone",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wmad302.cookbook"
+    },
+    "android": {
+      "package": "com.wmad302.cookbook"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "scheme": "cookbook",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "cookbook-capstone"
+      }
+    },
+    "owner": "wmad302"
+  }
+}
