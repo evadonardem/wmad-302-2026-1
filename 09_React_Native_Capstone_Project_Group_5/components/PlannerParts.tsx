@@ -1,0 +1,633 @@
+/**
+ * Meal planner pieces: slot cells/rows, recipe picker and shopping-list card (used by app/(app)/(tabs)/planner.tsx).
+ */
+import React, { useEffect, useMemo, useState } from 'react';
+import { FlatList, Image, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Button } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Recipe } from '@/types/recipe';
+import {
+    dateKey,
+    formatMinutes,
+    formatShortDate,
+    hasMealType,
+    PlanMeal,
+    ShoppingGroup,
+    totalTime,
+    DAY_NAMES,
+} from '@/utils/recipeFilters';
+import { IconName } from '@/components';
+import { createStyles, tc, useAppTheme } from '@/context/ThemeContext';
+
+export const MEAL_ICON: Record<PlanMeal, IconName> = {
+    Breakfast: 'coffee',
+    Lunch: 'food',
+    Dinner: 'silverware-fork-knife',
+};
+
+export const AISLE_ICON: Record<string, IconName> = {
+    Produce: 'carrot',
+    'Meat & Seafood': 'food-drumstick',
+    'Dairy & Eggs': 'egg',
+    'Bakery & Grains': 'bread-slice',
+    Pantry: 'shaker-outline',
+    Other: 'basket-outline',
+};
+
+export interface Slot {
+    date: Date;
+    meal: PlanMeal;
+}
+
+export const itemKey = (weekStart: Date, name: string) => `${dateKey(weekStart)}|${name.toLowerCase()}`;
+
+export function Meta({ icon, text }: { icon: IconName; text: string }) {
+    useAppTheme();
+    return (
+        <View style={styles.meta}>
+            <MaterialCommunityIcons name={icon} size={13} color={tc('#8A6673')} />
+            <Text style={styles.metaText}>{text}</Text>
+        </View>
+    );
+}
+
+/** Round action button that sits on top of a photo (remove). */
+export function PhotoAction({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+    useAppTheme();
+    return (
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            hitSlop={6}
+            style={({ pressed }) => [styles.photoAction, pressed && styles.pressed]}
+        >
+            <MaterialCommunityIcons name={icon} size={14} color={tc('#3C252D')} />
+        </Pressable>
+    );
+}
+
+/** One cell of the weekly grid (wide screens): every recipe picked for the meal, plus an add button. */
+export function SlotCell({
+    recipes,
+    meal,
+    onAdd,
+    onOpen,
+    onRemove,
+}: {
+    recipes: Recipe[];
+    meal: PlanMeal;
+    onAdd: () => void;
+    onOpen: (recipe: Recipe) => void;
+    onRemove: (recipe: Recipe) => void;
+}) {
+    useAppTheme();
+    if (recipes.length === 0) {
+        return (
+            <Pressable
+                onPress={onAdd}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${meal.toLowerCase()}`}
+                style={({ pressed }) => [styles.emptyCell, pressed && styles.pressed]}
+            >
+                <View style={styles.emptyPlus}>
+                    <MaterialCommunityIcons name="plus" size={20} color="#D81B60" />
+                </View>
+                <Text style={styles.emptyText}>Add {meal.toLowerCase()}</Text>
+            </Pressable>
+        );
+    }
+    return (
+        <View style={styles.cell}>
+            {recipes.map((recipe) => (
+                <View key={recipe.id} style={styles.cellItem}>
+                    <Pressable
+                        onPress={() => onOpen(recipe)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open recipe ${recipe.name}`}
+                        style={({ pressed }) => pressed && styles.pressed}
+                    >
+                        <View style={styles.cellImageWrap}>
+                            <Image source={{ uri: recipe.image }} style={styles.cellImage} resizeMode="cover" />
+                        </View>
+                        <Text style={styles.cellTitle} numberOfLines={2}>
+                            {recipe.name}
+                        </Text>
+                        <View style={styles.cellMeta}>
+                            <Meta icon="clock-outline" text={formatMinutes(totalTime(recipe))} />
+                            <Meta icon="fire" text={`${recipe.caloriesPerServing}`} />
+                        </View>
+                    </Pressable>
+                    {/* Sibling of the Pressable above (never nested buttons) */}
+                    <View style={styles.cellRemove} pointerEvents="box-none">
+                        <PhotoAction icon="close" label={`Remove ${recipe.name}`} onPress={() => onRemove(recipe)} />
+                    </View>
+                </View>
+            ))}
+            <Pressable
+                onPress={onAdd}
+                accessibilityRole="button"
+                accessibilityLabel={`Add another ${meal.toLowerCase()}`}
+                style={({ pressed }) => [styles.addMore, pressed && styles.pressed]}
+            >
+                <MaterialCommunityIcons name="plus" size={16} color="#D81B60" />
+                <Text style={styles.addMoreText}>Add more</Text>
+            </Pressable>
+        </View>
+    );
+}
+
+/** One meal of the selected day (phones / narrow windows): every recipe picked for it. */
+export function SlotRow({
+    recipes,
+    meal,
+    onAdd,
+    onOpen,
+    onRemove,
+}: {
+    recipes: Recipe[];
+    meal: PlanMeal;
+    onAdd: () => void;
+    onOpen: (recipe: Recipe) => void;
+    onRemove: (recipe: Recipe) => void;
+}) {
+    useAppTheme();
+    return (
+        <View style={styles.rowBlock}>
+            <View style={styles.rowLabel}>
+                <MaterialCommunityIcons name={MEAL_ICON[meal]} size={16} color="#D81B60" />
+                <Text style={styles.rowLabelText}>{meal}</Text>
+                {recipes.length > 1 && <Text style={styles.rowCount}>{recipes.length} recipes</Text>}
+                {recipes.length > 0 && (
+                    <Pressable
+                        onPress={onAdd}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Add another ${meal.toLowerCase()}`}
+                        style={({ pressed }) => [styles.rowAdd, pressed && styles.pressed]}
+                    >
+                        <MaterialCommunityIcons name="plus" size={16} color="#D81B60" />
+                        <Text style={styles.addMoreText}>Add more</Text>
+                    </Pressable>
+                )}
+            </View>
+            {recipes.map((recipe) => (
+                <View key={recipe.id} style={[styles.rowCard, styles.rowCardGap]}>
+                    <Pressable
+                        onPress={() => onOpen(recipe)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open recipe ${recipe.name}`}
+                        style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
+                    >
+                        <Image source={{ uri: recipe.image }} style={styles.rowImage} resizeMode="cover" />
+                        <View style={styles.rowInfo}>
+                            <Text style={styles.rowTitle} numberOfLines={2}>
+                                {recipe.name}
+                            </Text>
+                            <View style={styles.cellMeta}>
+                                <Meta icon="clock-outline" text={formatMinutes(totalTime(recipe))} />
+                                <Meta icon="fire" text={`${recipe.caloriesPerServing} cal`} />
+                            </View>
+                        </View>
+                    </Pressable>
+                    <View style={styles.rowActions}>
+                        <PhotoAction icon="close" label={`Remove ${recipe.name}`} onPress={() => onRemove(recipe)} />
+                    </View>
+                </View>
+            ))}
+            {recipes.length === 0 && (
+                <Pressable
+                    onPress={onAdd}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${meal.toLowerCase()}`}
+                    style={({ pressed }) => [styles.rowEmpty, pressed && styles.pressed]}
+                >
+                    <MaterialCommunityIcons name="plus-circle-outline" size={22} color="#D81B60" />
+                    <Text style={styles.emptyText}>Add {meal.toLowerCase()}</Text>
+                </Pressable>
+            )}
+        </View>
+    );
+}
+
+/** Pop-up to pick recipes for a meal. Tap a recipe to add it, tap it again to take it off; pick as many as you like. */
+export function RecipePicker({
+    slot,
+    recipes,
+    selectedIds,
+    onToggle,
+    onClose,
+}: {
+    slot: Slot | null;
+    recipes: Recipe[];
+    /** Recipes already picked for this meal. */
+    selectedIds: number[];
+    onToggle: (recipe: Recipe) => void;
+    onClose: () => void;
+}) {
+    useAppTheme();
+    const [query, setQuery] = useState('');
+    const [onlyMeal, setOnlyMeal] = useState(true);
+
+    useEffect(() => {
+        if (slot) {
+            setQuery('');
+            setOnlyMeal(true);
+        }
+    }, [slot]);
+
+    const results = useMemo(() => {
+        if (!slot) return [];
+        const q = query.trim().toLowerCase();
+        return recipes.filter((r) => {
+            if (onlyMeal && !hasMealType(r, slot.meal)) return false;
+            if (!q) return true;
+            return (
+                r.name.toLowerCase().includes(q) ||
+                r.cuisine.toLowerCase().includes(q) ||
+                r.tags.some((t) => t.toLowerCase().includes(q))
+            );
+        });
+    }, [recipes, slot, query, onlyMeal]);
+
+    return (
+        <Modal visible={!!slot} transparent animationType="fade" onRequestClose={onClose}>
+            <View style={styles.modalRoot}>
+                <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
+                <View style={styles.sheet}>
+                    <View style={styles.sheetHeader}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.sheetTitle}>Choose {slot?.meal.toLowerCase()}</Text>
+                            {slot && (
+                                <Text style={styles.sheetSub}>
+                                    {DAY_NAMES[(slot.date.getDay() + 6) % 7]}, {formatShortDate(slot.date)} · pick as many as you like
+                                </Text>
+                            )}
+                        </View>
+                        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" style={styles.sheetClose}>
+                            <MaterialCommunityIcons name="close" size={20} color={tc('#3C252D')} />
+                        </Pressable>
+                    </View>
+
+                    <View style={styles.searchBox}>
+                        <MaterialCommunityIcons name="magnify" size={20} color={tc('#8A6673')} />
+                        <TextInput
+                            value={query}
+                            onChangeText={setQuery}
+                            placeholder="Search recipes, cuisines, tags"
+                            placeholderTextColor={tc('#9E828C')}
+                            style={styles.searchInput}
+                            autoCapitalize="none"
+                            returnKeyType="search"
+                        />
+                    </View>
+
+                    <View style={styles.toggleRow}>
+                        <Pressable
+                            onPress={() => setOnlyMeal(true)}
+                            style={[styles.toggle, onlyMeal && styles.toggleActive]}
+                            accessibilityRole="button"
+                        >
+                            <Text style={[styles.toggleText, onlyMeal && styles.toggleTextActive]}>{slot?.meal ?? 'Meal'} ideas</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => setOnlyMeal(false)}
+                            style={[styles.toggle, !onlyMeal && styles.toggleActive]}
+                            accessibilityRole="button"
+                        >
+                            <Text style={[styles.toggleText, !onlyMeal && styles.toggleTextActive]}>All recipes</Text>
+                        </Pressable>
+                        <Text style={styles.resultCount}>{results.length} found</Text>
+                    </View>
+
+                    <FlatList
+                        data={results}
+                        keyExtractor={(r) => String(r.id)}
+                        style={styles.pickList}
+                        keyboardShouldPersistTaps="handled"
+                        extraData={selectedIds}
+                        ListEmptyComponent={<Text style={styles.pickEmpty}>No recipes match. Try another search.</Text>}
+                        renderItem={({ item }) => {
+                            const picked = selectedIds.includes(item.id);
+                            return (
+                                <Pressable
+                                    onPress={() => onToggle(item)}
+                                    accessibilityRole="checkbox"
+                                    accessibilityState={{ checked: picked }}
+                                    accessibilityLabel={`${picked ? 'Remove' : 'Add'} ${item.name}`}
+                                    style={({ pressed }) => [styles.pickRow, picked && styles.pickRowOn, pressed && styles.pressed]}
+                                >
+                                    <Image source={{ uri: item.image }} style={styles.pickImage} resizeMode="cover" />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.pickName} numberOfLines={2}>
+                                            {item.name}
+                                        </Text>
+                                        <Text style={styles.pickMeta}>
+                                            {formatMinutes(totalTime(item))} · {item.caloriesPerServing} cal · {item.cuisine}
+                                        </Text>
+                                    </View>
+                                    <MaterialCommunityIcons
+                                        name={picked ? 'check-circle' : 'plus-circle-outline'}
+                                        size={26}
+                                        color={picked ? '#43A047' : '#D81B60'}
+                                    />
+                                </Pressable>
+                            );
+                        }}
+                    />
+
+                    <Button
+                        mode="contained"
+                        icon="check"
+                        buttonColor="#D81B60"
+                        textColor="#FFFFFF"
+                        onPress={onClose}
+                        style={styles.doneButton}
+                    >
+                        {selectedIds.length > 0 ? `Done · ${selectedIds.length} picked` : 'Done'}
+                    </Button>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+export function ShoppingCard({
+    groups,
+    mealCount,
+    weekMealCount,
+    scope,
+    onScopeChange,
+    days,
+    dayCounts,
+    dayIndex,
+    onDayChange,
+    weekStart,
+    checked,
+    open,
+    onToggleOpen,
+    onToggleItem,
+    onClearChecked,
+    onShare,
+}: {
+    groups: ShoppingGroup[];
+    mealCount: number;
+    /** Meals planned in the whole week (decides whether the scope picker is shown). */
+    weekMealCount: number;
+    scope: 'week' | 'day';
+    onScopeChange: (scope: 'week' | 'day') => void;
+    days: Date[];
+    /** Number of planned meals for each of the 7 days. */
+    dayCounts: number[];
+    dayIndex: number;
+    onDayChange: (index: number) => void;
+    /** Date the ticks are saved under (the week start, or the chosen day for a one-day list). */
+    weekStart: Date;
+    checked: Record<string, boolean>;
+    open: boolean;
+    onToggleOpen: () => void;
+    onToggleItem: (name: string) => void;
+    onClearChecked: () => void;
+    onShare: () => void;
+}) {
+    useAppTheme();
+    const total = groups.reduce((n, g) => n + g.items.length, 0);
+    const done = groups.reduce((n, g) => n + g.items.filter((i) => checked[itemKey(weekStart, i.name)]).length, 0);
+    const pct = total > 0 ? done / total : 0;
+
+    return (
+        <View style={styles.card}>
+            <View style={styles.shopHeader}>
+                <View style={styles.shopIcon}>
+                    <MaterialCommunityIcons name="cart-outline" size={26} color="#FFFFFF" />
+                </View>
+                <View style={styles.shopText}>
+                    <Text style={styles.shopTitle}>Shopping List Generator</Text>
+                    <Text style={styles.shopSub}>Create your shopping list from planned meals</Text>
+                </View>
+                <Button
+                    mode={open ? 'outlined' : 'contained'}
+                    icon={open ? 'chevron-up' : 'cart-plus'}
+                    onPress={onToggleOpen}
+                    disabled={mealCount === 0}
+                    buttonColor={open ? undefined : '#D81B60'}
+                    textColor={open ? '#D81B60' : '#FFFFFF'}
+                    compact
+                >
+                    {open ? 'Hide' : 'Generate'}
+                </Button>
+            </View>
+
+            {weekMealCount > 0 && (
+                <View style={styles.scopeBlock}>
+                    <View style={styles.toggleRow}>
+                        <Pressable
+                            onPress={() => onScopeChange('week')}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: scope === 'week' }}
+                            style={[styles.toggle, scope === 'week' && styles.toggleActive]}
+                        >
+                            <Text style={[styles.toggleText, scope === 'week' && styles.toggleTextActive]}>Whole week</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => onScopeChange('day')}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: scope === 'day' }}
+                            style={[styles.toggle, scope === 'day' && styles.toggleActive]}
+                        >
+                            <Text style={[styles.toggleText, scope === 'day' && styles.toggleTextActive]}>Just one day</Text>
+                        </Pressable>
+                    </View>
+                    {scope === 'day' && (
+                        <View style={styles.dayChips}>
+                            {days.map((d, i) => (
+                                <Pressable
+                                    key={i}
+                                    onPress={() => onDayChange(i)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`${DAY_NAMES[i]}, ${dayCounts[i]} planned meals`}
+                                    accessibilityState={{ selected: dayIndex === i }}
+                                    style={[styles.dayChip, dayIndex === i && styles.dayChipActive]}
+                                >
+                                    <Text style={[styles.dayChipName, dayIndex === i && styles.dayChipTextActive]}>{DAY_NAMES[i].slice(0, 3)}</Text>
+                                    <Text style={[styles.dayChipDate, dayIndex === i && styles.dayChipTextActive]}>{d.getDate()}</Text>
+                                    <View style={[styles.dayDot, dayCounts[i] > 0 && styles.dayDotOn, dayIndex === i && dayCounts[i] > 0 && styles.dayDotActive]} />
+                                </Pressable>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            )}
+
+            {mealCount === 0 && (
+                <Text style={styles.shopHint}>
+                    {scope === 'day' && weekMealCount > 0
+                        ? `Nothing is planned for ${DAY_NAMES[dayIndex]}. Pick another day or plan a meal for it.`
+                        : 'Plan at least one meal this week and your ingredients will show up here.'}
+                </Text>
+            )}
+
+            {open && mealCount > 0 && (
+                <View style={styles.shopBody}>
+                    <View style={styles.progressRow}>
+                        <Text style={styles.progressText}>
+                            {total} items from {mealCount} {mealCount === 1 ? 'meal' : 'meals'} · {done} got
+                        </Text>
+                        <View style={styles.progressActions}>
+                            {done > 0 && (
+                                <Pressable onPress={onClearChecked} accessibilityRole="button">
+                                    <Text style={styles.linkText}>Clear ticks</Text>
+                                </Pressable>
+                            )}
+                            <Pressable onPress={onShare} accessibilityRole="button" style={styles.shareBtn}>
+                                <MaterialCommunityIcons name={Platform.OS === 'web' ? 'content-copy' : 'share-variant'} size={15} color="#D81B60" />
+                                <Text style={styles.linkText}>{Platform.OS === 'web' ? 'Copy list' : 'Share'}</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                    <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: `${Math.round(pct * 100)}%` }]} />
+                    </View>
+
+                    <View style={styles.aisles}>
+                        {groups.map((g) => (
+                            <View key={g.aisle} style={styles.aisle}>
+                                <View style={styles.aisleHeader}>
+                                    <MaterialCommunityIcons name={AISLE_ICON[g.aisle] ?? 'basket-outline'} size={18} color="#D81B60" />
+                                    <Text style={styles.aisleTitle}>{g.aisle}</Text>
+                                    <Text style={styles.aisleCount}>{g.items.length}</Text>
+                                </View>
+                                {g.items.map((item) => {
+                                    const on = !!checked[itemKey(weekStart, item.name)];
+                                    return (
+                                        <Pressable
+                                            key={item.name}
+                                            onPress={() => onToggleItem(item.name)}
+                                            accessibilityRole="checkbox"
+                                            accessibilityState={{ checked: on }}
+                                            style={({ pressed }) => [styles.itemRow, pressed && styles.pressed]}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name={on ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                                                size={22}
+                                                color={on ? '#43A047' : tc('#BAA6AD')}
+                                            />
+                                            <Text style={[styles.itemText, on && styles.itemDone]} numberOfLines={2}>
+                                                {item.name}
+                                            </Text>
+                                            {item.count > 1 && (
+                                                <View style={styles.countChip}>
+                                                    <Text style={styles.countChipText}>×{item.count}</Text>
+                                                </View>
+                                            )}
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+                        ))}
+                    </View>
+                </View>
+            )}
+        </View>
+    );
+}
+
+const styles = createStyles({
+    pressed: { opacity: 0.85 },
+    card: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 28,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#E9CED8',
+        shadowColor: '#5A0F2E',
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
+    },
+    cell: { flex: 1, backgroundColor: '#FEF9FB', borderRadius: 16, padding: 8, borderWidth: 1, borderColor: '#E9CED8', position: 'relative' },
+    cellImageWrap: { width: '100%', aspectRatio: 1.25, borderRadius: 12, overflow: 'hidden', backgroundColor: '#EDD8E0' },
+    cellImage: { width: '100%', height: '100%' },
+    cellTitle: { fontSize: 12.5, fontWeight: '700', color: '#2A2124', lineHeight: 17, marginTop: 8, minHeight: 34 },
+    cellMeta: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+    cellItem: { position: 'relative', marginBottom: 10 },
+    cellRemove: { position: 'absolute', top: 6, right: 6 },
+    addMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#E3C7D1', backgroundColor: '#FFFFFF' },
+    addMoreText: { fontSize: 12, fontWeight: '700', color: '#D81B60' },
+    photoAction: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.95)', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+    meta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    metaText: { fontSize: 11.5, color: '#8A6673', fontWeight: '600' },
+    emptyCell: { flex: 1, minHeight: 150, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#E3C7D1', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FEF9FB' },
+    emptyPlus: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FDE7EF', alignItems: 'center', justifyContent: 'center' },
+    emptyText: { fontSize: 13, fontWeight: '600', color: '#8A6673' },
+    rowBlock: { marginBottom: 14 },
+    rowLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+    rowCount: { fontSize: 12, fontWeight: '600', color: '#8A6673' },
+    rowAdd: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#FDE7EF' },
+    rowLabelText: { fontSize: 13, fontWeight: '800', color: '#5A3A46', textTransform: 'uppercase', letterSpacing: 0.6 },
+    rowCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF9FB', borderRadius: 18, padding: 10, borderWidth: 1, borderColor: '#E9CED8', gap: 8 },
+    rowCardGap: { marginBottom: 8 },
+    rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    rowImage: { width: 84, height: 84, borderRadius: 14, backgroundColor: '#EDD8E0' },
+    rowInfo: { flex: 1 },
+    rowTitle: { fontSize: 15, fontWeight: '700', color: '#2A2124', lineHeight: 20 },
+    rowActions: { gap: 8 },
+    rowEmpty: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 84, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#E3C7D1', backgroundColor: '#FEF9FB' },
+    modalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
+    backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(28,8,20,0.55)' },
+    sheet: { width: '100%', maxWidth: 560, maxHeight: '86%', backgroundColor: '#FFFFFF', borderRadius: 26, padding: 18, borderWidth: 1, borderColor: '#E9CED8' },
+    sheetHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    sheetTitle: { fontSize: 20, fontWeight: '800', color: '#2A2124', textTransform: 'capitalize' },
+    sheetSub: { fontSize: 13, color: '#8A6673', marginTop: 2 },
+    sheetClose: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5EBEF' },
+    searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, borderRadius: 23, paddingHorizontal: 14, backgroundColor: '#F5EBEF', borderWidth: 1, borderColor: '#E9CED8' },
+    searchInput: { flex: 1, fontSize: 15, color: '#3C252D', height: 44, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
+    scopeBlock: { paddingHorizontal: 4 },
+    dayChips: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+    dayChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: '#E3C7D1', backgroundColor: '#FFFFFF' },
+    dayChipActive: { backgroundColor: '#D81B60', borderColor: '#D81B60' },
+    dayChipName: { fontSize: 11, fontWeight: '700', color: '#8A6673' },
+    dayChipDate: { fontSize: 15, fontWeight: '800', color: '#2A2124', marginTop: 1 },
+    dayChipTextActive: { color: '#FFFFFF' },
+    dayDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4, backgroundColor: 'transparent' },
+    dayDotOn: { backgroundColor: '#D81B60' },
+    dayDotActive: { backgroundColor: '#FFFFFF' },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 8 },
+    toggle: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: '#E3C7D1', backgroundColor: '#FFFFFF' },
+    toggleActive: { backgroundColor: '#D81B60', borderColor: '#D81B60' },
+    toggleText: { fontSize: 13, fontWeight: '600', color: '#5A3A46' },
+    toggleTextActive: { color: '#FFFFFF' },
+    resultCount: { marginLeft: 'auto', fontSize: 12, color: '#8A6673' },
+    pickList: { flexGrow: 0 },
+    pickRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: '#EEDEE4' },
+    pickRowOn: { backgroundColor: '#FEF3F7' },
+    doneButton: { marginTop: 12, borderRadius: 14 },
+    pickImage: { width: 58, height: 58, borderRadius: 12, backgroundColor: '#EDD8E0' },
+    pickName: { fontSize: 15, fontWeight: '700', color: '#2A2124' },
+    pickMeta: { fontSize: 12, color: '#8A6673', marginTop: 3 },
+    pickEmpty: { textAlign: 'center', color: '#8A6673', paddingVertical: 28 },
+    shopHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' },
+    shopIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#D81B60', alignItems: 'center', justifyContent: 'center' },
+    shopText: { flex: 1, minWidth: 180 },
+    shopTitle: { fontSize: 20, fontWeight: '800', color: '#2A2124' },
+    shopSub: { fontSize: 13, color: '#8A6673', marginTop: 2 },
+    shopHint: { marginTop: 14, fontSize: 13, color: '#8A6673' },
+    shopBody: { marginTop: 18 },
+    progressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
+    progressText: { fontSize: 13, fontWeight: '600', color: '#5A3A46' },
+    progressActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    linkText: { fontSize: 13, fontWeight: '700', color: '#D81B60' },
+    progressTrack: { height: 8, borderRadius: 4, backgroundColor: '#EDD8E0', marginTop: 10, overflow: 'hidden' },
+    progressFill: { height: 8, borderRadius: 4, backgroundColor: '#43A047' },
+    aisles: { marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+    aisle: { flexGrow: 1, flexBasis: 280, backgroundColor: '#FEF9FB', borderRadius: 18, padding: 14, borderWidth: 1, borderColor: '#E9CED8' },
+    aisleHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+    aisleTitle: { flex: 1, fontSize: 15, fontWeight: '800', color: '#2A2124' },
+    aisleCount: { fontSize: 12, fontWeight: '700', color: '#8A6673' },
+    itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 },
+    itemText: { flex: 1, fontSize: 14, color: '#3C252D' },
+    itemDone: { color: '#BAA6AD', textDecorationLine: 'line-through' },
+    countChip: { backgroundColor: '#FDE7EF', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+    countChipText: { fontSize: 12, fontWeight: '800', color: '#880E4F' },
+});
