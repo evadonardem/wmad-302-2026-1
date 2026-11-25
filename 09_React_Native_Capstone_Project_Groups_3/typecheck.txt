@@ -1,0 +1,2 @@
+npm notice run 09-cookbook-capstone@1.0.0 typecheck
+npm notice run tsc --noEmit

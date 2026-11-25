@@ -1,0 +1,39 @@
+npm notice run 09-cookbook-capstone@1.0.0 lint
+npm notice run expo lint
+> npx eslint .
+npm notice run 09-cookbook-capstone@1.0.0 npx
+npm notice run 'eslint' .
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/app/(app)/(tabs)/_layout.tsx
+  11:11  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/app/(app)/(tabs)/categories.tsx
+  115:18  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  115:26  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  115:32  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  115:41  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/app/(app)/(tabs)/favorites.tsx
+  176:18  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  176:35  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/app/(app)/(tabs)/search.tsx
+  10:27  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+  13:29  warning  'Button' is defined but never used     @typescript-eslint/no-unused-vars
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/app/(auth)/login.tsx
+    9:3   warning  'TextInput' is defined but never used                            @typescript-eslint/no-unused-vars
+  149:52  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/app/(auth)/register.tsx
+  336:1  warning  Import in body of module; reorder to top  import/first
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/context/AuthContext.tsx
+  136:21  warning  'freshUser' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/fabro/wmad-302-2026-1/09_React_Native_Capstone_Project_Groups_3/utils/storage.ts
+  86:10  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+✖ 14 problems (7 errors, 7 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+
