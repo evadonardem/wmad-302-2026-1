@@ -44,3 +44,6 @@ ios/build/
 # Debug
 *.orig
 *.rej
+# Generated Expo native projects
+/android/
+/ios/

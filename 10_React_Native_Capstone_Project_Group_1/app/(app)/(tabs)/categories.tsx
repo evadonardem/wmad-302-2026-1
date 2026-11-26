@@ -26,7 +26,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Card, Title, Button } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { productApi } from '../../../services/productApi';
 import { useAppTheme } from '../../../context/ThemeContext';
 import { styles, getCategoriesBreakpointMetrics } from './categoriesStyles';

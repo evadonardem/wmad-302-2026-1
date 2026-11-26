@@ -1,9 +1,21 @@
+
 /**
  * Tabs Layout - Marketplace App Navigation
  * Tabs: Home (Shop), Categories, Cart, Profile
- * Features: Bottom Tab Navigation (Mobile/Tablet) + Hamburger Drawer on Website/Desktop + Hides product/[id], search, and helper files
+ * Features: Responsive Bottom Tab Navigation (Phones/Tablets) + Hamburger Drawer (Website/Desktop)
+ * Keeps only Shop, Categories, Cart, and Profile visible in the tab bar.
+ * Hides search, product details, settings, and helper/style routes.
  */
-import React, { useEffect, useState, useCallback, useRef, createContext, useContext } from 'react';
+
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  createContext,
+  useContext,
+} from 'react';
+
 import {
   View,
   Text,
@@ -17,13 +29,35 @@ import {
   StyleSheet,
   DeviceEventEmitter,
 } from 'react-native';
-import { Tabs, Redirect, useRouter, usePathname, useFocusEffect } from 'expo-router';
-import { PaperProvider, IconButton, Divider, Avatar, Surface } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import {
+  Tabs,
+  Redirect,
+  useRouter,
+  usePathname,
+  useFocusEffect,
+} from 'expo-router';
+
+import {
+  PaperProvider,
+  IconButton,
+  Divider,
+  Avatar,
+  Surface,
+} from 'react-native-paper';
+
+/*
+ * FIX:
+ * Import MaterialCommunityIcons directly instead of importing it
+ * from the @expo/vector-icons package root.
+ */
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/context/ThemeContext';
 
@@ -34,42 +68,68 @@ interface DesktopDrawerContextValue {
   wishlistBadgeCount: number;
 }
 
-const DesktopDrawerContext = createContext<DesktopDrawerContextValue>({
-  openDesktopDrawer: () => {},
-  closeDesktopDrawer: () => {},
-  cartBadgeCount: 0,
-  wishlistBadgeCount: 0,
-});
+const DesktopDrawerContext =
+  createContext<DesktopDrawerContextValue>({
+    openDesktopDrawer: () => {},
+    closeDesktopDrawer: () => {},
+    cartBadgeCount: 0,
+    wishlistBadgeCount: 0,
+  });
 
-export const useDesktopDrawer = () => useContext(DesktopDrawerContext);
+export const useDesktopDrawer = () =>
+  useContext(DesktopDrawerContext);
 
 export default function TabsLayout() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isLoadingAuth: isLoading, logout } = useAuth();
+
+  const {
+    user,
+    isAuthenticated,
+    isLoadingAuth: isLoading,
+    logout,
+  } = useAuth();
+
   const { palette, paperTheme } = useAppTheme();
+
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  // Responsive Breakpoints (Website >= 1024, Tablet 768-1023, Mobile Phones < 768: Realme, iPhone, Samsung, Xiaomi, OPPO, Vivo)
+  // Responsive Breakpoints
+  // Website/Desktop >= 1024
+  // Tablet >= 768 and < 1024
+  // Mobile Phones < 768 (Realme, iPhone, Samsung, Xiaomi, OPPO, Vivo)
+
   const isLargeDesktop = width >= 1440;
   const isDesktop = width >= 1024;
   const isTablet = width >= 768 && width < 1024;
   const isSmallPhone = width <= 375;
 
   // Website Hamburger Drawer State
-  const drawerWidth = isLargeDesktop ? 360 : Math.min(330, Math.round(width * 0.85));
+
+  const drawerWidth = isLargeDesktop
+    ? 360
+    : Math.min(330, Math.round(width * 0.85));
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cartBadgeCount, setCartBadgeCount] = useState(0);
   const [wishlistBadgeCount, setWishlistBadgeCount] = useState(0);
-  const slideAnim = useRef(new Animated.Value(drawerWidth)).current;
-  const backdropFadeAnim = useRef(new Animated.Value(0)).current;
+
+  const slideAnim = useRef(
+    new Animated.Value(drawerWidth)
+  ).current;
+
+  const backdropFadeAnim = useRef(
+    new Animated.Value(0)
+  ).current;
 
   const userPrefix = `@marketplace_user_${user?.id || 'guest'}`;
+
   const userCartStorageKey = `${userPrefix}_cart`;
   const userWishlistStorageKey = `${userPrefix}_wishlist`;
 
   // Preload icon fonts safely without blocking web or unauthenticated splash screen
+
   const [fontsLoaded, fontError] = useFonts({
     ...MaterialCommunityIcons.font,
   });
@@ -80,6 +140,8 @@ export default function TabsLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  // Synchronize cart and wishlist badges
+
   const syncBadges = useCallback(async () => {
     try {
       const [savedCart, savedWishlist] = await Promise.all([
@@ -87,11 +149,20 @@ export default function TabsLayout() {
         AsyncStorage.getItem(userWishlistStorageKey),
       ]);
 
-      const fallbackCart = savedCart ?? (await AsyncStorage.getItem('@marketplace_cart'));
+      const fallbackCart =
+        savedCart ??
+        (await AsyncStorage.getItem('@marketplace_cart'));
+
       if (fallbackCart) {
         const parsedCart = JSON.parse(fallbackCart);
+
         if (Array.isArray(parsedCart)) {
-          const totalQty = parsedCart.reduce((sum, item) => sum + (Number(item?.quantity) || 1), 0);
+          const totalQty = parsedCart.reduce(
+            (sum, item) =>
+              sum + (Number(item?.quantity) || 1),
+            0
+          );
+
           setCartBadgeCount(totalQty);
         } else {
           setCartBadgeCount(0);
@@ -101,10 +172,17 @@ export default function TabsLayout() {
       }
 
       const fallbackWishlist =
-        savedWishlist ?? (await AsyncStorage.getItem('@marketplace_wishlist'));
+        savedWishlist ??
+        (await AsyncStorage.getItem('@marketplace_wishlist'));
+
       if (fallbackWishlist) {
         const parsedWishlist = JSON.parse(fallbackWishlist);
-        setWishlistBadgeCount(Array.isArray(parsedWishlist) ? parsedWishlist.length : 0);
+
+        setWishlistBadgeCount(
+          Array.isArray(parsedWishlist)
+            ? parsedWishlist.length
+            : 0
+        );
       } else {
         setWishlistBadgeCount(0);
       }
@@ -124,24 +202,39 @@ export default function TabsLayout() {
     syncBadges();
   }, [pathname, drawerOpen, syncBadges]);
 
+  // Listen for cart and wishlist changes
+
   useEffect(() => {
-    const cartSub = DeviceEventEmitter.addListener('cartUpdated', () => {
-      syncBadges();
-    });
-    const wishSub = DeviceEventEmitter.addListener('wishlistUpdated', () => {
-      syncBadges();
-    });
+    const cartSub = DeviceEventEmitter.addListener(
+      'cartUpdated',
+      () => {
+        syncBadges();
+      }
+    );
+
+    const wishSub = DeviceEventEmitter.addListener(
+      'wishlistUpdated',
+      () => {
+        syncBadges();
+      }
+    );
+
     return () => {
       cartSub.remove();
       wishSub.remove();
     };
   }, [syncBadges]);
 
+  // Open Website Hamburger Drawer
+
   const openDesktopDrawer = useCallback(() => {
     syncBadges();
+
     slideAnim.setValue(drawerWidth);
     backdropFadeAnim.setValue(0);
+
     setDrawerOpen(true);
+
     Animated.parallel([
       Animated.spring(slideAnim, {
         toValue: 0,
@@ -149,13 +242,21 @@ export default function TabsLayout() {
         friction: 9,
         tension: 85,
       }),
+
       Animated.timing(backdropFadeAnim, {
         toValue: 1,
         duration: 220,
         useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
-  }, [drawerWidth, slideAnim, backdropFadeAnim, syncBadges]);
+  }, [
+    drawerWidth,
+    slideAnim,
+    backdropFadeAnim,
+    syncBadges,
+  ]);
+
+  // Close Website Hamburger Drawer
 
   const closeDesktopDrawer = useCallback(
     (callback?: () => void) => {
@@ -165,6 +266,7 @@ export default function TabsLayout() {
           duration: 210,
           useNativeDriver: Platform.OS !== 'web',
         }),
+
         Animated.timing(backdropFadeAnim, {
           toValue: 0,
           duration: 190,
@@ -172,20 +274,34 @@ export default function TabsLayout() {
         }),
       ]).start(() => {
         setDrawerOpen(false);
-        if (callback) callback();
+
+        if (callback) {
+          callback();
+        }
       });
     },
     [drawerWidth, slideAnim, backdropFadeAnim]
   );
 
-  if (!isLoading && !isAuthenticated) {
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
 
+  // Website blur effect
+
   const webNavBlur: any =
     Platform.OS === 'web'
-      ? { backdropFilter: 'blur(22px)', WebkitBackdropFilter: 'blur(22px)' }
+      ? {
+          backdropFilter: 'blur(22px)',
+          WebkitBackdropFilter: 'blur(22px)',
+        }
       : {};
+
+  // Website background gradient
 
   const webAmbientBackdropStyle: any =
     Platform.OS === 'web'
@@ -196,17 +312,26 @@ export default function TabsLayout() {
         }
       : {};
 
+  // Website brand gradient
+
   const webBrandGradientStyle: any =
     Platform.OS === 'web'
       ? {
-          backgroundImage: 'linear-gradient(135deg, #FE2C55 0%, #FF6B8B 100%)',
-          boxShadow: '0 8px 20px rgba(254, 44, 85, 0.32)',
+          backgroundImage:
+            'linear-gradient(135deg, #FE2C55 0%, #FF6B8B 100%)',
+          boxShadow:
+            '0 8px 20px rgba(254, 44, 85, 0.32)',
         }
       : {};
 
+  // Bottom navigation shadow
+
   const mobileTabShadow: any =
     Platform.OS === 'web'
-      ? { boxShadow: '0px -6px 24px rgba(15, 23, 42, 0.08)' }
+      ? {
+          boxShadow:
+            '0px -6px 24px rgba(15, 23, 42, 0.08)',
+        }
       : {
           elevation: 14,
           shadowColor: '#0F172A',
@@ -215,9 +340,14 @@ export default function TabsLayout() {
           shadowRadius: 12,
         };
 
+  // Desktop drawer shadow
+
   const drawerShadow: any =
     Platform.OS === 'web'
-      ? { boxShadow: '-14px 0px 42px rgba(15, 23, 42, 0.18)' }
+      ? {
+          boxShadow:
+            '-14px 0px 42px rgba(15, 23, 42, 0.18)',
+        }
       : {
           elevation: 20,
           shadowColor: '#0F172A',
@@ -225,6 +355,8 @@ export default function TabsLayout() {
           shadowOpacity: 0.2,
           shadowRadius: 18,
         };
+
+  // Website/Desktop Main Navigation
 
   const desktopNavItems = [
     {
@@ -250,7 +382,9 @@ export default function TabsLayout() {
       label: 'Shopping Cart',
       subtitle:
         cartBadgeCount > 0
-          ? `${cartBadgeCount} ${cartBadgeCount === 1 ? 'item' : 'items'} ready`
+          ? `${cartBadgeCount} ${
+              cartBadgeCount === 1 ? 'item' : 'items'
+            } ready`
           : 'Your bag is empty',
       icon: 'cart-outline' as const,
       activeIcon: 'cart' as const,
@@ -269,6 +403,8 @@ export default function TabsLayout() {
     },
   ];
 
+  // Website/Desktop Secondary Navigation
+
   const desktopSecondaryItems = [
     {
       key: 'orders',
@@ -285,17 +421,27 @@ export default function TabsLayout() {
   ];
 
   const isRouteActive = (match: string) => {
-    if (!pathname) return match === '/home';
+    if (!pathname) {
+      return match === '/home';
+    }
+
     return pathname === match || pathname.endsWith(match);
   };
 
   const displayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() ||
+    [user?.firstName, user?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim() ||
     user?.username ||
     'Marketplace Shopper';
 
-  const safeBottomInset = Platform.OS === 'web' ? 0 : Math.max(insets.bottom, 6);
-  const tabBarHeight = (isTablet ? 64 : 64) + safeBottomInset;
+  const safeBottomInset =
+    Platform.OS === 'web' ? 0 : Math.max(insets.bottom, 6);
+
+  const tabBarHeight = 64 + safeBottomInset;
+
+  // Bottom Navigation Icon
 
   const renderTabIcon = (
     focused: boolean,
@@ -306,7 +452,12 @@ export default function TabsLayout() {
     <View
       style={[
         styles.tabIconPill,
-        isSmallPhone && { paddingHorizontal: 10, paddingVertical: 3 },
+
+        isSmallPhone && {
+          paddingHorizontal: 10,
+          paddingVertical: 3,
+        },
+
         focused && {
           backgroundColor: palette.isDark
             ? 'rgba(254, 44, 85, 0.22)'
@@ -326,7 +477,7 @@ export default function TabsLayout() {
     <DesktopDrawerContext.Provider
       value={{
         openDesktopDrawer,
-        closeDesktopDrawer,
+        closeDesktopDrawer: () => closeDesktopDrawer(),
         cartBadgeCount,
         wishlistBadgeCount,
       }}
@@ -336,13 +487,19 @@ export default function TabsLayout() {
           style={[
             styles.rootContainer,
             {
-              backgroundColor: palette.isDark ? palette.background : '#F1F5FB',
+              backgroundColor: palette.isDark
+                ? palette.background
+                : '#F1F5FB',
             },
             webAmbientBackdropStyle,
           ]}
         >
           {/* Ambient Decorative Glow Orbs across Website, Tablet & Phone */}
-          <View pointerEvents="none" style={styles.ambientLayer}>
+
+          <View
+            pointerEvents="none"
+            style={styles.ambientLayer}
+          >
             <View
               style={[
                 styles.ambientOrbTopLeft,
@@ -353,6 +510,7 @@ export default function TabsLayout() {
                 },
               ]}
             />
+
             <View
               style={[
                 styles.ambientOrbTopRight,
@@ -363,6 +521,7 @@ export default function TabsLayout() {
                 },
               ]}
             />
+
             <View
               style={[
                 styles.ambientOrbBottomLeft,
@@ -375,7 +534,21 @@ export default function TabsLayout() {
             />
           </View>
 
+          {/* ==================== RESPONSIVE TAB NAVIGATION ==================== */}
+
           <Tabs
+            /*
+             * IMPORTANT NAVIGATION FIX:
+             *
+             * Expo Router automatically discovers files inside the tabs folder.
+             *
+             * Only the four intended routes below are visible in the tab bar.
+             *
+             * All other routes use href: null in their own Tabs.Screen options.
+             *
+             * Do not combine href: null with tabBarButton.
+             */
+
             sceneContainerStyle={{
               paddingTop: 0,
               backgroundColor: 'transparent',
@@ -383,104 +556,153 @@ export default function TabsLayout() {
             }}
             screenOptions={{
               headerShown: false,
+
               tabBarActiveTintColor: '#FE2C55',
               tabBarInactiveTintColor: palette.textMuted,
-              tabBarLabelPosition: isTablet ? 'beside-icon' : 'below-icon',
-              // Website (isDesktop) uses Hamburger Drawer; Tablet & Phones (Realme, iPhone, Samsung, etc.) show elevated frosted bottom bar
+
+              // Keep labels below icons on both phones and tablets.
+              // This prevents long labels from pushing navigation items sideways.
+
+              tabBarLabelPosition: 'below-icon',
+
+              // Website/Desktop uses Hamburger Drawer.
+              // Tablets and phones use a four-item bottom navigation bar.
+
               tabBarStyle: isDesktop
                 ? { display: 'none' }
                 : {
                     backgroundColor: palette.glassNav,
                     borderTopWidth: 1,
                     borderTopColor: palette.border,
-                    paddingTop: isTablet ? 8 : 6,
+                    paddingTop: 6,
                     paddingBottom: safeBottomInset,
                     height: tabBarHeight,
-                    paddingHorizontal: isTablet ? 28 : isSmallPhone ? 2 : 6,
+                    paddingHorizontal: isSmallPhone
+                      ? 2
+                      : isTablet
+                        ? 20
+                        : 6,
                     margin: 0,
                     ...mobileTabShadow,
                     ...webNavBlur,
                   },
-              tabBarItemStyle: isTablet
-                ? {
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    paddingHorizontal: 10,
-                    paddingVertical: 0,
-                    margin: 0,
-                    borderRadius: 14,
-                  }
-                : {
-                    flex: 1,
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 2,
-                    paddingVertical: 2,
-                    margin: 0,
-                  },
+
+              // Four equal-width navigation buttons.
+              // minWidth: 0 prevents labels from forcing wider tab items.
+
+              tabBarItemStyle: {
+                flex: 1,
+                minWidth: 0,
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                paddingHorizontal: isSmallPhone ? 1 : 4,
+                paddingVertical: 2,
+                margin: 0,
+              },
+
               tabBarIconStyle: {
                 margin: 0,
-                marginRight: isTablet ? 4 : 0,
+                marginRight: 0,
                 padding: 0,
               },
+
               tabBarLabelStyle: {
-                fontSize: isTablet ? 13 : isSmallPhone ? 9.5 : 11,
+                fontSize: isTablet
+                  ? 13
+                  : isSmallPhone
+                    ? 9.5
+                    : 11,
                 fontWeight: '800',
                 letterSpacing: 0.15,
-                marginTop: isTablet ? 0 : 2,
-                marginLeft: isTablet ? 6 : 0,
+                marginTop: 2,
+                marginLeft: 0,
                 marginBottom: 0,
                 padding: 0,
+                textAlign: 'center',
               },
             }}
           >
+            {/* ==================== VISIBLE BOTTOM NAVIGATION ==================== */}
+
             <Tabs.Screen
               name="home"
               options={{
                 title: 'Shop',
                 tabBarIcon: ({ focused, color }) =>
-                  renderTabIcon(focused, color, 'storefront', 'storefront-outline'),
+                  renderTabIcon(
+                    focused,
+                    color,
+                    'storefront',
+                    'storefront-outline'
+                  ),
               }}
             />
+
             <Tabs.Screen
               name="categories"
               options={{
                 title: 'Categories',
                 tabBarIcon: ({ focused, color }) =>
-                  renderTabIcon(focused, color, 'view-grid', 'view-grid-outline'),
+                  renderTabIcon(
+                    focused,
+                    color,
+                    'view-grid',
+                    'view-grid-outline'
+                  ),
               }}
             />
+
             <Tabs.Screen
               name="cart"
               options={{
                 title: 'Cart',
-                tabBarBadge: cartBadgeCount > 0 ? cartBadgeCount : undefined,
+
+                tabBarBadge:
+                  cartBadgeCount > 0
+                    ? cartBadgeCount
+                    : undefined,
+
                 tabBarBadgeStyle: {
                   backgroundColor: '#FE2C55',
                   color: '#FFFFFF',
                   fontSize: 10,
                   fontWeight: '900',
                   borderWidth: 1.5,
-                  borderColor: palette.isDark ? '#0F172A' : '#FFFFFF',
+                  borderColor: palette.isDark
+                    ? '#0F172A'
+                    : '#FFFFFF',
                 },
+
                 tabBarIcon: ({ focused, color }) =>
-                  renderTabIcon(focused, color, 'cart', 'cart-outline'),
+                  renderTabIcon(
+                    focused,
+                    color,
+                    'cart',
+                    'cart-outline'
+                  ),
               }}
             />
+
             <Tabs.Screen
               name="profile"
               options={{
                 title: 'Profile',
                 tabBarIcon: ({ focused, color }) =>
-                  renderTabIcon(focused, color, 'account', 'account-outline'),
+                  renderTabIcon(
+                    focused,
+                    color,
+                    'account',
+                    'account-outline'
+                  ),
               }}
             />
 
+            {/* ==================== HIDDEN ROUTES ==================== */}
+
             {/* Hide search route from tab bar */}
+
             <Tabs.Screen
               name="search"
               options={{
@@ -489,7 +711,38 @@ export default function TabsLayout() {
               }}
             />
 
-            {/* Hide AccountSettingsModal & style/helper files inside (tabs) from Tablet & Mobile bottom tab bar */}
+            {/* Hide cart helper styles from tab bar */}
+
+            <Tabs.Screen
+              name="cartStyles"
+              options={{
+                href: null,
+                headerShown: false,
+              }}
+            />
+
+            {/* Hide search helper styles from tab bar */}
+
+            <Tabs.Screen
+              name="searchStyles"
+              options={{
+                href: null,
+                headerShown: false,
+              }}
+            />
+
+            {/* Hide Categories helper styles from tab bar */}
+
+            <Tabs.Screen
+              name="categoriesStyles"
+              options={{
+                href: null,
+                headerShown: false,
+              }}
+            />
+
+            {/* Hide AccountSettingsModal & style/helper files inside (tabs) */}
+
             <Tabs.Screen
               name="AccountSettingsModal"
               options={{
@@ -497,6 +750,7 @@ export default function TabsLayout() {
                 headerShown: false,
               }}
             />
+
             <Tabs.Screen
               name="profileStyles"
               options={{
@@ -504,6 +758,7 @@ export default function TabsLayout() {
                 headerShown: false,
               }}
             />
+
             <Tabs.Screen
               name="homeStyles"
               options={{
@@ -512,18 +767,23 @@ export default function TabsLayout() {
               }}
             />
 
-            {/* Hide product detail route from tab bar & hide tab bar when viewing product details */}
+            {/* Hide product detail route from tab bar.
+                Hide the tab bar when viewing product details. */}
+
             <Tabs.Screen
               name="product/[id]"
               options={{
                 href: null,
                 headerShown: false,
-                tabBarStyle: { display: 'none' },
+                tabBarStyle: {
+                  display: 'none',
+                },
               }}
             />
           </Tabs>
 
           {/* ==================== WEBSITE HAMBURGER DRAWER (SHOP, CATEGORIES, CART, PROFILE) ==================== */}
+
           {isDesktop && (
             <Modal
               visible={drawerOpen}
@@ -533,40 +793,60 @@ export default function TabsLayout() {
             >
               <View style={styles.drawerOverlayContainer}>
                 {/* Animated Dimmed Left Backdrop */}
-                <TouchableWithoutFeedback onPress={() => closeDesktopDrawer()}>
+
+                <TouchableWithoutFeedback
+                  onPress={() => closeDesktopDrawer()}
+                >
                   <Animated.View
                     style={[
                       styles.drawerBackdrop,
                       {
                         opacity: backdropFadeAnim,
-                        backgroundColor: palette.glassOverlay || 'rgba(15, 23, 42, 0.48)',
+                        backgroundColor:
+                          palette.glassOverlay ||
+                          'rgba(15, 23, 42, 0.48)',
                       },
                     ]}
                   />
                 </TouchableWithoutFeedback>
 
                 {/* Right-Side Frosted Glass Slide-Out Drawer Panel */}
+
                 <Animated.View
                   style={[
                     styles.drawerPanel,
                     {
                       width: drawerWidth,
-                      backgroundColor: palette.glassModal || palette.background,
+                      backgroundColor:
+                        palette.glassModal || palette.background,
                       borderLeftColor: palette.border,
                       paddingTop: Math.max(insets.top, 22),
                       paddingBottom: Math.max(insets.bottom, 20),
-                      transform: [{ translateX: slideAnim }],
+                      transform: [
+                        { translateX: slideAnim },
+                      ],
                     },
                     drawerShadow,
                     webNavBlur,
                   ]}
                 >
                   {/* Top Brand Header */}
+
                   <View style={styles.drawerBrandHeader}>
                     <View style={styles.drawerBrandRow}>
-                      <View style={[styles.brandBadge, webBrandGradientStyle]}>
-                        <MaterialCommunityIcons name="shopping" size={20} color="#FFFFFF" />
+                      <View
+                        style={[
+                          styles.brandBadge,
+                          webBrandGradientStyle,
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name="shopping"
+                          size={20}
+                          color="#FFFFFF"
+                        />
                       </View>
+
                       <View>
                         <Text
                           style={[
@@ -576,6 +856,7 @@ export default function TabsLayout() {
                         >
                           Marketplace
                         </Text>
+
                         <Text
                           style={[
                             styles.brandSubtitle,
@@ -603,6 +884,7 @@ export default function TabsLayout() {
                   </View>
 
                   {/* User Account Quick Card */}
+
                   <Surface
                     elevation={0}
                     style={[
@@ -617,7 +899,9 @@ export default function TabsLayout() {
                       activeOpacity={0.82}
                       onPress={() =>
                         closeDesktopDrawer(() => {
-                          router.push('/(app)/(tabs)/profile' as any);
+                          router.push(
+                            '/(app)/(tabs)/profile' as any
+                          );
                         })
                       }
                       style={styles.userSummaryRow}
@@ -634,6 +918,7 @@ export default function TabsLayout() {
                           }}
                         />
                       </View>
+
                       <View style={{ flex: 1 }}>
                         <Text
                           numberOfLines={1}
@@ -644,6 +929,7 @@ export default function TabsLayout() {
                         >
                           {displayName}
                         </Text>
+
                         <Text
                           numberOfLines={1}
                           style={[
@@ -651,9 +937,11 @@ export default function TabsLayout() {
                             { color: palette.textSecondary },
                           ]}
                         >
-                          @{user?.username || 'member'} · {wishlistBadgeCount} Saved
+                          @{user?.username || 'member'} ·{' '}
+                          {wishlistBadgeCount} Saved
                         </Text>
                       </View>
+
                       <MaterialCommunityIcons
                         name="chevron-right"
                         size={20}
@@ -662,12 +950,20 @@ export default function TabsLayout() {
                     </TouchableOpacity>
                   </Surface>
 
-                  <Divider style={{ backgroundColor: palette.border, marginVertical: 14 }} />
+                  <Divider
+                    style={{
+                      backgroundColor: palette.border,
+                      marginVertical: 14,
+                    }}
+                  />
 
                   {/* Main Navigation Links */}
+
                   <ScrollView
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 16 }}
+                    contentContainerStyle={{
+                      paddingBottom: 16,
+                    }}
                   >
                     <Text
                       style={[
@@ -681,6 +977,7 @@ export default function TabsLayout() {
                     <View style={{ gap: 8 }}>
                       {desktopNavItems.map((item) => {
                         const active = isRouteActive(item.match);
+
                         return (
                           <TouchableOpacity
                             key={item.key}
@@ -698,6 +995,7 @@ export default function TabsLayout() {
                                     ? 'rgba(254, 44, 85, 0.18)'
                                     : 'rgba(254, 44, 85, 0.10)'
                                   : 'transparent',
+
                                 borderColor: active
                                   ? 'rgba(254, 44, 85, 0.38)'
                                   : 'transparent',
@@ -716,28 +1014,46 @@ export default function TabsLayout() {
                                 ]}
                               >
                                 <MaterialCommunityIcons
-                                  name={active ? item.activeIcon : item.icon}
+                                  name={
+                                    active
+                                      ? item.activeIcon
+                                      : item.icon
+                                  }
                                   size={20}
-                                  color={active ? '#FFFFFF' : palette.textSecondary}
+                                  color={
+                                    active
+                                      ? '#FFFFFF'
+                                      : palette.textSecondary
+                                  }
                                 />
                               </View>
+
                               <View style={{ flex: 1 }}>
                                 <Text
                                   style={[
                                     styles.drawerNavTitle,
                                     {
-                                      fontWeight: active ? '900' : '700',
-                                      color: active ? '#FE2C55' : palette.textPrimary,
+                                      fontWeight: active
+                                        ? '900'
+                                        : '700',
+
+                                      color: active
+                                        ? '#FE2C55'
+                                        : palette.textPrimary,
                                     },
                                   ]}
                                 >
                                   {item.label}
                                 </Text>
+
                                 <Text
                                   numberOfLines={1}
                                   style={[
                                     styles.drawerNavSubtitle,
-                                    { color: palette.textSecondary },
+                                    {
+                                      color:
+                                        palette.textSecondary,
+                                    },
                                   ]}
                                 >
                                   {item.subtitle}
@@ -745,17 +1061,27 @@ export default function TabsLayout() {
                               </View>
                             </View>
 
-                            {typeof item.badge === 'number' && item.badge > 0 && (
-                              <View style={styles.drawerBadge}>
-                                <Text style={styles.drawerBadgeText}>{item.badge}</Text>
-                              </View>
-                            )}
+                            {typeof item.badge === 'number' &&
+                              item.badge > 0 && (
+                                <View style={styles.drawerBadge}>
+                                  <Text
+                                    style={styles.drawerBadgeText}
+                                  >
+                                    {item.badge}
+                                  </Text>
+                                </View>
+                              )}
                           </TouchableOpacity>
                         );
                       })}
                     </View>
 
-                    <Divider style={{ backgroundColor: palette.border, marginVertical: 16 }} />
+                    <Divider
+                      style={{
+                        backgroundColor: palette.border,
+                        marginVertical: 16,
+                      }}
+                    />
 
                     <Text
                       style={[
@@ -781,7 +1107,10 @@ export default function TabsLayout() {
                           <View
                             style={[
                               styles.drawerSecondaryIcon,
-                              { backgroundColor: palette.accentSoft },
+                              {
+                                backgroundColor:
+                                  palette.accentSoft,
+                              },
                             ]}
                           >
                             <MaterialCommunityIcons
@@ -790,6 +1119,7 @@ export default function TabsLayout() {
                               color={palette.accent}
                             />
                           </View>
+
                           <Text
                             style={[
                               styles.drawerSecondaryText,
@@ -798,6 +1128,7 @@ export default function TabsLayout() {
                           >
                             {sec.label}
                           </Text>
+
                           <MaterialCommunityIcons
                             name="chevron-right"
                             size={18}
@@ -809,10 +1140,13 @@ export default function TabsLayout() {
                   </ScrollView>
 
                   {/* Bottom Sign Out Footer */}
+
                   <View
                     style={[
                       styles.drawerFooter,
-                      { borderTopColor: palette.border },
+                      {
+                        borderTopColor: palette.border,
+                      },
                     ]}
                   >
                     <TouchableOpacity
@@ -820,7 +1154,9 @@ export default function TabsLayout() {
                       onPress={() =>
                         closeDesktopDrawer(async () => {
                           await logout();
-                          router.replace('/(auth)/login' as any);
+                          router.replace(
+                            '/(auth)/login' as any
+                          );
                         })
                       }
                       style={[
@@ -829,12 +1165,20 @@ export default function TabsLayout() {
                           backgroundColor: palette.isDark
                             ? 'rgba(239, 68, 68, 0.16)'
                             : 'rgba(239, 68, 68, 0.09)',
-                          borderColor: 'rgba(239, 68, 68, 0.30)',
+                          borderColor:
+                            'rgba(239, 68, 68, 0.30)',
                         },
                       ]}
                     >
-                      <MaterialCommunityIcons name="logout" size={18} color="#EF4444" />
-                      <Text style={styles.signOutText}>Sign Out</Text>
+                      <MaterialCommunityIcons
+                        name="logout"
+                        size={18}
+                        color="#EF4444"
+                      />
+
+                      <Text style={styles.signOutText}>
+                        Sign Out
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </Animated.View>
@@ -847,6 +1191,8 @@ export default function TabsLayout() {
   );
 }
 
+// ==================== RESPONSIVE STYLES ====================
+
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
@@ -854,11 +1200,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+
   ambientLayer: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
     zIndex: 0,
   },
+
   ambientOrbTopLeft: {
     position: 'absolute',
     top: -120,
@@ -867,6 +1215,7 @@ const styles = StyleSheet.create({
     height: 340,
     borderRadius: 999,
   },
+
   ambientOrbTopRight: {
     position: 'absolute',
     top: 40,
@@ -875,6 +1224,7 @@ const styles = StyleSheet.create({
     height: 310,
     borderRadius: 999,
   },
+
   ambientOrbBottomLeft: {
     position: 'absolute',
     bottom: 60,
@@ -883,6 +1233,9 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 999,
   },
+
+  // Bottom Navigation Icon Background
+
   tabIconPill: {
     paddingHorizontal: 14,
     paddingVertical: 4,
@@ -890,18 +1243,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // Website Drawer
+
   drawerOverlayContainer: {
     flex: 1,
     flexDirection: 'row',
   },
+
   drawerBackdrop: {
     flex: 1,
   },
+
   drawerPanel: {
     height: '100%',
     borderLeftWidth: 1,
     paddingHorizontal: 18,
   },
+
   drawerBrandHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -909,11 +1268,13 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingHorizontal: 2,
   },
+
   drawerBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
   },
+
   brandBadge: {
     width: 40,
     height: 40,
@@ -922,46 +1283,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   brandTitle: {
     fontSize: 17,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
+
   brandSubtitle: {
     fontSize: 11.5,
     fontWeight: '600',
     marginTop: 1,
   },
+
   drawerCloseBtn: {
     margin: 0,
     borderWidth: 1,
     borderRadius: 12,
   },
+
   userSummaryCard: {
     borderRadius: 16,
     borderWidth: 1,
     padding: 11,
   },
+
   userSummaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
   },
+
   userAvatarRing: {
     padding: 2,
     borderRadius: 999,
     borderWidth: 1.8,
     borderColor: '#FE2C55',
   },
+
   userSummaryName: {
     fontSize: 14.5,
     fontWeight: '900',
   },
+
   userSummaryHandle: {
     fontSize: 11.5,
     fontWeight: '600',
     marginTop: 2,
   },
+
   drawerSectionLabel: {
     fontSize: 10.5,
     fontWeight: '900',
@@ -969,6 +1339,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 6,
   },
+
   drawerNavItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -978,12 +1349,14 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
   },
+
   drawerNavLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     flex: 1,
   },
+
   drawerNavIconBox: {
     width: 38,
     height: 38,
@@ -991,13 +1364,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   drawerNavTitle: {
     fontSize: 14.5,
   },
+
   drawerNavSubtitle: {
     fontSize: 11,
     marginTop: 1,
   },
+
   drawerBadge: {
     backgroundColor: '#FE2C55',
     paddingHorizontal: 8,
@@ -1006,11 +1382,13 @@ const styles = StyleSheet.create({
     minWidth: 24,
     alignItems: 'center',
   },
+
   drawerBadgeText: {
     fontSize: 11,
     fontWeight: '900',
     color: '#FFFFFF',
   },
+
   drawerSecondaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1019,6 +1397,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 13,
   },
+
   drawerSecondaryIcon: {
     width: 34,
     height: 34,
@@ -1026,15 +1405,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   drawerSecondaryText: {
     flex: 1,
     fontSize: 13.5,
     fontWeight: '700',
   },
+
   drawerFooter: {
     paddingTop: 12,
     borderTopWidth: 1,
   },
+
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1044,6 +1426,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
+
   signOutText: {
     fontSize: 13.5,
     fontWeight: '800',
