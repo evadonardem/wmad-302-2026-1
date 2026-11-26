@@ -39,7 +39,7 @@ import {
   Portal,
   Dialog,
 } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { productApi } from '../../../../services/productApi';
 import { Product } from '../../../../types/product';

@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, DimensionValue, ViewStyle } from 'react-native';
 import { Card, Title, Chip, Badge, Button } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 interface RecipeCardProps {
   recipe: {
