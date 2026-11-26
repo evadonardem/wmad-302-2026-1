@@ -31,7 +31,7 @@ import { addLocalOrder, OrderRecord, PAYMENT_LABELS, PaymentChoice } from '@/ser
 import { loadAddresses, formatAddress } from '@/services/addresses';
 import { CartItem } from '@/types/product';
 import { palette, useResponsive } from '@/constants/theme';
-import { styles } from './cartStyles';
+import { styles } from '@/styles/cart';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -287,9 +287,8 @@ export default function CartScreen() {
             <Pressable onPress={() => setRemoveTarget(item)} accessibilityLabel="Remove item" style={{ marginLeft: 8 }}>
               <MaterialCommunityIcons name="delete-outline" size={22} color={palette.danger} />
             </Pressable>
-            <View style={{ flex: 1 }} />
-            <Text style={styles.itemLineTotal}>${(discountedPrice * item.quantity).toFixed(2)}</Text>
           </View>
+          <Text style={styles.itemLineTotal}>${(discountedPrice * item.quantity).toFixed(2)}</Text>
         </View>
       </View>
     );

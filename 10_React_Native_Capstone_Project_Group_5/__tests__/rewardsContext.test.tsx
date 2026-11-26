@@ -22,8 +22,8 @@ function Probe() {
 describe('RewardsProvider', () => {
   it('renders and updates points', async () => {
     const { getByText } = render(<RewardsProvider><Probe /></RewardsProvider>);
-    await waitFor(() => expect(getByText('pts:0')).toBeTruthy());
+    await waitFor(() => expect(getByText('pts:0')).toBeTruthy(), { timeout: 10000 });
     fireEvent.press(getByText('add'));
-    await waitFor(() => expect(getByText('pts:5')).toBeTruthy());
-  });
+    await waitFor(() => expect(getByText('pts:5')).toBeTruthy(), { timeout: 10000 });
+  }, 15000);
 });

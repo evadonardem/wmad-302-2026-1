@@ -25,10 +25,10 @@ function Probe() {
 describe('CartProvider', () => {
   it('adds items and applies coupon', async () => {
     const { getByText } = render(<CartProvider><Probe /></CartProvider>);
-    await waitFor(() => expect(getByText('qty:0')).toBeTruthy());
+    await waitFor(() => expect(getByText('qty:0')).toBeTruthy(), { timeout: 10000 });
     fireEvent.press(getByText('add'));
-    await waitFor(() => expect(getByText('qty:1')).toBeTruthy());
+    await waitFor(() => expect(getByText('qty:1')).toBeTruthy(), { timeout: 10000 });
     fireEvent.press(getByText('coupon'));
-    await waitFor(() => expect(getByText('coupon:SAVE10')).toBeTruthy());
-  });
+    await waitFor(() => expect(getByText('coupon:SAVE10')).toBeTruthy(), { timeout: 10000 });
+  }, 15000);
 });

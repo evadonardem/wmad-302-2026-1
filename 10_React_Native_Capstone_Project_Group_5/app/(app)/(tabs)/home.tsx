@@ -6,7 +6,7 @@
  * best-picks banner with a limited-time offer, and a bento product grid with pagination dots.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, RefreshControl, LayoutChangeEvent } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, RefreshControl, LayoutChangeEvent, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ import { BentoProducts } from '@/components/BentoProducts';
 import { ShowcaseHero } from '@/components/ShowcaseHero';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { useResponsive, palette } from '@/constants/theme';
-import { styles } from './homeStyles';
+import { styles } from '@/styles/home';
 
 // Types for DummyJSON Products API (shared in @/types/product)
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -89,6 +89,7 @@ export default function HomeScreen() {
   const pillsRef = useRef<ScrollView>(null);
   const [shopWidth, setShopWidth] = useState(0);
   const pillRequest = useRef(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     try {
@@ -192,16 +193,16 @@ export default function HomeScreen() {
   const wideBanner = isWide;
   const themeButton = (
     <Pressable
-      style={styles.themeButton}
+      style={[styles.themeButton, !isWide && { width: 40, height: 40, borderRadius: 20 }]}
       onPress={() => updateSettings({ theme: resolvedMode === 'dark' ? 'light' : 'dark' })}
       accessibilityLabel={resolvedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      <MaterialCommunityIcons name={resolvedMode === 'dark' ? 'weather-sunny' : 'weather-night'} size={20} color={palette.forest} />
+      <MaterialCommunityIcons name={resolvedMode === 'dark' ? 'weather-sunny' : 'weather-night'} size={isWide ? 20 : 18} color={palette.forest} />
     </Pressable>
   );
   const cartButton = (
-    <Pressable style={styles.cartButton} onPress={() => router.push('/(app)/(tabs)/cart')} accessibilityLabel="Open cart">
-      <MaterialCommunityIcons name="cart-outline" size={22} color={palette.surface} />
+    <Pressable style={[styles.cartButton, !isWide && { width: 40, height: 40, borderRadius: 20 }]} onPress={() => router.push('/(app)/(tabs)/cart')} accessibilityLabel="Open cart">
+      <MaterialCommunityIcons name="cart-outline" size={isWide ? 22 : 20} color={palette.surface} />
       {totalQuantity > 0 && (
         <View style={styles.cartBadge}>
           <Text style={styles.cartBadgeText}>{totalQuantity}</Text>
@@ -210,18 +211,22 @@ export default function HomeScreen() {
     </Pressable>
   );
   const accountButton = (
-    <Pressable style={styles.accountButton} onPress={() => router.push('/(app)/(tabs)/profile')} accessibilityLabel="Open profile">
-      <MaterialCommunityIcons name="account-circle-outline" size={30} color={palette.forest} />
+    <Pressable
+      style={[styles.accountButton, !isWide && { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line, justifyContent: 'center' }]}
+      onPress={() => router.push('/(app)/(tabs)/profile')}
+      accessibilityLabel="Open profile"
+    >
+      <MaterialCommunityIcons name="account-circle-outline" size={isWide ? 30 : 20} color={palette.forest} />
       {isWide && user ? <Text style={styles.accountName}>Hi, {user.firstName}</Text> : null}
       {isWide && user ? <MaterialCommunityIcons name="chevron-down" size={18} color={palette.ink} /> : null}
     </Pressable>
   );
   const brand = (
     <View style={styles.brand}>
-      <MaterialCommunityIcons name="shopping" size={38} color={palette.forest} />
+      <MaterialCommunityIcons name="shopping" size={isWide ? 38 : 28} color={palette.forest} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.brandText} numberOfLines={1}>MARKETPLACE</Text>
-        <Text style={styles.brandTag} numberOfLines={1}>Shop Smart. Live Better.</Text>
+        <Text style={styles.brandText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>MARKETPLACE</Text>
+        <Text style={styles.brandTag} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Shop Smart. Live Better.</Text>
       </View>
     </View>
   );
@@ -261,15 +266,26 @@ export default function HomeScreen() {
             </View>
           </View>
         ) : (
-          <View style={styles.headerStacked}>
-            <View style={styles.headerTop}>
-              {brand}
-              <View style={styles.headerIcons}>
-                {themeButton}
-                {cartButton}
-                {accountButton}
-              </View>
+          <View style={[styles.headerStacked, { position: 'relative', zIndex: 20 }]}>
+            <View style={styles.brandRowMobile}>
+              <View style={{ flex: 1, minWidth: 0 }}>{brand}</View>
+              <Pressable
+                style={styles.mobileMenuToggle}
+                onPress={() => setMobileMenuOpen((v) => !v)}
+                accessibilityLabel={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              >
+                <MaterialCommunityIcons name={mobileMenuOpen ? 'close' : 'dots-vertical'} size={22} color={palette.ink} />
+              </Pressable>
             </View>
+            {mobileMenuOpen ? (
+              <View style={styles.mobileMenuOverlay}>
+                <View style={[styles.headerIcons, { flexDirection: 'column', alignItems: 'flex-end', gap: 8 }]}>
+                  {themeButton}
+                  {cartButton}
+                  {accountButton}
+                </View>
+              </View>
+            ) : null}
             {searchPill}
           </View>
         )}

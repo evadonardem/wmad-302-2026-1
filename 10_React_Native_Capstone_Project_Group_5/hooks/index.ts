@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { authStorage } from '@/utils/storage';
+import { authStorage, getStorageItem, setStorageItem } from '@/utils/storage';
 
 /**
  * Hook for managing authentication state with persistence
@@ -44,7 +44,7 @@ export function useAsyncStorage<T>(key: string, initialValue: T) {
   useEffect(() => {
     const load = async () => {
       try {
-        const stored = await import('@/utils/storage').then((m) => m.getStorageItem<T>(key as any));
+        const stored = await getStorageItem<T>(key as any);
         if (stored !== null) setValue(stored);
       } catch (error) {
         console.error(`Failed to load ${key}:`, error);
@@ -60,7 +60,7 @@ export function useAsyncStorage<T>(key: string, initialValue: T) {
       const resolvedValue = newValue instanceof Function ? newValue(value) : newValue;
       setValue(resolvedValue);
       try {
-        await import('@/utils/storage').then((m) => m.setStorageItem(key as any, resolvedValue));
+        await setStorageItem(key as any, resolvedValue);
       } catch (error) {
         console.error(`Failed to save ${key}:`, error);
       }

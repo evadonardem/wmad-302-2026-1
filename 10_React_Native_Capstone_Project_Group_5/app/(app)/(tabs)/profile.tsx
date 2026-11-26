@@ -53,7 +53,7 @@ import { AppDialog, DialogEmptyState, DialogRow, DialogSectionLabel, DialogToggl
 import { StylePassport, tierFor } from '@/components/StylePassport';
 import { loadLocalOrders, OrderRecord, PAYMENT_LABELS } from '@/services/orders';
 import { palette, useResponsive } from '@/constants/theme';
-import { styles } from './profileStyles';
+import { styles } from '@/styles/profile';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 

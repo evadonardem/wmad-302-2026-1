@@ -15,7 +15,7 @@ import { Screen } from '@/components/ScreenBackground';
 import { BentoSpec, CategoryBento } from '@/components/CategoryBento';
 import { CategoryCollage } from '@/components/CategoryCollage';
 import { useResponsive, palette } from '@/constants/theme';
-import { styles } from './categoriesStyles';
+import { styles } from '@/styles/categories';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 

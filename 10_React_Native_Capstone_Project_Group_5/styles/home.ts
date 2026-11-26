@@ -22,8 +22,12 @@ export const styles = themed(() =>
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.md },
   headerStacked: { paddingTop: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  brandRowMobile: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  headerIconsRowMobile: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+  mobileMenuToggle: { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },
+  mobileMenuOverlay: { position: 'absolute', top: 68, right: 0, zIndex: 30, elevation: 8, backgroundColor: palette.surface, padding: 8, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 },
-  brandText: { ...serif, fontSize: 22, letterSpacing: 3, color: palette.forest, flexShrink: 1 },
+  brandText: { ...serif, fontSize: 20, letterSpacing: 1, color: palette.forest, flexShrink: 1 },
   brandTag: { fontSize: 11, color: palette.stone, marginTop: 1, flexShrink: 1 },
   searchPill: {
     flex: 1, minWidth: 0, height: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md,

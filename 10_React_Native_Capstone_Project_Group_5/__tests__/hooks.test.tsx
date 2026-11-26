@@ -45,8 +45,9 @@ describe('hooks', () => {
     const g = globalThis as unknown as { window?: { addEventListener: jest.Mock; removeEventListener: jest.Mock } };
     const prev = g.window;
     g.window = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
-    const { result } = renderHook(() => useNetworkStatus());
+    const { result, unmount } = renderHook(() => useNetworkStatus());
     expect(typeof result.current).toBe('boolean');
+    unmount();
     g.window = prev;
   });
 });

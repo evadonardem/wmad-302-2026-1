@@ -32,7 +32,7 @@ import { SpotlightCarousel } from '@/components/SpotlightCarousel';
 import { BentoCategory, BentoSpec, CategoryBento } from '@/components/CategoryBento';
 import { useSettings } from '@/context/SettingsContext';
 import { Screen } from '@/components/ScreenBackground';
-import { styles } from './searchStyles';
+import { styles } from '@/styles/search';
 
 const PAGE_SIZE = 12;
 const RECENT_KEY = 'recent_searches';

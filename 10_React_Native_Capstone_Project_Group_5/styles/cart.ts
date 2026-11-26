@@ -37,7 +37,7 @@ export const styles = themed(() =>
     cartItemChecked: { borderColor: palette.forest, backgroundColor: palette.accentSoft },
     check: { marginRight: spacing.sm, padding: 2 },
     itemDimmed: { opacity: 0.45 },
-    itemLineTotal: { ...serif, fontSize: 16, color: palette.ink },
+    itemLineTotal: { ...serif, fontSize: 16, color: palette.ink, marginTop: 6, alignSelf: 'flex-end' },
     selectAll: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm, backgroundColor: palette.surface, borderRadius: radius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line },
     selectAllText: { fontSize: 14, fontWeight: '700', color: palette.ink },
     selectAllHint: { fontSize: 12, color: palette.stone },

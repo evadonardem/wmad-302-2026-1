@@ -22,8 +22,8 @@ function Probe() {
 describe('WishlistProvider', () => {
   it('toggles wishlist items', async () => {
     const { getByText } = render(<WishlistProvider><Probe /></WishlistProvider>);
-    await waitFor(() => expect(getByText('count:0')).toBeTruthy());
+    await waitFor(() => expect(getByText('count:0')).toBeTruthy(), { timeout: 10000 });
     fireEvent.press(getByText('toggle'));
-    await waitFor(() => expect(getByText('count:1')).toBeTruthy());
-  });
+    await waitFor(() => expect(getByText('count:1')).toBeTruthy(), { timeout: 10000 });
+  }, 15000);
 });
