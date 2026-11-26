@@ -1,200 +1,136 @@
 /**
- * Profile Screen - Marketplace
- * TODO: Students implement
- * - Display user info from auth context
- * - Edit profile (PUT /users/{id})
- * - View order history (GET /carts/user/{id})
- * - Settings (notifications, theme, addresses, payment)
- * - Logout
+ * Profile Screen - account summary, shortcuts to orders / wishlist / addresses / settings, logout.
  */
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Avatar, Badge, Button, Card, Divider, List, Text } from 'react-native-paper';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Screen } from '@/components/Screen';
+import { APP_VERSION } from '@/constants/config';
+import { spacing, useAppTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Title, Button, List, Avatar, Divider, Badge } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { styles } from './profileStyles';
+import { useWishlist } from '@/context/WishlistContext';
+import { useOrders } from '@/hooks/useOrders';
+import { formatCurrency, getInitials } from '@/utils/format';
+import { routes } from '@/utils/routes';
 
 export default function ProfileScreen() {
+  const theme = useAppTheme();
   const router = useRouter();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
+  const { count: wishlistCount } = useWishlist();
+  const { orders } = useOrders();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: logout },
-    ]);
-  };
+  if (!user) return null;
 
-  const handleEditProfile = () => {
-    Alert.alert('TODO', 'Implement edit profile: PUT /users/{id}');
-  };
+  const spent = orders.reduce((sum, order) => sum + order.total, 0);
 
-  const handleOrders = () => {
-    Alert.alert('TODO', 'Implement order history: GET /carts/user/{id}');
-  };
-
-  const handleAddresses = () => {
-    Alert.alert('TODO', 'Implement address management');
-  };
-
-  const handlePayment = () => {
-    Alert.alert('TODO', 'Implement payment methods');
-  };
-
-  const handleSettings = () => {
-    Alert.alert('TODO', 'Implement settings screen');
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.notLoggedIn}>Please log in to view profile</Text>
-      </View>
-    );
-  }
+  const menuItem = (title: string, description: string, icon: string, onPress: () => void, badge?: number) => (
+    <List.Item
+      title={title}
+      description={description}
+      onPress={onPress}
+      left={(props) => <List.Icon {...props} icon={icon} color={theme.colors.primary} />}
+      right={(props) => (
+        <View style={styles.right}>
+          {badge ? <Badge>{badge}</Badge> : null}
+          <List.Icon {...props} icon="chevron-right" />
+        </View>
+      )}
+    />
+  );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile Header */}
-      <View style={styles.header}>
-        <Avatar.Image
-          size={88}
-          source={{ uri: user?.image || 'https://via.placeholder.com/150' }}
-          style={styles.avatar}
-        />
-        <View style={styles.nameContainer}>
-          <Text style={styles.name}>
-            {user?.firstName} {user?.lastName}
-          </Text>
-          <Text style={styles.username}>@{user?.username}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          {user.image ? (
+            <Avatar.Image size={80} source={{ uri: user.image }} />
+          ) : (
+            <Avatar.Text size={80} label={getInitials(user.firstName, user.lastName)} />
+          )}
+          <View style={styles.headerText}>
+            <Text variant="titleLarge">
+              {user.firstName} {user.lastName}
+            </Text>
+            <Text variant="bodyMedium" style={{ color: theme.colors.primary }}>
+              @{user.username}
+            </Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              {user.email}
+            </Text>
+          </View>
         </View>
-      </View>
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Orders</Text>
+        <View style={[styles.stats, { backgroundColor: theme.colors.primaryContainer }]}>
+          <Stat label="Orders" value={String(orders.length)} />
+          <Stat label="Spent" value={formatCurrency(spent)} />
+          <Stat label="Wishlist" value={String(wishlistCount)} />
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>$0.00</Text>
-          <Text style={styles.statLabel}>Spent</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Wishlist</Text>
-        </View>
-      </View>
 
-      {/* Menu Sections */}
-      <View style={styles.section}>
-        <Card style={styles.menuCard} elevation={1}>
-          <List.Section>
-            <List.Item
-              title="My Orders"
-              description="Track and manage orders"
-              left={(props) => (
-                <View style={props.style}>
-                  <MaterialCommunityIcons name="package-variant" size={24} color="#1A73E8" />
-                  <Badge size={16} style={{ position: 'absolute', right: -4, top: -4 }}>
-                    0
-                  </Badge>
-                </View>
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
-              onPress={handleOrders}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Wishlist"
-              description="Saved items for later"
-              left={(props) => (
-                <MaterialCommunityIcons name="heart" size={24} color="#1A73E8" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
-              onPress={() => Alert.alert('TODO', 'Implement wishlist')}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Addresses"
-              description="Manage delivery addresses"
-              left={(props) => (
-                <MaterialCommunityIcons name="map-marker" size={24} color="#1A73E8" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
-              onPress={handleAddresses}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Payment Methods"
-              description="Manage cards & wallets"
-              left={(props) => (
-                <MaterialCommunityIcons name="credit-card" size={24} color="#1A73E8" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
-              onPress={handlePayment}
-            />
-          </List.Section>
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]} mode="elevated">
+          {menuItem('My orders', 'Track and review your purchases', 'package-variant', () => router.push(routes.orders))}
+          <Divider />
+          {menuItem('Wishlist', 'Products you saved for later', 'heart', () => router.push(routes.wishlist), wishlistCount)}
+          <Divider />
+          {menuItem('Addresses', 'Where we deliver your orders', 'map-marker', () => router.push(routes.addresses))}
         </Card>
-      </View>
 
-      <View style={styles.section}>
-        <Card style={styles.menuCard} elevation={1}>
-          <List.Section>
-            <List.Item
-              title="Edit Profile"
-              description="Update your information"
-              left={(props) => (
-                <MaterialCommunityIcons name="account-edit" size={24} color="#1A73E8" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
-              onPress={handleEditProfile}
-            />
-            <Divider style={styles.divider} />
-            <List.Item
-              title="Settings"
-              description="Notifications, theme, privacy"
-              left={(props) => (
-                <MaterialCommunityIcons name="cog" size={24} color="#1A73E8" style={props.style} />
-              )}
-              right={(props) => <MaterialCommunityIcons name="chevron-right" size={24} color="#5F6368" style={props.style} />}
-              onPress={handleSettings}
-            />
-          </List.Section>
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]} mode="elevated">
+          {menuItem('Edit profile', 'Update your name, email and phone', 'account-edit', () => router.push(routes.editProfile))}
+          <Divider />
+          {menuItem('Settings', 'Notifications and app info', 'cog', () => router.push(routes.settings))}
         </Card>
-      </View>
 
-      {/* Logout Button */}
-      <View style={styles.logoutContainer}>
-        <Button
-          mode="outlined"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          contentStyle={styles.logoutButtonContent}
-          icon="logout"
-        >
-          <Text style={styles.logoutButtonText}>Logout</Text>
+        <Button mode="outlined" icon="logout" textColor={theme.colors.error} onPress={() => setConfirmLogout(true)} style={[styles.logout, { borderColor: theme.colors.error }]}>
+          Log out
         </Button>
-      </View>
 
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Complete the profile functionality:\n
-          1. Edit profile: PUT /users/{'{id}'}\n
-          2. Order history: GET /carts/user/{'{id}'}\n
-          3. Address management (CRUD)\n
-          4. Payment methods integration\n
-          5. Settings: theme, notifications, privacy
+        <Text variant="bodySmall" style={[styles.version, { color: theme.colors.onSurfaceVariant }]}>
+          Marketplace v{APP_VERSION}
         </Text>
-      </View>
+      </ScrollView>
 
-      <View style={styles.version}>
-        <Text style={styles.versionText}>Marketplace v1.0.0</Text>
-      </View>
-    </ScrollView>
+      <ConfirmDialog
+        visible={confirmLogout}
+        title="Log out?"
+        message="You will need to sign in again to see your cart and orders."
+        confirmLabel="Log out"
+        destructive
+        onDismiss={() => setConfirmLogout(false)}
+        onConfirm={() => {
+          setConfirmLogout(false);
+          void logout();
+        }}
+      />
+    </Screen>
   );
 }
+
+function Stat({ label, value }: { label: string; value: string }) {
+  const theme = useAppTheme();
+  return (
+    <View style={styles.stat}>
+      <Text variant="titleLarge" style={{ color: theme.colors.primary, fontWeight: '700' }}>
+        {value}
+      </Text>
+      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { padding: spacing.lg, gap: spacing.lg },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  headerText: { flex: 1, gap: 2 },
+  stats: { flexDirection: 'row', justifyContent: 'space-around', borderRadius: 12, paddingVertical: spacing.lg },
+  stat: { alignItems: 'center' },
+  card: { overflow: 'hidden' },
+  right: { flexDirection: 'row', alignItems: 'center' },
+  logout: { marginTop: spacing.sm },
+  version: { textAlign: 'center' },
+});

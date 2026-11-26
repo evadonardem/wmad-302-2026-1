@@ -1,90 +1,48 @@
 /**
- * Tabs Layout - Marketplace App Navigation
- * Tabs: Home (Shop), Categories, Cart, Profile
+ * Tabs Layout - Shop, Categories, Search, Cart, Profile
  */
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ColorValue, StyleSheet } from 'react-native';
+import { useAppTheme } from '@/constants/theme';
+import { useCart } from '@/context/CartContext';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+function tabIcon(active: IconName, inactive: IconName) {
+  return function TabBarIcon({ focused, color }: { focused: boolean; color: ColorValue }) {
+    return <MaterialCommunityIcons name={focused ? active : inactive} size={24} color={typeof color === 'string' ? color : undefined} />;
+  };
+}
 
 export default function TabsLayout() {
-  const { user } = useAuth();
+  const theme = useAppTheme();
+  const { totalQuantity } = useCart();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1A73E8',
-        tabBarInactiveTintColor: '#5F6368',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          paddingTop: 8,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        tabBarStyle: { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.outlineVariant, borderTopWidth: StyleSheet.hairlineWidth },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Shop',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'storefront' : 'storefront-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="categories"
-        options={{
-          title: 'Categories',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'view-grid' : 'view-grid-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="home" options={{ title: 'Shop', tabBarIcon: tabIcon('storefront', 'storefront-outline') }} />
+      <Tabs.Screen name="categories" options={{ title: 'Categories', tabBarIcon: tabIcon('view-grid', 'view-grid-outline') }} />
+      <Tabs.Screen name="search" options={{ title: 'Search', tabBarIcon: tabIcon('magnify', 'magnify') }} />
       <Tabs.Screen
         name="cart"
         options={{
           title: 'Cart',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'cart' : 'cart-outline'}
-              size={24}
-              color={color}
-            />
-          ),
+          tabBarIcon: tabIcon('cart', 'cart-outline'),
+          tabBarBadge: totalQuantity > 0 ? totalQuantity : undefined,
+          tabBarBadgeStyle: { backgroundColor: theme.colors.error },
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused, color }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'account' : 'account-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: tabIcon('account', 'account-outline') }} />
     </Tabs>
   );
 }

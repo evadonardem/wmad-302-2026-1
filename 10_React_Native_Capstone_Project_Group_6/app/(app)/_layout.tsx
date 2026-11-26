@@ -1,28 +1,46 @@
 /**
- * App Layout - Protected routes with auth guard
+ * App Layout - protected routes with an auth guard.
+ * Signing out (or an unrefreshable session) flips `isAuthenticated` and redirects to login here.
  */
-import { Stack } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { Redirect } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import React from 'react';
+import { useAppTheme } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { routes } from '@/utils/routes';
+
+/** Deep links to these screens survive the trip through the login screen. */
+const DEEP_LINK_PATTERN = /^\/(product|orders)\//;
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const theme = useAppTheme();
+  const { isAuthenticated, isHydrated } = useAuth();
+  const pathname = usePathname();
 
-  // Show loading while checking auth
-  if (isLoading) {
-    return null; // Or a loading screen
-  }
+  // The splash screen is still showing while the saved session is checked.
+  if (!isHydrated) return null;
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href={routes.login(DEEP_LINK_PATTERN.test(pathname) ? pathname : undefined)} />;
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      {/* Add other protected screens here */}
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.onSurface,
+        headerTitleStyle: { fontWeight: '600' },
+        contentStyle: { backgroundColor: theme.colors.background },
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="product/[id]" options={{ title: 'Product details' }} />
+      <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
+      <Stack.Screen name="orders/index" options={{ title: 'My orders' }} />
+      <Stack.Screen name="orders/[id]" options={{ title: 'Order details' }} />
+      <Stack.Screen name="edit-profile" options={{ title: 'Edit profile' }} />
+      <Stack.Screen name="addresses" options={{ title: 'Addresses' }} />
+      <Stack.Screen name="wishlist" options={{ title: 'Wishlist' }} />
+      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
     </Stack>
   );
 }

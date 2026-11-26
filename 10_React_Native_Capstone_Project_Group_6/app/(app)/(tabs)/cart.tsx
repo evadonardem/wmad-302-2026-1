@@ -1,270 +1,199 @@
 /**
- * Cart Screen - Marketplace
- * TODO: Students implement
- * - Cart state management (Context + useReducer)
- * - Add/remove/update quantities
- * - Persist cart to AsyncStorage
- * - Apply coupons/discounts
- * - Checkout flow (POST /carts)
- * - DummyJSON Carts API: https://dummyjson.com/docs/carts
+ * Cart Screen - quantities, remove, coupon, totals, checkout.
+ * State comes from CartContext (useReducer) which persists to AsyncStorage per user.
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Card, Title, Button, IconButton, TextInput } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { styles } from './cartStyles';
-
-interface CartItem {
-  id: number;
-  productId: number;
-  title: string;
-  thumbnail: string;
-  price: number;
-  discountPercentage: number;
-  quantity: number;
-  stock: number;
-}
-
-interface Cart {
-  items: CartItem[];
-  total: number;
-  discountedTotal: number;
-  totalProducts: number;
-  totalQuantity: number;
-}
+import React, { useState } from 'react';
+import { FlatList, Image, StyleSheet, View } from 'react-native';
+import { Button, Chip, Divider, IconButton, Text, TextInput } from 'react-native-paper';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { EmptyState } from '@/components/EmptyState';
+import { LoadingState } from '@/components/LoadingState';
+import { PriceTag } from '@/components/PriceTag';
+import { QuantityStepper } from '@/components/QuantityStepper';
+import { Screen } from '@/components/Screen';
+import { useSnackbar } from '@/components/SnackbarProvider';
+import { spacing, useAppTheme } from '@/constants/theme';
+import { useCart } from '@/context/CartContext';
+import { CartItem } from '@/types/product';
+import { formatCurrency } from '@/utils/format';
+import { routes } from '@/utils/routes';
 
 export default function CartScreen() {
+  const theme = useAppTheme();
   const router = useRouter();
-  const [cart, setCart] = useState<Cart | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { show } = useSnackbar();
+  const { items, totals, coupon, couponCode, isHydrated, setQuantity, removeItem, applyCoupon, removeCoupon } = useCart();
 
-  // TODO: Student implementation
-  // 1. Load cart from AsyncStorage on mount
-  // 2. Or fetch from DummyJSON: GET /carts/user/{userId}
-  // 3. Implement quantity updates with persistence
-  // 4. Implement checkout: POST /carts/add
+  const [couponInput, setCouponInput] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<CartItem | null>(null);
 
-  useEffect(() => {
-    loadCart();
-  }, []);
-
-  const loadCart = async () => {
-    try {
-      // TODO: Load from AsyncStorage or API
-      // const savedCart = await AsyncStorage.getItem('cart');
-      // if (savedCart) setCart(JSON.parse(savedCart));
-      // else setCart({ items: [], total: 0, discountedTotal: 0, totalProducts: 0, totalQuantity: 0 });
-
-      // Mock empty cart for demo
-      setCart({ items: [], total: 0, discountedTotal: 0, totalProducts: 0, totalQuantity: 0 });
-    } catch (error) {
-      console.error('Failed to load cart:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateQuantity = (productId: number, newQuantity: number) => {
-    if (!cart) return;
-    if (newQuantity <= 0) {
-      removeItem(productId);
-      return;
-    }
-    const item = cart.items.find((i) => i.productId === productId);
-    if (item && newQuantity > item.stock) {
-      Alert.alert('Out of Stock', `Only ${item.stock} items available`);
-      return;
-    }
-
-    // TODO: Update AsyncStorage and state
-    setCart((prev) => {
-      if (!prev) return prev;
-      const updatedItems = prev.items.map((i) =>
-        i.productId === productId ? { ...i, quantity: newQuantity } : i
-      );
-      return calculateTotals({ ...prev, items: updatedItems });
-    });
-  };
-
-  const removeItem = (productId: number) => {
-    Alert.alert('Remove Item', 'Remove this item from cart?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          setCart((prev) => {
-            if (!prev) return prev;
-            const updatedItems = prev.items.filter((i) => i.productId !== productId);
-            return calculateTotals({ ...prev, items: updatedItems });
-          });
-        },
-      },
-    ]);
-  };
-
-  const calculateTotals = (cartData: Cart): Cart => {
-    const total = cartData.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const discountedTotal = cartData.items.reduce(
-      (sum, item) => sum + item.price * (1 - item.discountPercentage / 100) * item.quantity,
-      0
-    );
-    const totalProducts = cartData.items.length;
-    const totalQuantity = cartData.items.reduce((sum, item) => sum + item.quantity, 0);
-    return { ...cartData, total, discountedTotal, totalProducts, totalQuantity };
-  };
-
-  const handleCheckout = async () => {
-    if (!cart || cart.items.length === 0) return;
-
-    // TODO: Student implementation
-    // 1. Call POST /carts/add with userId and products
-    // 2. Clear local cart on success
-    // 3. Navigate to order confirmation
-
-    Alert.alert(
-      'Checkout',
-      `Proceed to checkout?\nTotal: $${cart.discountedTotal.toFixed(2)}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Place Order',
-          onPress: () => {
-            Alert.alert('TODO', 'Implement checkout: POST /carts/add');
-          },
-        },
-      ]
-    );
-  };
-
-  const renderItem = ({ item }: { item: CartItem }) => {
-    const discountedPrice = item.price * (1 - item.discountPercentage / 100);
+  if (!isHydrated) {
     return (
-      <View style={styles.cartItem}>
-        <Image source={{ uri: item.thumbnail }} style={styles.itemImage} resizeMode="contain" />
-        <View style={styles.itemInfo}>
-          <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
-          <View style={styles.itemPriceRow}>
-            <Text style={styles.itemCurrentPrice}>${discountedPrice.toFixed(2)}</Text>
-            {item.discountPercentage > 0 && (
-              <Text style={styles.itemOriginalPrice}>${item.price.toFixed(2)}</Text>
-            )}
-          </View>
-          <View style={styles.quantityControls}>
-            <IconButton
-              icon="minus"
-              size={20}
-              onPress={() => updateQuantity(item.productId, item.quantity - 1)}
-              disabled={item.quantity <= 1}
-              accessibilityLabel="Decrease quantity"
-            />
-            <Text style={styles.quantityText}>{item.quantity}</Text>
-            <IconButton
-              icon="plus"
-              size={20}
-              onPress={() => updateQuantity(item.productId, item.quantity + 1)}
-              disabled={item.quantity >= item.stock}
-              accessibilityLabel="Increase quantity"
-            />
-          </View>
-        </View>
-        <IconButton
-          icon="delete-outline"
-          size={24}
-          iconColor="#EA4335"
-          onPress={() => removeItem(item.productId)}
-          accessibilityLabel="Remove item"
-        />
-      </View>
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1A73E8" />
-        <Text style={styles.loadingText}>Loading cart...</Text>
-      </View>
+      <Screen>
+        <LoadingState message="Loading your cart…" />
+      </Screen>
     );
   }
 
-  const isEmpty = !cart || cart.items.length === 0;
+  if (items.length === 0) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="cart-outline"
+          title="Your cart is empty"
+          message="Add a few products and they will show up here."
+          actionLabel="Start shopping"
+          onAction={() => router.push(routes.home)}
+        />
+      </Screen>
+    );
+  }
+
+  const handleApplyCoupon = () => {
+    const result = applyCoupon(couponInput);
+    if (result.ok) {
+      setCouponInput('');
+      setCouponError(null);
+      show(result.message);
+    } else {
+      setCouponError(result.message);
+    }
+  };
+
+  const couponInactive = coupon !== null && totals.couponDiscount === 0;
 
   return (
-    <View style={styles.container}>
-      {isEmpty ? (
-        <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="cart-outline" size={80} color="#DADCE0" />
-          <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
-          <Text style={styles.emptyText}>Add some products to get started</Text>
-          <Button
-            mode="contained"
-            onPress={() => router.push('/(app)/(tabs)/home')}
-            style={styles.browseButton}
-            contentStyle={styles.buttonContent}
-          >
-            <Text style={styles.buttonText}>Continue Shopping</Text>
-          </Button>
-        </View>
-      ) : (
-        <>
-          <FlatList
-            data={cart!.items}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.listContent}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListHeaderComponent={
-              <View style={styles.header}>
-                <Title style={styles.headerTitle}>Shopping Cart ({cart!.totalQuantity} items)</Title>
-              </View>
-            }
-          />
+    <Screen>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => String(item.productId)}
+        contentContainerStyle={styles.list}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListHeaderComponent={
+          <Text variant="headlineSmall" style={styles.title}>
+            Cart ({totals.totalQuantity} {totals.totalQuantity === 1 ? 'item' : 'items'})
+          </Text>
+        }
+        renderItem={({ item }) => (
+          <View style={[styles.item, { backgroundColor: theme.colors.surface }]}>
+            <Image source={{ uri: item.thumbnail }} style={[styles.image, { backgroundColor: theme.colors.surfaceVariant }]} resizeMode="contain" />
+            <View style={styles.itemInfo}>
+              <Text variant="titleSmall" numberOfLines={2}>
+                {item.title}
+              </Text>
+              <PriceTag price={item.price} discountPercentage={item.discountPercentage} />
+              <QuantityStepper
+                value={item.quantity}
+                onDecrease={() => (item.quantity <= 1 ? setPendingRemoval(item) : setQuantity(item.productId, item.quantity - 1))}
+                onIncrease={() => setQuantity(item.productId, item.quantity + 1)}
+                canIncrease={item.quantity < item.stock}
+              />
+              {item.quantity >= item.stock ? (
+                <Text variant="labelSmall" style={{ color: theme.colors.warning }}>
+                  Only {item.stock} in stock
+                </Text>
+              ) : null}
+            </View>
+            <IconButton icon="delete-outline" iconColor={theme.colors.error} onPress={() => setPendingRemoval(item)} accessibilityLabel={`Remove ${item.title}`} />
+          </View>
+        )}
+      />
 
-          {/* Order Summary */}
-          <View style={styles.summaryContainer}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>${cart!.total.toFixed(2)}</Text>
-            </View>
-            {cart!.total !== cart!.discountedTotal && (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Discount</Text>
-                <Text style={styles.discountValue}>-${(cart!.total - cart!.discountedTotal).toFixed(2)}</Text>
-              </View>
-            )}
-            <View style={styles.summaryRowDivider} />
-            <View style={styles.summaryRowTotal}>
-              <Text style={styles.summaryLabelTotal}>Total</Text>
-              <Text style={styles.summaryValueTotal}>${cart!.discountedTotal.toFixed(2)}</Text>
-            </View>
-            <Button
-              mode="contained"
-              onPress={handleCheckout}
-              style={styles.checkoutButton}
-              contentStyle={styles.buttonContent}
-            >
-              <Text style={styles.buttonText}>Checkout</Text>
+      <View style={[styles.summary, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.outlineVariant }]}>
+        {coupon ? (
+          <View style={styles.couponApplied}>
+            <Chip icon="tag" onClose={removeCoupon} closeIconAccessibilityLabel="Remove coupon">
+              {couponCode}
+            </Chip>
+            {couponInactive ? (
+              <Text variant="bodySmall" style={{ color: theme.colors.warning, flex: 1 }}>
+                Needs a ${coupon.minSubtotal} cart to apply.
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <View style={styles.couponRow}>
+            <TextInput
+              mode="outlined"
+              dense
+              label="Coupon code"
+              value={couponInput}
+              onChangeText={(value) => {
+                setCouponInput(value);
+                setCouponError(null);
+              }}
+              autoCapitalize="characters"
+              error={Boolean(couponError)}
+              style={styles.couponInput}
+              onSubmitEditing={handleApplyCoupon}
+            />
+            <Button mode="outlined" onPress={handleApplyCoupon}>
+              Apply
             </Button>
           </View>
-        </>
-      )}
+        )}
+        {couponError ? (
+          <Text variant="bodySmall" style={{ color: theme.colors.error }}>
+            {couponError}
+          </Text>
+        ) : null}
 
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Complete the cart functionality:\n
-          1. Cart Context with useReducer (add, remove, update)\n
-          2. Persist cart to AsyncStorage\n
-          3. Sync with DummyJSON: GET/POST /carts\n
-          4. Apply coupons (GET /carts/{'{id}'}/apply-coupon)\n
-          5. Checkout flow with order confirmation
-        </Text>
+        <SummaryRow label="Subtotal" value={formatCurrency(totals.subtotal)} />
+        {totals.productDiscount > 0 ? <SummaryRow label="Product discounts" value={`-${formatCurrency(totals.productDiscount)}`} positive /> : null}
+        {totals.couponDiscount > 0 ? <SummaryRow label={`Coupon ${couponCode}`} value={`-${formatCurrency(totals.couponDiscount)}`} positive /> : null}
+        <Divider style={styles.divider} />
+        <SummaryRow label="Total" value={formatCurrency(totals.total)} bold />
+
+        <Button mode="contained" onPress={() => router.push(routes.checkout)} contentStyle={styles.checkoutContent} style={styles.checkout}>
+          Checkout
+        </Button>
       </View>
+
+      <ConfirmDialog
+        visible={pendingRemoval !== null}
+        title="Remove item?"
+        message={pendingRemoval ? `Remove "${pendingRemoval.title}" from your cart?` : ''}
+        confirmLabel="Remove"
+        destructive
+        onDismiss={() => setPendingRemoval(null)}
+        onConfirm={() => {
+          if (pendingRemoval) removeItem(pendingRemoval.productId);
+          setPendingRemoval(null);
+        }}
+      />
+    </Screen>
+  );
+}
+
+function SummaryRow({ label, value, bold = false, positive = false }: { label: string; value: string; bold?: boolean; positive?: boolean }) {
+  const theme = useAppTheme();
+  return (
+    <View style={styles.summaryRow}>
+      <Text variant={bold ? 'titleMedium' : 'bodyMedium'} style={{ color: bold ? theme.colors.onSurface : theme.colors.onSurfaceVariant }}>
+        {label}
+      </Text>
+      <Text variant={bold ? 'titleMedium' : 'bodyMedium'} style={{ color: positive ? theme.colors.success : bold ? theme.colors.primary : theme.colors.onSurface, fontWeight: bold ? '700' : '500' }}>
+        {value}
+      </Text>
     </View>
   );
 }
 
-import { Image } from 'react-native';
+const styles = StyleSheet.create({
+  list: { padding: spacing.lg },
+  title: { marginBottom: spacing.md },
+  separator: { height: spacing.sm },
+  item: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: spacing.md, gap: spacing.md },
+  image: { width: 80, height: 80, borderRadius: 8 },
+  itemInfo: { flex: 1, gap: spacing.xs },
+  summary: { padding: spacing.lg, borderTopWidth: StyleSheet.hairlineWidth, gap: spacing.xs },
+  couponRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  couponInput: { flex: 1 },
+  couponApplied: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  divider: { marginVertical: spacing.xs },
+  checkout: { marginTop: spacing.sm },
+  checkoutContent: { height: 48 },
+});

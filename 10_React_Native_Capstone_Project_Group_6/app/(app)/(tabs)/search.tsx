@@ -1,209 +1,269 @@
 /**
- * Search Screen - Marketplace
- * TODO: Students implement
- * - Search products by query (GET /products/search?q=)
- * - Filter by category, brand, price range
- * - Sort by price, rating, discount, newest
- * - Infinite scroll pagination
+ * Search Screen - query (debounced), category chips, brand / price filters, sorting, paged results.
+ * DummyJSON can search and filter by category; brand, price range and sort run on the client.
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Card, Title, Chip, Button, TextInput as PaperTextInput } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { styles } from './searchStyles';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Badge, Button, Chip, IconButton, Modal, Portal, Searchbar, Text, TextInput } from 'react-native-paper';
+import { EmptyState } from '@/components/EmptyState';
+import { ErrorState } from '@/components/ErrorState';
+import { GRID_PADDING, ProductGrid, useGridLayout } from '@/components/ProductGrid';
+import { Screen } from '@/components/Screen';
+import { ProductCardSkeleton } from '@/components/Skeleton';
+import { spacing, useAppTheme } from '@/constants/theme';
+import { useDebounce } from '@/hooks/useDebounce';
+import { productApi } from '@/services/productApi';
+import { CategoryInfo, ProductFilters, ProductSummary, SortOption } from '@/types/product';
+import { getErrorMessage } from '@/utils/errors';
+import { formatCategoryName } from '@/utils/format';
+import { applyFilters, countActiveFilters, DEFAULT_FILTERS, extractBrands, SORT_LABELS } from '@/utils/productFilters';
 
-interface Product {
-  id: number;
-  title: string;
-  thumbnail: string;
-  category: string;
-  price: number;
-  discountPercentage: number;
-  rating: number;
-  stock: number;
+const PAGE_SIZE = 20;
+const SORT_OPTIONS = Object.keys(SORT_LABELS) as SortOption[];
+
+type Status = 'loading' | 'ready' | 'error';
+
+interface CatalogResponse {
+  key: string;
+  products: ProductSummary[];
+  error: string | null;
 }
 
+const EMPTY_PRODUCTS: ProductSummary[] = [];
+
+const parsePrice = (text: string): number | undefined => {
+  const value = Number.parseFloat(text);
+  return Number.isFinite(value) && value >= 0 ? value : undefined;
+};
+
 export default function SearchScreen() {
-  const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'price' | 'rating' | 'discount' | 'newest'>('rating');
+  const theme = useAppTheme();
+  const params = useLocalSearchParams<{ category?: string; q?: string; t?: string }>();
+  const { columns, cardWidth } = useGridLayout();
 
-  const categories = [
-    'smartphones', 'laptops', 'fragrances', 'skincare', 'groceries', 'home-decoration',
-  ];
+  const [query, setQuery] = useState(params.q ?? '');
+  const debouncedQuery = useDebounce(query, 400);
+  const [category, setCategory] = useState<string | null>(params.category ?? null);
+  const [filters, setFilters] = useState<ProductFilters>(DEFAULT_FILTERS);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [categories, setCategories] = useState<CategoryInfo[]>([]);
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    setLoading(true);
-    try {
-      // TODO: Student implementation
-      // const response = await fetch(`https://dummyjson.com/products/search?q=${encodeURIComponent(query)}`);
-      // const data = await response.json();
-      // setResults(data.products || []);
-      Alert.alert('TODO', 'Implement search: GET /products/search?q=' + query);
-    } catch {
-      // Handle error
-    } finally {
-      setLoading(false);
-    }
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draft, setDraft] = useState<ProductFilters>(DEFAULT_FILTERS);
+  const [minText, setMinText] = useState('');
+  const [maxText, setMaxText] = useState('');
+
+  // Follow navigation from Categories / Home chips. `t` changes on every navigation, so choosing
+  // the same category twice still applies. State is adjusted during render, not in an effect.
+  const paramKey = `${params.category ?? ''}|${params.q ?? ''}|${params.t ?? ''}`;
+  const [syncedParamKey, setSyncedParamKey] = useState(paramKey);
+  if (syncedParamKey !== paramKey) {
+    setSyncedParamKey(paramKey);
+    if (params.category !== undefined) setCategory(params.category);
+    if (params.q !== undefined) setQuery(params.q);
+  }
+
+  // The catalog result is tagged with the request that produced it; anything else means "loading".
+  const trimmedQuery = debouncedQuery.trim();
+  const requestKey = `${trimmedQuery}|${category ?? ''}|${reloadKey}`;
+  const [response, setResponse] = useState<CatalogResponse | null>(null);
+
+  useEffect(() => {
+    productApi.getCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    productApi
+      .getCatalog({ q: trimmedQuery || undefined, category: category ?? undefined })
+      .then((products) => {
+        if (!cancelled) setResponse({ key: requestKey, products, error: null });
+      })
+      .catch((err) => {
+        if (!cancelled) setResponse({ key: requestKey, products: [], error: getErrorMessage(err, 'Could not load products.') });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [trimmedQuery, category, requestKey]);
+
+  const current = response?.key === requestKey ? response : null;
+  const status: Status = current === null ? 'loading' : current.error ? 'error' : 'ready';
+  const error = current?.error ?? null;
+  const source = current?.products ?? EMPTY_PRODUCTS;
+
+  // Paging resets whenever the query, category or filters change.
+  const filterKey = `${requestKey}|${JSON.stringify(filters)}`;
+  const [paging, setPaging] = useState({ key: filterKey, count: PAGE_SIZE });
+  const visibleCount = paging.key === filterKey ? paging.count : PAGE_SIZE;
+
+  const results = useMemo(() => applyFilters(source, filters), [source, filters]);
+  const brands = useMemo(() => extractBrands(source), [source]);
+  const visible = useMemo(() => results.slice(0, visibleCount), [results, visibleCount]);
+  const activeFilters = countActiveFilters(filters);
+
+  const openFilters = () => {
+    setDraft(filters);
+    setMinText(filters.minPrice !== undefined ? String(filters.minPrice) : '');
+    setMaxText(filters.maxPrice !== undefined ? String(filters.maxPrice) : '');
+    setFilterOpen(true);
   };
 
-  const renderResult = ({ item }: { item: Product }) => {
-    const discountedPrice = item.price * (1 - item.discountPercentage / 100);
-    return (
-      <TouchableOpacity
-        style={styles.resultCard}
-        onPress={() => router.push(`/(app)/(tabs)/product/${item.id}`)}
-      >
-        <Card style={styles.card} elevation={1}>
-          <View style={styles.resultContent}>
-            <Image source={{ uri: item.thumbnail }} style={styles.resultImage} resizeMode="contain" />
-            <View style={styles.resultInfo}>
-              <Text style={styles.resultCategory}>{item.category}</Text>
-              <Title style={styles.resultTitle} numberOfLines={2}>{item.title}</Title>
-              <View style={styles.resultPrice}>
-                <Text style={styles.currentPrice}>${discountedPrice.toFixed(2)}</Text>
-                {item.discountPercentage > 0 && (
-                  <Text style={styles.originalPrice}>${item.price.toFixed(2)}</Text>
-                )}
-              </View>
-              <Text style={styles.resultDetails}>
-                ⭐ {item.rating} · {item.stock > 0 ? 'In Stock' : 'Out of Stock'}
-              </Text>
-            </View>
-          </View>
-        </Card>
-      </TouchableOpacity>
-    );
+  const applyDraft = () => {
+    setFilters({ ...draft, minPrice: parsePrice(minText), maxPrice: parsePrice(maxText) });
+    setFilterOpen(false);
   };
 
-  const { Alert } = require('react-native');
+  const resetDraft = () => {
+    setDraft(DEFAULT_FILTERS);
+    setMinText('');
+    setMaxText('');
+  };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Search Bar */}
-      <View style={styles.searchBarContainer}>
-        <PaperTextInput
-          style={styles.searchInput}
-          placeholder="Search products..."
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
-          left={<MaterialCommunityIcons name="magnify" size={24} color="#5F6368" style={{ marginLeft: 12 }} />}
-          right={
-            query ? (
-              <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
-                <MaterialCommunityIcons name="close" size={24} color="#5F6368" style={{ marginRight: 12 }} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity onPress={handleSearch} disabled={loading} style={styles.searchButton}>
-                {loading ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <MaterialCommunityIcons name="magnify" size={24} color="white" />
-                )}
-              </TouchableOpacity>
-            )
-          }
-        />
-      </View>
+  const toggleBrand = (brand: string) =>
+    setDraft((current) => ({
+      ...current,
+      brands: current.brands.includes(brand) ? current.brands.filter((b) => b !== brand) : [...current.brands, brand],
+    }));
 
-      {/* Category Filters */}
-      <View style={styles.filterSection}>
-        <Title style={styles.filterTitle}>Categories</Title>
-        <FlatList
-          data={categories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                selectedCategory === item && styles.filterChipSelected,
-              ]}
-              onPress={() => setSelectedCategory(selectedCategory === item ? null : item)}
-            >
-              <Text style={[
-                styles.filterChipText,
-                selectedCategory === item && styles.filterChipTextSelected,
-              ]}>
-                {item.charAt(0).toUpperCase() + item.slice(1).replace('-', ' ')}
-              </Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item}
-        />
-      </View>
-
-      {/* Sort Options */}
-      <View style={styles.sortSection}>
-        <Title style={styles.filterTitle}>Sort By</Title>
-        <View style={styles.sortOptions}>
-          {(['price', 'rating', 'discount', 'newest'] as const).map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.sortChip,
-                sortBy === option && styles.sortChipSelected,
-              ]}
-              onPress={() => setSortBy(option)}
-            >
-              <Text style={[
-                styles.sortChipText,
-                sortBy === option && styles.sortChipTextSelected,
-              ]}>
-                {option.charAt(0).toUpperCase() + option.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+  const header = (
+    <View>
+      <View style={styles.searchRow}>
+        <Searchbar placeholder="Search products" value={query} onChangeText={setQuery} style={styles.searchbar} returnKeyType="search" />
+        <View>
+          <IconButton icon="tune-variant" mode="contained-tonal" onPress={openFilters} accessibilityLabel="Filters and sorting" />
+          {activeFilters > 0 ? <Badge style={styles.badge}>{activeFilters}</Badge> : null}
         </View>
       </View>
 
-      {/* Results */}
-      <View style={styles.resultsSection}>
-        <Title style={styles.resultsTitle}>
-          Results {query ? `for "${query}"` : ''} {results.length > 0 && `(${results.length})`}
-        </Title>
-        {loading ? (
-          <View style={styles.loadingCenter}>
-            <ActivityIndicator size="large" color="#1A73E8" />
-          </View>
-        ) : results.length === 0 && query ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="magnify" size={64} color="#DADCE0" />
-            <Text style={styles.emptyText}>No products found</Text>
-            <Text style={styles.emptySubtext}>Try a different search term</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={results}
-            renderItem={renderResult}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.resultsList}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-          />
+      <FlatList
+        horizontal
+        data={categories}
+        keyExtractor={(item) => item.slug}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipRow}
+        renderItem={({ item }) => (
+          <Chip selected={category === item.slug} showSelectedOverlay onPress={() => setCategory(category === item.slug ? null : item.slug)}>
+            {item.name}
+          </Chip>
         )}
-      </View>
+      />
 
-      {/* Student Guide */}
-      <View style={styles.guideContainer}>
-        <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-        <Text style={styles.guideText}>
-          Complete the search functionality:\n
-          1. Call GET /products/search?q={query}\n
-          2. Add category filter: &category={'{category}'}\n
-          3. Add price range filters\n
-          4. Implement sort: price, rating, discount\n
-          5. Add pagination with skip/limit
-        </Text>
+      <Text variant="bodyMedium" style={[styles.count, { color: theme.colors.onSurfaceVariant }]}>
+        {status === 'ready'
+          ? `${results.length} ${results.length === 1 ? 'result' : 'results'}${category ? ` in ${formatCategoryName(category)}` : ''}`
+          : ' '}
+      </Text>
+    </View>
+  );
+
+  let body: React.ReactElement;
+  if (status === 'loading') {
+    body = (
+      <View>
+        {header}
+        <View style={styles.skeletonGrid}>
+          {Array.from({ length: columns * 2 }, (_, index) => (
+            <ProductCardSkeleton key={index} width={cardWidth} />
+          ))}
+        </View>
       </View>
-    </ScrollView>
+    );
+  } else if (status === 'error') {
+    body = (
+      <View style={styles.flex}>
+        {header}
+        <ErrorState message={error ?? 'Could not load products.'} onRetry={() => setReloadKey((key) => key + 1)} />
+      </View>
+    );
+  } else {
+    body = (
+      <ProductGrid
+        data={visible}
+        header={header}
+        footer={visible.length < results.length ? <ActivityIndicator style={styles.footer} /> : null}
+        empty={
+          <EmptyState
+            icon="magnify-close"
+            title="No products found"
+            message={activeFilters > 0 ? 'Try removing a filter or searching for something else.' : 'Try a different search term or category.'}
+            actionLabel={activeFilters > 0 ? 'Clear filters' : undefined}
+            onAction={activeFilters > 0 ? () => setFilters(DEFAULT_FILTERS) : undefined}
+          />
+        }
+        onEndReached={() => setPaging({ key: filterKey, count: visibleCount + PAGE_SIZE })}
+      />
+    );
+  }
+
+  return (
+    <Screen>
+      {body}
+      <Portal>
+        <Modal visible={filterOpen} onDismiss={() => setFilterOpen(false)} contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            <Text variant="titleMedium" style={styles.modalTitle}>
+              Sort by
+            </Text>
+            <View style={styles.wrap}>
+              {SORT_OPTIONS.map((option) => (
+                <Chip key={option} selected={draft.sort === option} showSelectedOverlay onPress={() => setDraft((current) => ({ ...current, sort: option }))}>
+                  {SORT_LABELS[option]}
+                </Chip>
+              ))}
+            </View>
+
+            <Text variant="titleMedium" style={styles.modalTitle}>
+              Price range (USD)
+            </Text>
+            <View style={styles.priceRow}>
+              <TextInput mode="outlined" label="Min" value={minText} onChangeText={setMinText} keyboardType="decimal-pad" style={styles.priceInput} dense />
+              <TextInput mode="outlined" label="Max" value={maxText} onChangeText={setMaxText} keyboardType="decimal-pad" style={styles.priceInput} dense />
+            </View>
+
+            {brands.length > 0 ? (
+              <>
+                <Text variant="titleMedium" style={styles.modalTitle}>
+                  Brand
+                </Text>
+                <View style={styles.wrap}>
+                  {brands.map((brand) => (
+                    <Chip key={brand} selected={draft.brands.includes(brand)} showSelectedOverlay onPress={() => toggleBrand(brand)}>
+                      {brand}
+                    </Chip>
+                  ))}
+                </View>
+              </>
+            ) : null}
+          </ScrollView>
+          <View style={styles.modalActions}>
+            <Button mode="outlined" onPress={resetDraft} style={styles.flex}>
+              Reset
+            </Button>
+            <Button mode="contained" onPress={applyDraft} style={styles.flex}>
+              Show results
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
+    </Screen>
   );
 }
 
-import { Image } from 'react-native';
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: GRID_PADDING, paddingTop: spacing.md, gap: spacing.sm },
+  searchbar: { flex: 1 },
+  badge: { position: 'absolute', top: 4, right: 4 },
+  chipRow: { paddingHorizontal: GRID_PADDING, paddingVertical: spacing.md, gap: spacing.sm },
+  count: { paddingHorizontal: GRID_PADDING, marginBottom: spacing.md },
+  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, paddingHorizontal: GRID_PADDING },
+  footer: { padding: spacing.lg },
+  modal: { margin: spacing.lg, padding: spacing.lg, borderRadius: 16, maxHeight: '85%' },
+  modalTitle: { marginTop: spacing.md, marginBottom: spacing.sm },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  priceRow: { flexDirection: 'row', gap: spacing.md },
+  priceInput: { flex: 1 },
+  modalActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+});

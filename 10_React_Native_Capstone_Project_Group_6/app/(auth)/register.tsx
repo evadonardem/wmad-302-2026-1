@@ -1,329 +1,145 @@
 /**
- * Register Screen - SKELETON WITH TODOs
- * Students complete this screen to learn auth flow
- * 
- * TODO LIST:
- * 1. Wire form validation
- * 2. Call authApi.register() in handleRegister
- * 3. On success, call context.login() or navigate to login
- * 4. Add password confirmation field
- * 5. Add terms checkbox
- * 6. Handle loading/error states properly
- * 7. Test with DummyJSON /auth/register endpoint
+ * Register Screen
+ * DummyJSON has no /auth/register, so sign-up uses POST /users/add and then signs in
+ * (see services/authApi.ts). Navigation after success is handled by the (auth) layout guard.
  */
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  TouchableOpacity,
-} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { Button, Card, Checkbox, HelperText, SegmentedButtons, Text } from 'react-native-paper';
+import { FormField } from '@/components/FormField';
+import { useAppTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { Card, Button, TextInput as PaperTextInput, Checkbox } from 'react-native-paper';
-import { styles } from './styles';
+import { createAuthStyles } from '@/styles/authStyles';
+import { Gender } from '@/types/auth';
+import { routes } from '@/utils/routes';
+import { FieldErrors, hasErrors, RegisterFormValues, validateRegisterForm } from '@/utils/validation';
+
+const INITIAL_VALUES: RegisterFormValues = {
+  firstName: '',
+  lastName: '',
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  age: '',
+  agreedToTerms: false,
+};
 
 export default function RegisterScreen() {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createAuthStyles(theme), [theme]);
   const router = useRouter();
   const { register, isLoading, error, clearError } = useAuth();
 
-  // Form state
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    age: '',
-    gender: 'male' as 'male' | 'female',
-  });
+  const [values, setValues] = useState<RegisterFormValues>(INITIAL_VALUES);
+  const [gender, setGender] = useState<Gender>('male');
+  const [errors, setErrors] = useState<FieldErrors<keyof RegisterFormValues>>({});
 
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Validation helpers
-  const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) return 'First name is required';
-    if (!formData.lastName.trim()) return 'Last name is required';
-    if (!formData.username.trim()) return 'Username is required';
-    if (formData.username.length < 3) return 'Username must be at least 3 characters';
-    if (!formData.email.trim()) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Invalid email format';
-    if (!formData.password) return 'Password is required';
-    if (formData.password.length < 6) return 'Password must be at least 6 characters';
-    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
-    if (formData.age && (parseInt(formData.age) < 13 || parseInt(formData.age) > 120)) {
-      return 'Age must be between 13 and 120';
-    }
-    if (!agreedToTerms) return 'You must agree to the Terms of Service';
-    return null;
-  };
-
-  const handleRegister = async () => {
-    const validationError = validateForm();
-    if (validationError) {
-      Alert.alert('Validation Error', validationError);
-      return;
-    }
-
-    // TODO: Student Implementation
-    // 1. Call authApi.register() with formData
-    //    - Import authApi from '@/services/authApi'
-    //    - Pass: firstName, lastName, username, password, email, age, gender
-    // 2. On success:
-    //    - Option A: Auto-login by calling context.login(username, password)
-    //    - Option B: Show success alert and navigate to login screen
-    // 3. On failure: Error is handled by context (shows in error state)
-
-    try {
-      // TODO: Replace with actual implementation
-      // const user = await authApi.register({
-      //   firstName: formData.firstName.trim(),
-      //   lastName: formData.lastName.trim(),
-      //   username: formData.username.trim(),
-      //   password: formData.password,
-      //   email: formData.email.trim(),
-      //   age: formData.age ? parseInt(formData.age) : undefined,
-      //   gender: formData.gender,
-      // });
-      // 
-      // // Auto-login after registration
-      // await login(formData.username.trim(), formData.password);
-      // router.replace('/(app)/(tabs)/home');
-
-      Alert.alert(
-        'TODO: Implement Register',
-        'Complete the register function by:\n1. Calling authApi.register()\n2. Auto-login or redirect to login\n3. Handle errors',
-        [{ text: 'OK' }]
-      );
-    } catch (err) {
-      // Error handled by context
-      console.error('Registration error:', err);
-    }
-  };
-
-  const handleFieldChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const update = <K extends keyof RegisterFormValues>(field: K, value: RegisterFormValues[K]) => {
+    setValues((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
     if (error) clearError();
   };
+  const text = (field: Exclude<keyof RegisterFormValues, 'agreedToTerms'>) => (value: string) => update(field, value);
 
-  React.useEffect(() => {
-    if (error) {
-      Alert.alert('Registration Failed', error, [{ text: 'OK', onPress: clearError }]);
+  const handleRegister = async () => {
+    const found = validateRegisterForm(values);
+    setErrors(found);
+    if (hasErrors(found)) return;
+
+    try {
+      await register({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        username: values.username.trim(),
+        email: values.email.trim(),
+        password: values.password,
+        age: values.age.trim() ? Number.parseInt(values.age, 10) : undefined,
+        gender,
+      });
+    } catch {
+      // The failure message is shown from the auth context.
     }
-  }, [error, clearError]);
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Logo/Brand */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>🛒</Text>
-          <Text style={styles.appName}>Marketplace</Text>
-          <Text style={styles.tagline}>Create Your Account</Text>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.brand}>
+          <MaterialCommunityIcons name="storefront" size={48} color={theme.colors.primary} />
+          <Text variant="headlineMedium" style={styles.brandName}>
+            Marketplace
+          </Text>
         </View>
 
-        {/* Register Card */}
-        <Card style={styles.card} elevation={3}>
+        <Card style={styles.card} mode="elevated">
           <Card.Content style={styles.cardContent}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start shopping smarter today</Text>
+            <Text variant="titleLarge" style={styles.title}>
+              Create your account
+            </Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>
+              It takes less than a minute
+            </Text>
 
-            {/* Name Fields Row */}
-            <View style={styles.nameRow}>
-              <PaperTextInput
-                label="First Name"
-                mode="outlined"
-                value={formData.firstName}
-                onChangeText={(v) => handleFieldChange('firstName', v)}
-                style={[styles.input, styles.halfInput]}
-                autoCapitalize="words"
-                autoComplete="given-name"
-                returnKeyType="next"
-                disabled={isLoading}
-              />
-              <PaperTextInput
-                label="Last Name"
-                mode="outlined"
-                value={formData.lastName}
-                onChangeText={(v) => handleFieldChange('lastName', v)}
-                style={[styles.input, styles.halfInput]}
-                autoCapitalize="words"
-                autoComplete="family-name"
-                returnKeyType="next"
-                disabled={isLoading}
-              />
-            </View>
-
-            {/* Username */}
-            <PaperTextInput
-              label="Username"
-              mode="outlined"
-              value={formData.username}
-              onChangeText={(v) => handleFieldChange('username', v)}
-              style={styles.input}
-              autoCapitalize="none"
-              autoComplete="username"
-              returnKeyType="next"
-              disabled={isLoading}
-            />
-
-            {/* Email */}
-            <PaperTextInput
-              label="Email"
-              mode="outlined"
-              value={formData.email}
-              onChangeText={(v) => handleFieldChange('email', v)}
-              style={styles.input}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              returnKeyType="next"
-              disabled={isLoading}
-            />
-
-            {/* Password */}
-            <PaperTextInput
-              label="Password"
-              mode="outlined"
-              value={formData.password}
-              onChangeText={(v) => handleFieldChange('password', v)}
-              style={styles.input}
-              secureTextEntry={!showPassword}
-              autoComplete="new-password"
-              returnKeyType="next"
-              disabled={isLoading}
-              right={
-                <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowPassword(!showPassword)} style={styles.eyeText}>
-                    {showPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
-              }
-            />
-
-            {/* Confirm Password */}
-            <PaperTextInput
-              label="Confirm Password"
-              mode="outlined"
-              value={formData.confirmPassword}
-              onChangeText={(v) => handleFieldChange('confirmPassword', v)}
-              style={styles.input}
-              secureTextEntry={!showConfirmPassword}
-              autoComplete="new-password"
-              returnKeyType="next"
-              disabled={isLoading}
-              right={
-                <View style={styles.eyeIcon}>
-                  <Text onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeText}>
-                    {showConfirmPassword ? '🙈' : '👁️'}
-                  </Text>
-                </View>
-              }
-            />
-
-            {/* Optional Fields */}
-            <View style={styles.optionalRow}>
-              <PaperTextInput
-                label="Age (Optional)"
-                mode="outlined"
-                value={formData.age}
-                onChangeText={(v) => handleFieldChange('age', v)}
-                style={[styles.input, styles.halfInput]}
-                keyboardType="numeric"
-                returnKeyType="next"
-                disabled={isLoading}
-              />
-              <View style={[styles.halfInput, styles.genderSelector]}>
-                <Text style={styles.genderLabel}>Gender</Text>
-                <View style={styles.genderOptions}>
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'male')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'male' && styles.genderOptionSelected,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'male' && styles.genderOptionTextSelected,
-                    ]}>♂ Male</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleFieldChange('gender', 'female')}
-                    style={[
-                      styles.genderOption,
-                      formData.gender === 'female' && styles.genderOptionSelected,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.genderOptionText,
-                      formData.gender === 'female' && styles.genderOptionTextSelected,
-                    ]}>♀ Female</Text>
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.row}>
+              <View style={styles.half}>
+                <FormField label="First name" value={values.firstName} onChangeText={text('firstName')} error={errors.firstName} autoCapitalize="words" autoComplete="given-name" disabled={isLoading} />
+              </View>
+              <View style={styles.half}>
+                <FormField label="Last name" value={values.lastName} onChangeText={text('lastName')} error={errors.lastName} autoCapitalize="words" autoComplete="family-name" disabled={isLoading} />
               </View>
             </View>
+            <FormField label="Username" value={values.username} onChangeText={text('username')} error={errors.username} autoCapitalize="none" autoComplete="username" disabled={isLoading} />
+            <FormField label="Email" value={values.email} onChangeText={text('email')} error={errors.email} autoCapitalize="none" keyboardType="email-address" autoComplete="email" disabled={isLoading} />
+            <FormField label="Password" value={values.password} onChangeText={text('password')} error={errors.password} secureToggle autoCapitalize="none" autoComplete="new-password" disabled={isLoading} />
+            <FormField label="Confirm password" value={values.confirmPassword} onChangeText={text('confirmPassword')} error={errors.confirmPassword} secureToggle autoCapitalize="none" autoComplete="new-password" disabled={isLoading} />
+            <FormField label="Age (optional)" value={values.age} onChangeText={text('age')} error={errors.age} keyboardType="number-pad" disabled={isLoading} />
 
-            {/* Terms Checkbox */}
-            <View style={styles.termsContainer}>
-              <View style={styles.checkbox}>
-                <Checkbox
-                  status={agreedToTerms ? 'checked' : 'unchecked'}
-                  onPress={() => setAgreedToTerms(!agreedToTerms)}
-                />
-              </View>
-              <Text style={styles.termsText}>
-                I agree to the{' '}
-                <Text style={styles.linkText}>Terms of Service</Text>{' '}
-                and{' '}
-                <Text style={styles.linkText}>Privacy Policy</Text>
+            <Text variant="labelLarge" style={styles.genderLabel}>
+              Gender
+            </Text>
+            <SegmentedButtons
+              style={styles.genderRow}
+              value={gender}
+              onValueChange={(next) => setGender(next as Gender)}
+              buttons={[
+                { value: 'male', label: 'Male' },
+                { value: 'female', label: 'Female' },
+              ]}
+            />
+
+            <View style={styles.termsRow}>
+              <Checkbox.Android status={values.agreedToTerms ? 'checked' : 'unchecked'} onPress={() => update('agreedToTerms', !values.agreedToTerms)} disabled={isLoading} />
+              <Text variant="bodyMedium" style={styles.termsText} onPress={() => update('agreedToTerms', !values.agreedToTerms)}>
+                I agree to the Terms of Service and Privacy Policy
               </Text>
             </View>
+            <HelperText type="error" visible={Boolean(errors.agreedToTerms)}>
+              {errors.agreedToTerms ?? ''}
+            </HelperText>
 
-            {/* Register Button */}
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              loading={isLoading}
-              style={styles.registerButton}
-              disabled={isLoading}
-              contentStyle={styles.buttonContent}
-            >
-              {isLoading ? <ActivityIndicator color="white" size="small" /> : (
-                <Text style={styles.buttonText}>Create Account</Text>
-              )}
+            {error ? (
+              <View style={styles.errorBanner} accessibilityLiveRegion="assertive">
+                <Text variant="bodyMedium" style={styles.errorText}>
+                  {error}
+                </Text>
+              </View>
+            ) : null}
+
+            <Button mode="contained" onPress={handleRegister} loading={isLoading} disabled={isLoading} style={styles.primaryButton} contentStyle={styles.buttonContent}>
+              Create account
             </Button>
 
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.replace('/(auth)/login')} style={styles.link}>
-                <Text style={styles.linkText}>Sign In</Text>
-              </TouchableOpacity>
+            <View style={styles.footerRow}>
+              <Text variant="bodyMedium">Already have an account?</Text>
+              <Button mode="text" compact onPress={() => router.replace(routes.login())} disabled={isLoading}>
+                Sign in
+              </Button>
             </View>
           </Card.Content>
         </Card>
-
-        {/* Student Guide */}
-        <View style={styles.guideContainer}>
-          <Text style={styles.guideTitle}>📝 Student Implementation Guide</Text>
-          <Text style={styles.guideText}>
-            Complete the handleRegister function to:\n
-            1. Call authApi.register() with form data\n
-            2. Auto-login or redirect to login\n
-            3. Handle success/error states
-          </Text>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
