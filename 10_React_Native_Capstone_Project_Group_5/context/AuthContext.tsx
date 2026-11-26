@@ -11,7 +11,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-import { AuthState, AuthAction, AuthUser } from '@/types/auth';
+import { AuthState, AuthAction } from '@/types/auth';
 import { authApi } from '@/services/authApi';
 
 // Initial state

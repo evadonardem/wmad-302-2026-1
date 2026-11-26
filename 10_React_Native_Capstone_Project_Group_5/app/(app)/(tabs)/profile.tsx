@@ -12,21 +12,18 @@
  * - Logout
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { useRewards } from '@/context/RewardsContext';
 import {
   Button,
-  List,
   Avatar,
-  Divider,
-  Dialog,
   Portal,
   TextInput,
   HelperText,
   Snackbar,
   SegmentedButtons,
-  Switch,
   Chip,
   IconButton,
 } from 'react-native-paper';
@@ -52,8 +49,9 @@ import { useWishlist } from '@/context/WishlistContext';
 import { AddressManager } from '@/components/AddressManager';
 import { Screen } from '@/components/ScreenBackground';
 import { WishlistDialog } from '@/components/WishlistDialog';
+import { AppDialog, DialogEmptyState, DialogRow, DialogSectionLabel, DialogToggleRow } from '@/components/AppDialog';
 import { StylePassport, tierFor } from '@/components/StylePassport';
-import { Cart } from '@/types/product';
+import { loadLocalOrders, OrderRecord, PAYMENT_LABELS } from '@/services/orders';
 import { palette, useResponsive } from '@/constants/theme';
 import { styles } from './profileStyles';
 
@@ -82,11 +80,14 @@ export default function ProfileScreen() {
   const { refreshUser } = useAuth();
   const { settings, updateSettings, resetSettings } = useSettings();
   const { items: wishItems } = useWishlist();
+  const { state: rewardsState } = useRewards();
   const { isWide, pad } = useResponsive();
+  const userId = user?.id;
 
-  const [orders, setOrders] = useState<Cart[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Cart | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [snack, setSnack] = useState<string | null>(null);
 
@@ -119,31 +120,46 @@ export default function ProfileScreen() {
   const [addressesOpen, setAddressesOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
 
-  // Done: order history from GET /carts/user/{id}
+  // Order history: the API carts plus the orders placed in this app (DummyJSON does not persist checkouts)
   const loadOrders = useCallback(async () => {
-    if (!user) return;
+    if (userId === undefined) return;
+    setOrdersLoading(true);
     try {
-      setOrders(await productApi.getUserCarts(user.id));
-    } catch {
-      setOrders([]);
+      const [serverOrders, localOrders] = await Promise.all([
+        productApi.getUserCarts(userId).catch((): OrderRecord[] => []),
+        loadLocalOrders(userId),
+      ]);
+      // Local orders win on an id clash so the payment method and date are kept
+      const seen = new Set<number>();
+      const merged = [...localOrders, ...serverOrders].filter((order) => {
+        if (seen.has(order.id)) return false;
+        seen.add(order.id);
+        return true;
+      });
+      setOrders(merged);
+    } finally {
+      setOrdersLoading(false);
     }
-  }, [user?.id]);
+  }, [userId]);
 
-  useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
+  // Tabs stay mounted, so refresh whenever Profile gets focus (for example after a checkout)
+  useFocusEffect(
+    useCallback(() => {
+      loadOrders();
+    }, [loadOrders])
+  );
 
   // Done: saved payment methods (per user, on this device)
   useEffect(() => {
     if (!user) return;
     loadPaymentMethods(user.id).then(setMethods);
-  }, [user?.id]);
+  }, [user]);
 
   // Done: saved delivery addresses (per user, on this device)
   useEffect(() => {
     if (!user) return;
     loadAddresses(user.id).then(setAddresses);
-  }, [user?.id]);
+  }, [user]);
 
   const totalSpent = orders.reduce((sum, o) => sum + o.discountedTotal, 0);
 
@@ -192,6 +208,7 @@ export default function ProfileScreen() {
   const handleOrders = () => {
     setSelectedOrder(null);
     setOrdersOpen(true);
+    loadOrders();
   };
 
   // Done: address management (CRUD)
@@ -326,7 +343,7 @@ export default function ProfileScreen() {
     </Pressable>
   );
 
-  const stats: Array<{ icon: IconName; value: string; label: string; onPress?: () => void }> = [
+  const stats: { icon: IconName; value: string; label: string; onPress?: () => void }[] = [
     { icon: 'package-variant-closed', value: String(orders.length), label: 'Orders', onPress: handleOrders },
     { icon: 'cash-multiple', value: `$${Math.round(totalSpent).toLocaleString()}`, label: 'Spent' },
     { icon: 'heart-outline', value: String(wishItems.length), label: 'Wishlist', onPress: () => setWishlistOpen(true) },
@@ -377,6 +394,7 @@ export default function ProfileScreen() {
               addressCount={addresses.length}
               methodCount={methods.length}
               darkMode={settings.theme === 'dark'}
+              quizPersonality={rewardsState.quiz?.key ?? null}
             />
           </View>
 
@@ -410,16 +428,6 @@ export default function ProfileScreen() {
               <Text style={styles.logoutButtonText}>Logout</Text>
             </Button>
 
-            {/* Student Guide */}
-            <View style={styles.guideContainer}>
-              <Text style={styles.guideTitle}>✅ Student Implementation Guide: completed</Text>
-              <Text style={styles.guideText}>✓ 1. Edit profile: PUT /users/{'{id}'}</Text>
-              <Text style={styles.guideText}>✓ 2. Order history: GET /carts/user/{'{id}'}</Text>
-              <Text style={styles.guideText}>✓ 3. Address management (CRUD)</Text>
-              <Text style={styles.guideText}>✓ 4. Payment methods integration</Text>
-              <Text style={styles.guideText}>✓ 5. Settings: theme, notifications, privacy</Text>
-            </View>
-
             <View style={styles.version}>
               <Text style={styles.versionText}>Marketplace v1.0.0</Text>
             </View>
@@ -439,295 +447,495 @@ export default function ProfileScreen() {
 
         {/* Dialogs replace Alert.alert, whose buttons do nothing on web */}
         <Portal>
-          <Dialog visible={logoutOpen} onDismiss={() => setLogoutOpen(false)}>
-            <Dialog.Title>Logout</Dialog.Title>
-            <Dialog.Content>
-              <Text>Are you sure you want to logout?</Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setLogoutOpen(false)}>Cancel</Button>
-              <Button
-                textColor={palette.danger}
-                onPress={() => {
+          <AppDialog
+            visible={logoutOpen}
+            onDismiss={() => setLogoutOpen(false)}
+            icon="logout-variant"
+            eyebrow="Account"
+            title="Log out?"
+            subtitle="You can sign back in any time."
+            tone="danger"
+            scroll={false}
+            actions={[
+              { label: 'Stay signed in', onPress: () => setLogoutOpen(false) },
+              {
+                label: 'Log out',
+                tone: 'danger',
+                icon: 'logout',
+                onPress: () => {
                   setLogoutOpen(false);
                   logout();
-                }}
-              >
-                Logout
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
+                },
+              },
+            ]}
+          >
+            <View style={styles.logoutNote}>
+              <MaterialCommunityIcons name="shield-check-outline" size={20} color={palette.forest} />
+              <Text style={styles.logoutNoteText}>Your cart and wishlist stay saved on this device.</Text>
+            </View>
+          </AppDialog>
 
-          <Dialog visible={editOpen} onDismiss={saving ? undefined : () => setEditOpen(false)}>
-            <Dialog.Title>Edit Profile</Dialog.Title>
-            <Dialog.Content>
-              <TextInput mode="outlined" label="First name" value={firstName} onChangeText={setFirstName} />
-              <TextInput mode="outlined" label="Last name" value={lastName} onChangeText={setLastName} style={{ marginTop: 8 }} />
-              <TextInput
-                mode="outlined"
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={{ marginTop: 8 }}
-              />
-              <HelperText type="error" visible={!!formError}>{formError}</HelperText>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
-              <Button onPress={saveProfile} loading={saving} disabled={saving}>Save</Button>
-            </Dialog.Actions>
-          </Dialog>
+          <AppDialog
+            visible={editOpen}
+            onDismiss={saving ? undefined : () => setEditOpen(false)}
+            dismissable={!saving}
+            icon="account-edit-outline"
+            eyebrow="Your details"
+            title="Edit profile"
+            subtitle="Keep your account information up to date."
+            actions={[
+              { label: 'Cancel', onPress: () => setEditOpen(false), disabled: saving },
+              { label: 'Save changes', onPress: saveProfile, loading: saving, disabled: saving, icon: 'check' },
+            ]}
+          >
+            <View style={styles.editIdentity}>
+              <Avatar.Image size={48} source={{ uri: user?.image || 'https://via.placeholder.com/150' }} />
+              <View style={styles.editIdentityText}>
+                <Text style={styles.editName} numberOfLines={1}>
+                  {user?.firstName} {user?.lastName}
+                </Text>
+                <Text style={styles.editHandle}>@{user?.username}</Text>
+              </View>
+            </View>
+            <TextInput
+              mode="outlined"
+              label="First name"
+              value={firstName}
+              onChangeText={setFirstName}
+              left={<TextInput.Icon icon="account-outline" />}
+              style={styles.dialogInput}
+              outlineStyle={styles.dialogOutline}
+            />
+            <TextInput
+              mode="outlined"
+              label="Last name"
+              value={lastName}
+              onChangeText={setLastName}
+              left={<TextInput.Icon icon="account-outline" />}
+              style={styles.dialogInput}
+              outlineStyle={styles.dialogOutline}
+            />
+            <TextInput
+              mode="outlined"
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="email-outline" />}
+              style={styles.dialogInput}
+              outlineStyle={styles.dialogOutline}
+            />
+            <HelperText type="error" visible={!!formError}>{formError}</HelperText>
+          </AppDialog>
 
           {/* Order history list / order detail */}
-          <Dialog visible={ordersOpen} onDismiss={() => setOrdersOpen(false)}>
-            <Dialog.Title>{selectedOrder ? `Order #${selectedOrder.id}` : 'My Orders'}</Dialog.Title>
-            <Dialog.ScrollArea>
-              <ScrollView style={{ maxHeight: 360 }}>
-                {selectedOrder ? (
-                  <View style={{ paddingVertical: 8 }}>
-                    {selectedOrder.products.map((p) => (
-                      <View key={p.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-                        <Text style={{ flex: 1 }} numberOfLines={2}>{p.title} × {p.quantity}</Text>
-                        <Text>${p.discountedTotal.toFixed(2)}</Text>
-                      </View>
-                    ))}
-                    <Divider style={{ marginVertical: 8 }} />
-                    <Text style={{ fontWeight: '700' }}>Total: ${selectedOrder.discountedTotal.toFixed(2)}</Text>
+          <AppDialog
+            visible={ordersOpen}
+            onDismiss={() => setOrdersOpen(false)}
+            icon={selectedOrder ? 'receipt' : 'package-variant-closed'}
+            eyebrow="History"
+            title={selectedOrder ? `Order #${selectedOrder.id}` : 'My orders'}
+            subtitle={
+              selectedOrder
+                ? `${selectedOrder.totalQuantity} items · $${selectedOrder.discountedTotal.toFixed(2)}`
+                : orders.length > 0
+                  ? `${orders.length} ${orders.length === 1 ? 'order' : 'orders'} placed`
+                  : 'Your purchases will appear here'
+            }
+            actions={
+              selectedOrder
+                ? [
+                    { label: 'Back to orders', mode: 'outlined', icon: 'arrow-left', onPress: () => setSelectedOrder(null) },
+                    { label: 'Close', onPress: () => setOrdersOpen(false) },
+                  ]
+                : [{ label: 'Close', onPress: () => setOrdersOpen(false) }]
+            }
+          >
+            {ordersLoading && orders.length === 0 ? (
+              <View style={styles.ordersLoading}>
+                <ActivityIndicator color={palette.forest} />
+                <Text style={styles.ordersLoadingText}>Loading your orders…</Text>
+              </View>
+            ) : selectedOrder ? (
+              <>
+                <View style={styles.orderSummary}>
+                  <View style={styles.orderStat}>
+                    <Text style={styles.orderStatLabel}>Total</Text>
+                    <Text style={styles.orderStatValue}>${selectedOrder.discountedTotal.toFixed(2)}</Text>
                   </View>
-                ) : orders.length === 0 ? (
-                  <Text style={{ paddingVertical: 16 }}>No orders yet.</Text>
-                ) : (
-                  orders.map((o) => (
-                    <List.Item
-                      key={o.id}
-                      title={`Order #${o.id}`}
-                      description={`${o.totalQuantity} items · $${o.discountedTotal.toFixed(2)}`}
-                      right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                      onPress={() => setSelectedOrder(o)}
-                    />
-                  ))
-                )}
-              </ScrollView>
-            </Dialog.ScrollArea>
-            <Dialog.Actions>
-              {selectedOrder && <Button onPress={() => setSelectedOrder(null)}>Back</Button>}
-              <Button onPress={() => setOrdersOpen(false)}>Close</Button>
-            </Dialog.Actions>
-          </Dialog>
+                  <View style={styles.orderStat}>
+                    <Text style={styles.orderStatLabel}>Items</Text>
+                    <Text style={styles.orderStatValue}>{selectedOrder.totalQuantity}</Text>
+                  </View>
+                  <View style={styles.orderStat}>
+                    <Text style={styles.orderStatLabel}>Saved</Text>
+                    <Text style={styles.orderStatValue}>${(selectedOrder.total - selectedOrder.discountedTotal).toFixed(2)}</Text>
+                  </View>
+                </View>
+
+                {selectedOrder.paymentMethod || selectedOrder.placedAt || selectedOrder.shippingAddress ? (
+                  <View style={styles.orderMeta}>
+                    {selectedOrder.paymentMethod ? (
+                      <View style={styles.orderMetaRow}>
+                        <MaterialCommunityIcons
+                          name={selectedOrder.paymentMethod === 'cod' ? 'cash-multiple' : selectedOrder.paymentMethod === 'wallet' ? 'wallet-outline' : 'credit-card-outline'}
+                          size={16}
+                          color={palette.forest}
+                        />
+                        <Text style={styles.orderMetaText}>{PAYMENT_LABELS[selectedOrder.paymentMethod]}</Text>
+                      </View>
+                    ) : null}
+                    {selectedOrder.placedAt ? (
+                      <View style={styles.orderMetaRow}>
+                        <MaterialCommunityIcons name="calendar-clock" size={16} color={palette.forest} />
+                        <Text style={styles.orderMetaText}>{new Date(selectedOrder.placedAt).toLocaleString()}</Text>
+                      </View>
+                    ) : null}
+                    {selectedOrder.shippingAddress ? (
+                      <View style={styles.orderMetaRow}>
+                        <MaterialCommunityIcons name="map-marker-outline" size={16} color={palette.forest} />
+                        <Text style={styles.orderMetaText} numberOfLines={2}>{selectedOrder.shippingAddress}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+
+                <DialogSectionLabel>Items in this order</DialogSectionLabel>
+                {selectedOrder.products.map((p) => (
+                  <DialogRow
+                    key={p.id}
+                    image={p.thumbnail}
+                    title={p.title}
+                    subtitle={`Qty ${p.quantity} · $${p.price.toFixed(2)} each`}
+                    meta={`$${p.discountedTotal.toFixed(2)}`}
+                  />
+                ))}
+              </>
+            ) : orders.length === 0 ? (
+              <DialogEmptyState
+                icon="package-variant"
+                title="No orders yet"
+                message="When you place your first order it will show up here with its items and total."
+                action={
+                  <Button
+                    mode="contained"
+                    icon="shopping-outline"
+                    onPress={() => {
+                      setOrdersOpen(false);
+                      router.push('/(app)/(tabs)/home');
+                    }}
+                  >
+                    Start shopping
+                  </Button>
+                }
+              />
+            ) : (
+              orders.map((o) => (
+                <DialogRow
+                  key={o.id}
+                  icon="package-variant-closed"
+                  title={`Order #${o.id}`}
+                  subtitle={`${o.totalProducts} ${o.totalProducts === 1 ? 'product' : 'products'} · ${o.totalQuantity} items${o.paymentMethod ? ` · ${PAYMENT_LABELS[o.paymentMethod]}` : ''}`}
+                  meta={`$${o.discountedTotal.toFixed(2)}`}
+                  onPress={() => setSelectedOrder(o)}
+                  actions={<MaterialCommunityIcons name="chevron-right" size={22} color={palette.stone} />}
+                />
+              ))
+            )}
+          </AppDialog>
 
           {/* Payment methods: list */}
-          <Dialog visible={paymentOpen && !removeMethod} onDismiss={() => setPaymentOpen(false)}>
-            <Dialog.Title>Payment Methods</Dialog.Title>
-            <Dialog.ScrollArea>
-              <ScrollView style={{ maxHeight: 380 }}>
-                {methods.length === 0 ? (
-                  <Text style={styles.emptyMethods}>No payment methods saved yet.</Text>
-                ) : (
-                  methods.map((m) => (
-                    <List.Item
-                      key={m.id}
-                      title={`${m.brand} •••• ${m.last4}`}
-                      description={m.type === 'card' ? `${m.holder} · Expires ${m.expiry}` : `${m.holder} · e-wallet`}
-                      left={(props) => <List.Icon {...props} icon={m.type === 'card' ? 'credit-card-outline' : 'wallet-outline'} />}
-                      right={() => (
-                        <View style={styles.methodActions}>
-                          {m.isDefault ? (
-                            <Chip compact>Default</Chip>
-                          ) : (
-                            <Button compact onPress={() => makeDefault(m.id)}>Make default</Button>
-                          )}
-                          <IconButton icon="delete-outline" size={20} onPress={() => setRemoveMethod(m)} accessibilityLabel="Remove payment method" />
-                        </View>
-                      )}
+          <AppDialog
+            visible={paymentOpen && !removeMethod}
+            onDismiss={() => setPaymentOpen(false)}
+            icon="credit-card-multiple-outline"
+            eyebrow="Wallet"
+            title="Payment methods"
+            subtitle={
+              methods.length === 0
+                ? 'Add a card or e-wallet for faster checkout'
+                : `${methods.length} saved ${methods.length === 1 ? 'method' : 'methods'}`
+            }
+            actions={[
+              { label: 'Add new', mode: 'outlined', icon: 'plus', onPress: openAddMethod },
+              { label: 'Done', onPress: () => setPaymentOpen(false) },
+            ]}
+            footerNote="Only the brand and last 4 digits are saved on this device."
+          >
+            {methods.length === 0 ? (
+              <DialogEmptyState
+                icon="credit-card-off-outline"
+                title="No payment methods"
+                message="Save a card or e-wallet and checkout will remember it for next time."
+                action={
+                  <Button mode="contained" icon="plus" onPress={openAddMethod}>
+                    Add a payment method
+                  </Button>
+                }
+              />
+            ) : (
+              methods.map((m) => (
+                <DialogRow
+                  key={m.id}
+                  icon={m.type === 'card' ? 'credit-card-outline' : 'wallet-outline'}
+                  title={`${m.brand} •••• ${m.last4}`}
+                  subtitle={m.type === 'card' ? `${m.holder} · expires ${m.expiry}` : `${m.holder} · e-wallet`}
+                  badge={m.isDefault ? 'Default' : undefined}
+                  actions={
+                    <IconButton
+                      icon="delete-outline"
+                      size={20}
+                      iconColor={palette.danger}
+                      onPress={() => setRemoveMethod(m)}
+                      accessibilityLabel="Remove payment method"
                     />
-                  ))
-                )}
-                <Text style={styles.dialogNote}>
-                  Only the brand and last 4 digits are saved on this device. Full card numbers and security codes are never stored.
-                </Text>
-              </ScrollView>
-            </Dialog.ScrollArea>
-            <Dialog.Actions>
-              <Button onPress={openAddMethod}>Add new</Button>
-              <Button onPress={() => setPaymentOpen(false)}>Close</Button>
-            </Dialog.Actions>
-          </Dialog>
+                  }
+                  footer={
+                    !m.isDefault ? (
+                      <Button mode="text" compact icon="star-outline" onPress={() => makeDefault(m.id)} labelStyle={styles.smallLabel}>
+                        Make default
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              ))
+            )}
+          </AppDialog>
 
           {/* Payment methods: add a card or wallet */}
-          <Dialog visible={addOpen} onDismiss={closeAddMethod}>
-            <Dialog.Title>Add Payment Method</Dialog.Title>
-            <Dialog.ScrollArea>
-              <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 400 }}>
-                <SegmentedButtons
-                  value={pmType}
-                  onValueChange={(v) => {
-                    setPmType(v as PaymentType);
-                    setPmErrors({});
-                  }}
-                  buttons={[
-                    { value: 'card', label: 'Card', icon: 'credit-card-outline' },
-                    { value: 'wallet', label: 'E-wallet', icon: 'wallet-outline' },
-                  ]}
-                  style={styles.formGap}
+          <AppDialog
+            visible={addOpen}
+            onDismiss={closeAddMethod}
+            icon="credit-card-plus-outline"
+            eyebrow="Wallet"
+            title="Add payment method"
+            subtitle="Cards are checked once and never stored in full."
+            actions={[
+              { label: 'Cancel', onPress: closeAddMethod },
+              { label: 'Save method', onPress: saveMethod, icon: 'check' },
+            ]}
+            footerNote={
+              pmType === 'card'
+                ? 'The full number is only used to validate the card and is not saved.'
+                : 'Only the last 4 characters of your number are saved.'
+            }
+          >
+            <SegmentedButtons
+              value={pmType}
+              onValueChange={(v) => {
+                setPmType(v as PaymentType);
+                setPmErrors({});
+              }}
+              buttons={[
+                { value: 'card', label: 'Card', icon: 'credit-card-outline' },
+                { value: 'wallet', label: 'E-wallet', icon: 'wallet-outline' },
+              ]}
+            />
+            {pmType === 'card' ? (
+              <>
+                <TextInput
+                  mode="outlined"
+                  label="Card number"
+                  placeholder={EXAMPLE_CARD}
+                  value={pmNumber}
+                  onChangeText={(t) => setPmNumber(formatCardNumber(t))}
+                  keyboardType="number-pad"
+                  maxLength={23}
+                  error={!!pmErrors.number}
+                  left={<TextInput.Icon icon="credit-card-outline" />}
+                  right={<TextInput.Affix text={`${cardDigits.length}/${cardLength}`} />}
+                  style={styles.dialogInput}
+                  outlineStyle={styles.dialogOutline}
                 />
-                {pmType === 'card' ? (
-                  <>
-                    <TextInput
-                      mode="outlined"
-                      label="Card number"
-                      placeholder={EXAMPLE_CARD}
-                      value={pmNumber}
-                      onChangeText={(t) => setPmNumber(formatCardNumber(t))}
-                      keyboardType="number-pad"
-                      maxLength={23}
-                      error={!!pmErrors.number}
-                      right={<TextInput.Affix text={`${cardDigits.length}/${cardLength}`} />}
-                      style={styles.formGap}
-                    />
-                    <HelperText type={pmErrors.number ? 'error' : 'info'} visible>
-                      {pmErrors.number ??
-                        (cardDigits.length === 0
-                          ? `${cardLength} digits, for example ${EXAMPLE_CARD}`
-                          : `${cardBrand} · ${cardDigits.length} of ${cardLength} digits`)}
-                    </HelperText>
-                    <Button compact icon="creditcard-edit-outline" onPress={() => setPmNumber(EXAMPLE_CARD)} style={{ alignSelf: 'flex-start' }}>
-                      Fill example card
-                    </Button>
-                    <TextInput mode="outlined" label="Name on card" placeholder="As printed on the card" value={pmHolder} onChangeText={setPmHolder} error={!!pmErrors.holder} />
-                    <HelperText type="error" visible={!!pmErrors.holder}>{pmErrors.holder}</HelperText>
-                    <TextInput
-                      mode="outlined"
-                      label="Expiry (MM/YY)"
-                      placeholder="08/28"
-                      value={pmExpiry}
-                      onChangeText={(t) => setPmExpiry(formatExpiry(t))}
-                      keyboardType="number-pad"
-                      maxLength={5}
-                      error={!!pmErrors.expiry}
-                    />
-                    <HelperText type={pmErrors.expiry ? 'error' : 'info'} visible>
-                      {pmErrors.expiry ?? 'Month / year, for example 08/28'}
-                    </HelperText>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.settingsLabel}>Provider</Text>
-                    <View style={styles.chipRow}>
-                      {WALLET_PROVIDERS.map((provider) => (
-                        <Chip key={provider} selected={pmProvider === provider} onPress={() => setPmProvider(provider)}>
-                          {provider}
-                        </Chip>
-                      ))}
-                    </View>
-                    <TextInput
-                      mode="outlined"
-                      label="Mobile number or email"
-                      placeholder="0917 123 4567"
-                      value={pmAccount}
-                      onChangeText={setPmAccount}
-                      autoCapitalize="none"
-                      error={!!pmErrors.account}
-                    />
-                    <HelperText type={pmErrors.account ? 'error' : 'info'} visible>
-                      {pmErrors.account ?? 'For example 0917 123 4567 or name@email.com'}
-                    </HelperText>
-                    <TextInput mode="outlined" label="Account name" value={pmHolder} onChangeText={setPmHolder} error={!!pmErrors.holder} />
-                    <HelperText type="error" visible={!!pmErrors.holder}>{pmErrors.holder}</HelperText>
-                  </>
-                )}
-                <Text style={styles.dialogNote}>
-                  {pmType === 'card'
-                    ? 'Card numbers are 16 digits (Amex: 15). The full number is only used to check it and is not saved. Use the example card to try it out.'
-                    : 'Only the last 4 characters of your number are saved.'}
-                </Text>
-              </ScrollView>
-            </Dialog.ScrollArea>
-            <Dialog.Actions>
-              <Button onPress={closeAddMethod}>Cancel</Button>
-              <Button onPress={saveMethod}>Save</Button>
-            </Dialog.Actions>
-          </Dialog>
+                <HelperText type={pmErrors.number ? 'error' : 'info'} visible>
+                  {pmErrors.number ??
+                    (cardDigits.length === 0
+                      ? `${cardLength} digits, for example ${EXAMPLE_CARD}`
+                      : `${cardBrand} · ${cardDigits.length} of ${cardLength} digits`)}
+                </HelperText>
+                <Button compact icon="creditcard-edit-outline" onPress={() => setPmNumber(EXAMPLE_CARD)} style={styles.fillExample}>
+                  Fill example card
+                </Button>
+                <TextInput
+                  mode="outlined"
+                  label="Name on card"
+                  placeholder="As printed on the card"
+                  value={pmHolder}
+                  onChangeText={setPmHolder}
+                  error={!!pmErrors.holder}
+                  left={<TextInput.Icon icon="account-outline" />}
+                  style={styles.dialogInput}
+                  outlineStyle={styles.dialogOutline}
+                />
+                <HelperText type="error" visible={!!pmErrors.holder}>{pmErrors.holder}</HelperText>
+                <TextInput
+                  mode="outlined"
+                  label="Expiry (MM/YY)"
+                  placeholder="08/28"
+                  value={pmExpiry}
+                  onChangeText={(t) => setPmExpiry(formatExpiry(t))}
+                  keyboardType="number-pad"
+                  maxLength={5}
+                  error={!!pmErrors.expiry}
+                  left={<TextInput.Icon icon="calendar-blank-outline" />}
+                  style={styles.dialogInput}
+                  outlineStyle={styles.dialogOutline}
+                />
+                <HelperText type={pmErrors.expiry ? 'error' : 'info'} visible>
+                  {pmErrors.expiry ?? 'Month / year, for example 08/28'}
+                </HelperText>
+              </>
+            ) : (
+              <>
+                <DialogSectionLabel>Provider</DialogSectionLabel>
+                <View style={styles.chipRow}>
+                  {WALLET_PROVIDERS.map((provider) => (
+                    <Chip key={provider} selected={pmProvider === provider} onPress={() => setPmProvider(provider)}>
+                      {provider}
+                    </Chip>
+                  ))}
+                </View>
+                <TextInput
+                  mode="outlined"
+                  label="Mobile number or email"
+                  placeholder="0917 123 4567"
+                  value={pmAccount}
+                  onChangeText={setPmAccount}
+                  autoCapitalize="none"
+                  error={!!pmErrors.account}
+                  left={<TextInput.Icon icon="cellphone" />}
+                  style={styles.dialogInput}
+                  outlineStyle={styles.dialogOutline}
+                />
+                <HelperText type={pmErrors.account ? 'error' : 'info'} visible>
+                  {pmErrors.account ?? 'For example 0917 123 4567 or name@email.com'}
+                </HelperText>
+                <TextInput
+                  mode="outlined"
+                  label="Account name"
+                  value={pmHolder}
+                  onChangeText={setPmHolder}
+                  error={!!pmErrors.holder}
+                  left={<TextInput.Icon icon="account-outline" />}
+                  style={styles.dialogInput}
+                  outlineStyle={styles.dialogOutline}
+                />
+                <HelperText type="error" visible={!!pmErrors.holder}>{pmErrors.holder}</HelperText>
+              </>
+            )}
+          </AppDialog>
 
           {/* Payment methods: remove confirmation */}
-          <Dialog visible={!!removeMethod} onDismiss={() => setRemoveMethod(null)}>
-            <Dialog.Title>Remove payment method</Dialog.Title>
-            <Dialog.Content>
-              <Text>Remove {removeMethod?.brand} •••• {removeMethod?.last4}?</Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setRemoveMethod(null)}>Cancel</Button>
-              <Button textColor={palette.danger} onPress={confirmRemoveMethod}>Remove</Button>
-            </Dialog.Actions>
-          </Dialog>
+          <AppDialog
+            visible={!!removeMethod}
+            onDismiss={() => setRemoveMethod(null)}
+            icon="credit-card-remove-outline"
+            eyebrow="Remove"
+            title="Remove payment method?"
+            subtitle="You can add it again whenever you need it."
+            tone="danger"
+            scroll={false}
+            actions={[
+              { label: 'Keep it', onPress: () => setRemoveMethod(null) },
+              { label: 'Remove', tone: 'danger', icon: 'trash-can-outline', onPress: confirmRemoveMethod },
+            ]}
+          >
+            {removeMethod ? (
+              <DialogRow
+                icon={removeMethod.type === 'card' ? 'credit-card-outline' : 'wallet-outline'}
+                title={`${removeMethod.brand} •••• ${removeMethod.last4}`}
+                subtitle={removeMethod.type === 'card' ? `${removeMethod.holder} · expires ${removeMethod.expiry}` : `${removeMethod.holder} · e-wallet`}
+                badge={removeMethod.isDefault ? 'Default' : undefined}
+              />
+            ) : null}
+          </AppDialog>
 
           {/* Settings: theme, notifications, privacy */}
-          <Dialog visible={settingsOpen} onDismiss={() => setSettingsOpen(false)}>
-            <Dialog.Title>Settings</Dialog.Title>
-            <Dialog.ScrollArea>
-              <ScrollView style={{ maxHeight: 440 }}>
-                <Text style={styles.settingsLabel}>Appearance</Text>
-                <SegmentedButtons
-                  value={settings.theme}
-                  onValueChange={(v) => updateSettings({ theme: v as ThemeMode })}
-                  buttons={[
-                    { value: 'light', label: 'Light', icon: 'white-balance-sunny' },
-                    { value: 'dark', label: 'Dark', icon: 'weather-night' },
-                    { value: 'system', label: 'System', icon: 'cellphone' },
-                  ]}
-                />
+          <AppDialog
+            visible={settingsOpen}
+            onDismiss={() => setSettingsOpen(false)}
+            icon="cog-outline"
+            eyebrow="Preferences"
+            title="Settings"
+            subtitle="Make the app feel like yours."
+            actions={[
+              {
+                label: 'Reset',
+                tone: 'danger',
+                onPress: () => {
+                  resetSettings();
+                  setSnack('Settings reset');
+                },
+              },
+              { label: 'Done', onPress: () => setSettingsOpen(false) },
+            ]}
+            footerNote="Preferences are saved on this device."
+          >
+            <DialogSectionLabel>Appearance</DialogSectionLabel>
+            <SegmentedButtons
+              value={settings.theme}
+              onValueChange={(v) => updateSettings({ theme: v as ThemeMode })}
+              buttons={[
+                { value: 'light', label: 'Light', icon: 'white-balance-sunny' },
+                { value: 'dark', label: 'Dark', icon: 'weather-night' },
+                { value: 'system', label: 'System', icon: 'cellphone' },
+              ]}
+            />
 
-                <Text style={styles.settingsLabel}>Notifications</Text>
-                <List.Item
-                  title="Order updates"
-                  description="Status of your orders"
-                  right={() => (
-                    <Switch value={settings.notifications.orders} onValueChange={(v) => updateSettings({ notifications: { ...settings.notifications, orders: v } })} />
-                  )}
-                />
-                <List.Item
-                  title="Deals & promotions"
-                  description="Sales and limited-time offers"
-                  right={() => (
-                    <Switch value={settings.notifications.promotions} onValueChange={(v) => updateSettings({ notifications: { ...settings.notifications, promotions: v } })} />
-                  )}
-                />
-                <List.Item
-                  title="New arrivals"
-                  description="When new products land"
-                  right={() => (
-                    <Switch value={settings.notifications.arrivals} onValueChange={(v) => updateSettings({ notifications: { ...settings.notifications, arrivals: v } })} />
-                  )}
-                />
-                <Text style={styles.dialogNote}>Preferences are saved on this device. Push delivery needs expo-notifications.</Text>
+            <DialogSectionLabel>Notifications</DialogSectionLabel>
+            <DialogToggleRow
+              icon="truck-delivery-outline"
+              title="Order updates"
+              description="Status of your orders"
+              value={settings.notifications.orders}
+              onValueChange={(v) => updateSettings({ notifications: { ...settings.notifications, orders: v } })}
+            />
+            <DialogToggleRow
+              icon="tag-outline"
+              title="Deals & promotions"
+              description="Sales and limited-time offers"
+              value={settings.notifications.promotions}
+              onValueChange={(v) => updateSettings({ notifications: { ...settings.notifications, promotions: v } })}
+            />
+            <DialogToggleRow
+              icon="package-variant-closed"
+              title="New arrivals"
+              description="When new products land"
+              value={settings.notifications.arrivals}
+              onValueChange={(v) => updateSettings({ notifications: { ...settings.notifications, arrivals: v } })}
+            />
 
-                <Text style={styles.settingsLabel}>Privacy</Text>
-                <List.Item
-                  title="Save recent searches"
-                  description="Show them under the search bar"
-                  right={() => (
-                    <Switch value={settings.privacy.saveRecentSearches} onValueChange={(v) => updateSettings({ privacy: { ...settings.privacy, saveRecentSearches: v } })} />
-                  )}
-                />
-                <List.Item
-                  title="Show my email"
-                  description="Hide it on this screen when off"
-                  right={() => (
-                    <Switch value={settings.privacy.showEmail} onValueChange={(v) => updateSettings({ privacy: { ...settings.privacy, showEmail: v } })} />
-                  )}
-                />
-                <Button mode="outlined" icon="history" onPress={clearSearchHistory} style={styles.formGap}>Clear search history</Button>
-                <Button mode="outlined" icon="credit-card-remove-outline" onPress={removeAllMethods} style={styles.formGap} disabled={methods.length === 0}>
-                  Remove saved payment methods
-                </Button>
-              </ScrollView>
-            </Dialog.ScrollArea>
-            <Dialog.Actions>
-              <Button onPress={() => { resetSettings(); setSnack('Settings reset'); }}>Reset</Button>
-              <Button onPress={() => setSettingsOpen(false)}>Close</Button>
-            </Dialog.Actions>
-          </Dialog>
+            <DialogSectionLabel>Privacy</DialogSectionLabel>
+            <DialogToggleRow
+              icon="magnify"
+              title="Save recent searches"
+              description="Show them under the search bar"
+              value={settings.privacy.saveRecentSearches}
+              onValueChange={(v) => updateSettings({ privacy: { ...settings.privacy, saveRecentSearches: v } })}
+            />
+            <DialogToggleRow
+              icon="email-outline"
+              title="Show my email"
+              description="Hide it on this screen when off"
+              value={settings.privacy.showEmail}
+              onValueChange={(v) => updateSettings({ privacy: { ...settings.privacy, showEmail: v } })}
+            />
+
+            <Button mode="outlined" icon="history" onPress={clearSearchHistory} style={styles.dialogWideButton} contentStyle={styles.dialogWideButtonContent}>
+              Clear search history
+            </Button>
+            <Button
+              mode="outlined"
+              icon="credit-card-remove-outline"
+              onPress={removeAllMethods}
+              style={styles.dialogWideButton}
+              contentStyle={styles.dialogWideButtonContent}
+              disabled={methods.length === 0}
+            >
+              Remove saved payment methods
+            </Button>
+          </AppDialog>
 
           <Snackbar visible={!!snack} onDismiss={() => setSnack(null)} duration={2500}>
             {snack}

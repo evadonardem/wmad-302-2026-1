@@ -13,6 +13,7 @@ import { productApi } from '@/services/productApi';
 import { useCart } from '@/context/CartContext';
 import { Screen } from '@/components/ScreenBackground';
 import { BentoSpec, CategoryBento } from '@/components/CategoryBento';
+import { CategoryCollage } from '@/components/CategoryCollage';
 import { useResponsive, palette } from '@/constants/theme';
 import { styles } from './categoriesStyles';
 
@@ -68,7 +69,7 @@ const pretty = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1).rep
 export default function CategoriesScreen() {
   const router = useRouter();
   const { totalQuantity } = useCart();
-  const { contentWidth, pad, isWide, isUltra } = useResponsive();
+  const { contentWidth, pad, isUltra, breakpoint } = useResponsive();
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [groupKey, setGroupKey] = useState('all');
@@ -133,7 +134,6 @@ export default function CategoriesScreen() {
       subChips: byCount.slice(0, 10),
       top: byCount[0] ?? null,
       products: inGroup.reduce((sum, c) => sum + c.count, 0),
-      collage: byCount.slice(0, 3).map((c) => c.image),
     };
   }, [categories, group]);
 
@@ -162,9 +162,11 @@ export default function CategoriesScreen() {
 
   // Bento layout: sizes follow PAGE_PATTERN and are packed into 4 columns
   const bentoWidth = contentWidth - pad * 2;
-  const cols = isUltra ? 6 : COLS;
+  const cols = breakpoint === 'phone' ? 2 : isUltra ? 6 : COLS;
   const colWidth = (bentoWidth - GAP * (cols - 1)) / cols;
   const allProducts = categories.reduce((sum, c) => sum + c.count, 0);
+  // Side-by-side banner only when the copy and the carousel both have room
+  const bannerRow = contentWidth >= 900;
 
   return (
     <Screen>
@@ -173,6 +175,11 @@ export default function CategoriesScreen() {
         contentContainerStyle={[styles.listContent, { paddingHorizontal: pad }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[palette.forest]} tintColor={palette.forest} />}
       >
+        <View style={styles.bgDecor} pointerEvents="none">
+          <View style={styles.bgTopBand} />
+          <View style={styles.bgSoftArc} />
+          <View style={styles.bgAccentStrip} />
+        </View>
         <View>
           <View style={styles.header}>
             <Text style={styles.pageTitle}>Categories</Text>
@@ -210,14 +217,20 @@ export default function CategoriesScreen() {
             })}
           </ScrollView>
 
-          {/* Category images/banners: the selected group as a featured collection */}
-          <View style={[styles.banner, isWide && styles.bannerWide]}>
+          {/* Featured collection: a dark hero with a layered, abstract background */}
+          <View style={[styles.banner, bannerRow && styles.bannerWide]}>
+            {/* Background art (sits behind the copy) */}
             <View style={styles.bannerCircle} />
-            <View style={styles.bannerImages}>
-              {view.collage[1] ? <Image source={{ uri: view.collage[1] }} style={styles.bannerImageSide} resizeMode="contain" /> : null}
-              {view.collage[0] ? <Image source={{ uri: view.collage[0] }} style={styles.bannerImageMain} resizeMode="contain" /> : null}
-            </View>
-            <View style={styles.bannerText}>
+            <View style={styles.bannerGlow} />
+            <View style={styles.bannerRingGold} />
+            <View style={styles.bannerRingLight} />
+            <View style={styles.bannerTile} />
+            <View style={styles.bannerDot} />
+            <MaterialCommunityIcons name="star-four-points" size={30} color={palette.gold} style={styles.bannerSparkA} />
+            <MaterialCommunityIcons name="star-four-points" size={16} color="rgba(251,247,255,0.72)" style={styles.bannerSparkB} />
+            <MaterialCommunityIcons name="star-four-points" size={12} color="rgba(251,247,255,0.5)" style={styles.bannerSparkC} />
+
+            <View style={[styles.bannerText, bannerRow && styles.bannerTextWide]}>
               <Text style={styles.bannerEyebrow}>Featured collection</Text>
               <Text style={styles.bannerTitle}>{group.key === 'all' ? 'All Categories' : group.label}</Text>
               <Text style={styles.bannerSub}>{view.inGroup.length} sub-categories · {view.products} products</Text>
@@ -230,16 +243,15 @@ export default function CategoriesScreen() {
             </View>
           </View>
 
-          {/* Sub-categories: quick links, most products first */}
-          <Text style={styles.sectionTitle}>{group.key === 'all' ? 'Popular sub-categories' : `${group.label} sub-categories`}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subRow}>
-            {view.subChips.map((c) => (
-              <Pressable key={c.name} style={styles.subChip} onPress={() => openCategory(c.name)} accessibilityRole="button">
-                <Text style={styles.subChipText}>{pretty(c.name)}</Text>
-                <Text style={styles.subChipCount}>{c.count}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+          {/* Category collage: a tilted, snap-scrolling rail of the top sub-categories */}
+          <CategoryCollage
+            key={groupKey}
+            items={view.subChips}
+            width={bentoWidth}
+            subtitle={`${view.inGroup.length} sub-categories · ${view.products} pieces to explore`}
+            onOpen={openCategory}
+            onSeeAll={() => router.push('/(app)/(tabs)/search')}
+          />
 
           <Text style={styles.sectionTitle}>All {group.key === 'all' ? 'categories' : group.label.toLowerCase()}</Text>
         </View>
@@ -248,11 +260,12 @@ export default function CategoriesScreen() {
           <Text style={styles.emptyText}>No categories in this group.</Text>
         ) : (
           <CategoryBento
+            key={groupKey}
             items={view.inGroup}
             specs={view.inGroup.map((_, i) => PAGE_PATTERN[i % PAGE_PATTERN.length])}
             columns={cols}
             width={bentoWidth}
-            unit={Math.round(colWidth * 0.92)}
+            unit={Math.round(colWidth * 1.08)}
             gap={GAP}
             onOpen={openCategory}
             footer={{
@@ -290,14 +303,6 @@ export default function CategoriesScreen() {
             </View>
           )}
 
-          <View style={styles.guideContainer}>
-            <Text style={styles.guideTitle}>✅ Student Implementation Guide: completed</Text>
-            <Text style={styles.guideText}>✓ 1. Category images/banners</Text>
-            <Text style={styles.guideText}>✓ 2. Product count per category</Text>
-            <Text style={styles.guideText}>✓ 3. Sub-categories navigation</Text>
-            <Text style={styles.guideText}>✓ 4. "Featured Brands" section</Text>
-            <Text style={styles.guideText}>✓ 5. Pull-to-refresh</Text>
-          </View>
         </View>
       </ScrollView>
     </Screen>

@@ -12,6 +12,8 @@ import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useRewards } from '@/context/RewardsContext';
+import { useSettings } from '@/context/SettingsContext';
 import { productApi } from '@/services/productApi';
 import { Product } from '@/types/product';
 import { BentoProducts } from '@/components/BentoProducts';
@@ -51,7 +53,7 @@ const PILLS: CategoryPill[] = [
 ];
 
 // "Shop by Category" cards: one product picture per category, taken from the loaded products
-const SHOP_CARDS: Array<{ label: string; slug: string }> = [
+const SHOP_CARDS: { label: string; slug: string }[] = [
   { label: 'Women', slug: 'womens-dresses' },
   { label: 'Men', slug: 'mens-shirts' },
   { label: 'Bags', slug: 'womens-bags' },
@@ -74,6 +76,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { totalQuantity } = useCart();
+  const { state: rewards } = useRewards();
+  const { resolvedMode, updateSettings } = useSettings();
   const { isWide, isUltra, contentWidth, columns, pad } = useResponsive();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedPill, setSelectedPill] = useState<string | null>(null);
@@ -185,7 +189,16 @@ export default function HomeScreen() {
   }
 
   const innerWidth = contentWidth - pad * 2;
-  const wideBanner = innerWidth >= 700;
+  const wideBanner = isWide;
+  const themeButton = (
+    <Pressable
+      style={styles.themeButton}
+      onPress={() => updateSettings({ theme: resolvedMode === 'dark' ? 'light' : 'dark' })}
+      accessibilityLabel={resolvedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      <MaterialCommunityIcons name={resolvedMode === 'dark' ? 'weather-sunny' : 'weather-night'} size={20} color={palette.forest} />
+    </Pressable>
+  );
   const cartButton = (
     <Pressable style={styles.cartButton} onPress={() => router.push('/(app)/(tabs)/cart')} accessibilityLabel="Open cart">
       <MaterialCommunityIcons name="cart-outline" size={22} color={palette.surface} />
@@ -206,9 +219,9 @@ export default function HomeScreen() {
   const brand = (
     <View style={styles.brand}>
       <MaterialCommunityIcons name="shopping" size={38} color={palette.forest} />
-      <View>
-        <Text style={styles.brandText}>MARKETPLACE</Text>
-        <Text style={styles.brandTag}>Shop Smart. Live Better.</Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={styles.brandText} numberOfLines={1}>MARKETPLACE</Text>
+        <Text style={styles.brandTag} numberOfLines={1}>Shop Smart. Live Better.</Text>
       </View>
     </View>
   );
@@ -217,6 +230,15 @@ export default function HomeScreen() {
       <MaterialCommunityIcons name="magnify" size={20} color={palette.ink} />
       <Text style={styles.searchText}>Search products...</Text>
     </Pressable>
+  );
+
+  // Browse All Products: sits at the right end of the pagination row under the product grid
+  const browseButton = (
+    <Pressable style={styles.browseButton} onPress={goSearch} accessibilityRole="button">
+              <MaterialCommunityIcons name="view-grid-outline" size={20} color={palette.forest} />
+              <Text style={styles.browseText}>Browse All Products</Text>
+              <MaterialCommunityIcons name="arrow-right" size={18} color={palette.forest} />
+            </Pressable>
   );
 
   return (
@@ -232,6 +254,7 @@ export default function HomeScreen() {
             {brand}
             {searchPill}
             <View style={styles.headerIcons}>
+              {themeButton}
               {cartButton}
               <View style={styles.headerDivider} />
               {accountButton}
@@ -242,6 +265,7 @@ export default function HomeScreen() {
             <View style={styles.headerTop}>
               {brand}
               <View style={styles.headerIcons}>
+                {themeButton}
                 {cartButton}
                 {accountButton}
               </View>
@@ -254,42 +278,42 @@ export default function HomeScreen() {
         {isWide ? (
           // Wide screens: every pill is visible, wrapped and centred
           <View style={styles.pillWrap}>
-            {PILLS.map((pill) => {
-              const active = pill.key === 'all' ? selectedPill === null : selectedPill === pill.key;
-              return (
-                <Pressable
-                  key={pill.key}
-                  style={[styles.pill, active && styles.pillActive]}
-                  onPress={() => setSelectedPill(pill.key === 'all' ? null : pill.key)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                >
-                  <MaterialCommunityIcons name={pill.icon} size={22} color={active ? palette.surface : palette.forest} />
-                  <Text style={[styles.pillText, active && styles.pillTextActive]}>{pill.label}</Text>
-                </Pressable>
-              );
-            })}
+          {PILLS.map((pill) => {
+            const active = pill.key === 'all' ? selectedPill === null : selectedPill === pill.key;
+            return (
+              <Pressable
+                key={pill.key}
+                style={[styles.pill, active && styles.pillActive]}
+                onPress={() => setSelectedPill(pill.key === 'all' ? null : pill.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <MaterialCommunityIcons name={pill.icon} size={22} color={active ? palette.surface : palette.forest} />
+                <Text style={[styles.pillText, active && styles.pillTextActive]}>{pill.label}</Text>
+              </Pressable>
+            );
+          })}
           </View>
         ) : (
           <ScrollView ref={pillsRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
-            {PILLS.map((pill) => {
-              const active = pill.key === 'all' ? selectedPill === null : selectedPill === pill.key;
-              return (
-                <Pressable
-                  key={pill.key}
-                  style={[styles.pill, active && styles.pillActive]}
-                  onPress={() => setSelectedPill(pill.key === 'all' ? null : pill.key)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                >
-                  <MaterialCommunityIcons name={pill.icon} size={22} color={active ? palette.surface : palette.forest} />
-                  <Text style={[styles.pillText, active && styles.pillTextActive]}>{pill.label}</Text>
-                </Pressable>
-              );
-            })}
-            <Pressable style={styles.pillChevron} onPress={() => pillsRef.current?.scrollToEnd({ animated: true })} accessibilityLabel="More categories">
-              <MaterialCommunityIcons name="chevron-right" size={22} color={palette.ink} />
-            </Pressable>
+          {PILLS.map((pill) => {
+            const active = pill.key === 'all' ? selectedPill === null : selectedPill === pill.key;
+            return (
+              <Pressable
+                key={pill.key}
+                style={[styles.pill, active && styles.pillActive]}
+                onPress={() => setSelectedPill(pill.key === 'all' ? null : pill.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <MaterialCommunityIcons name={pill.icon} size={22} color={active ? palette.surface : palette.forest} />
+                <Text style={[styles.pillText, active && styles.pillTextActive]}>{pill.label}</Text>
+              </Pressable>
+            );
+          })}
+          <Pressable style={styles.pillChevron} onPress={() => pillsRef.current?.scrollToEnd({ animated: true })} accessibilityLabel="More categories">
+            <MaterialCommunityIcons name="chevron-right" size={22} color={palette.ink} />
+          </Pressable>
           </ScrollView>
         )}
 
@@ -307,7 +331,26 @@ export default function HomeScreen() {
             />
           </View>
 
-          <View style={[styles.offer, !wideBanner && styles.offerStacked]}>
+          {wideBanner ? (
+            <View style={styles.offer}>
+              <MaterialCommunityIcons name="gift-outline" size={150} color="#FFFFFF" style={styles.offerBag} />
+              <View style={styles.offerTop}>
+                <MaterialCommunityIcons name="lightning-bolt" size={22} color={palette.gold} />
+                <Text style={styles.offerLabel}>Limited Time Offer</Text>
+              </View>
+              <Text style={styles.offerUpTo}>Up to</Text>
+              <Text style={styles.offerBig}>{Math.round(view.maxDiscount)}% OFF</Text>
+              <Text style={styles.offerSub}>On Selected Items</Text>
+              <Pressable style={styles.offerButton} onPress={goSearch} accessibilityRole="button">
+                <Text style={styles.offerButtonText}>Shop the Deal</Text>
+                <MaterialCommunityIcons name="arrow-right" size={16} color="#FBF7FF" />
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+
+        {!wideBanner ? (
+          <View style={[styles.offer, styles.offerStacked, styles.offerMobileBelow]}>
             <MaterialCommunityIcons name="gift-outline" size={150} color="#FFFFFF" style={styles.offerBag} />
             <View style={styles.offerTop}>
               <MaterialCommunityIcons name="lightning-bolt" size={22} color={palette.gold} />
@@ -321,7 +364,52 @@ export default function HomeScreen() {
               <MaterialCommunityIcons name="arrow-right" size={16} color="#FBF7FF" />
             </Pressable>
           </View>
-        </View>
+        ) : null}
+
+        {/* Play & Earn: one shared rewards hub for three games */}
+        <Pressable
+          style={styles.playCard}
+          onPress={() => router.push('/(app)/(tabs)/play-earn')}
+          accessibilityRole="button"
+          accessibilityLabel="Open Play and Earn"
+        >
+          <View style={styles.playGlowA} />
+          <View style={styles.playGlowB} />
+          <View style={styles.playRing} />
+          <MaterialCommunityIcons name="star-four-points" size={22} color={palette.gold} style={styles.playSpark} />
+          <View style={styles.playTop}>
+            <View style={styles.playEyebrowRow}>
+              <MaterialCommunityIcons name="controller-classic-outline" size={16} color={palette.gold} />
+              <Text style={styles.playEyebrow}>Play &amp; Earn</Text>
+            </View>
+            <View style={styles.playPointsPill}>
+              <Text style={styles.playPointsValue}>{rewards.points}</Text>
+              <Text style={styles.playPointsLabel}>PTS</Text>
+            </View>
+          </View>
+          <Text style={styles.playTitle}>A little fun goes a long way.</Text>
+          <Text style={styles.playSub}>
+            Spin the wheel, take the personality quiz or hunt today&apos;s hidden deal to earn coupons and points.
+          </Text>
+          <View style={styles.playActivities}>
+            <View style={styles.playActivity}>
+              <MaterialCommunityIcons name="chart-donut" size={15} color={palette.gold} />
+              <Text style={styles.playActivityText}>Spin &amp; Win</Text>
+            </View>
+            <View style={styles.playActivity}>
+              <MaterialCommunityIcons name="brain" size={15} color={palette.gold} />
+              <Text style={styles.playActivityText}>Personality Quiz</Text>
+            </View>
+            <View style={styles.playActivity}>
+              <MaterialCommunityIcons name="binoculars" size={15} color={palette.gold} />
+              <Text style={styles.playActivityText}>Deal Hunter</Text>
+            </View>
+          </View>
+          <View style={styles.playCta}>
+            <Text style={styles.playCtaText}>Open Play &amp; Earn</Text>
+            <MaterialCommunityIcons name="arrow-right" size={16} color="#3A1E70" />
+          </View>
+        </Pressable>
 
         {/* Categories: Shop by Category cards with a product picture each */}
         <View style={styles.shopSection} onLayout={(e: LayoutChangeEvent) => setShopWidth(Math.floor(e.nativeEvent.layout.width))}>
@@ -379,15 +467,10 @@ export default function HomeScreen() {
               maxPages={12}
               onOpenProduct={openProduct}
               onOpenCollection={openCollection}
+              trailing={browseButton}
             />
           )}
-          <View style={styles.browseRow}>
-            <Pressable style={styles.browseButton} onPress={goSearch} accessibilityRole="button">
-              <MaterialCommunityIcons name="view-grid-outline" size={20} color={palette.forest} />
-              <Text style={styles.browseText}>Browse All Products</Text>
-              <MaterialCommunityIcons name="arrow-right" size={18} color={palette.forest} />
-            </Pressable>
-          </View>
+          {pillLoading || bentoSource.length === 0 ? <View style={styles.browseRow}>{browseButton}</View> : null}
         </View>
       </ScrollView>
     </View>

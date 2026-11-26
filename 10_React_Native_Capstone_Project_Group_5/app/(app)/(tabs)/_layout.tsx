@@ -12,10 +12,13 @@ import { palette } from '@/constants/theme';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const icon =
-  (active: IconName, inactive: IconName) =>
-    ({ focused, color }: { focused: boolean; color: string }) => (
+  (active: IconName, inactive: IconName) => {
+    const TabIcon = ({ focused, color }: { focused: boolean; color: string }) => (
       <MaterialCommunityIcons name={focused ? active : inactive} size={24} color={color} />
     );
+    TabIcon.displayName = `TabIcon(${active})`;
+    return TabIcon;
+  };
 
 export default function TabsLayout() {
   const { totalQuantity } = useCart();
@@ -53,6 +56,8 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: icon('account-circle', 'account-circle-outline') }} />
+      {/* Play & Earn lives in its own nested stack, opened from Home, so it gets no tab button */}
+      <Tabs.Screen name="play-earn" options={{ href: null }} />
       {/* Product detail is opened from cards, so it gets no tab button */}
       <Tabs.Screen name="product/[id]" options={{ href: null }} />
     </Tabs>

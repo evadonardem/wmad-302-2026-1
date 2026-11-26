@@ -21,6 +21,8 @@ interface BentoProductsProps {
     maxPages?: number;
     onOpenProduct: (id: number) => void;
     onOpenCollection: (slug: string) => void;
+    /** Shown at the right end of the pagination row (e.g. a "Browse all" button) */
+    trailing?: React.ReactNode;
 }
 
 type TileKind = 'product' | 'featureA' | 'featureB';
@@ -37,6 +39,7 @@ export function BentoProducts({
     maxPages = 5,
     onOpenProduct,
     onOpenCollection,
+    trailing,
 }: BentoProductsProps) {
     const { addItem, items } = useCart();
     const [page, setPage] = useState(0);
@@ -67,6 +70,7 @@ export function BentoProducts({
     const current = Math.min(page, pages - 1);
     const pageItems = products.slice(current * perPage, current * perPage + perPage);
     const usable = measured > 0 ? measured : width;
+    const footerWide = usable >= 640;
     const colW = Math.floor((usable - gap * (columns - 1)) / columns);
     const cardH = Math.round(colW * (columns === 2 ? 1.28 : 1.12));
     const order: TileKind[] =
@@ -124,7 +128,7 @@ export function BentoProducts({
         return (
             <Pressable
                 key={`${kind}-${p.id}`}
-                style={[styles.feature, { width: w, height: cardH, backgroundColor: a ? '#E4DAF8' : '#F0E0F3' }]}
+                style={[styles.feature, { width: w, height: cardH, backgroundColor: a ? palette.sand : palette.roseLight }]}
                 onPress={() => (a ? onOpenProduct(p.id) : onOpenCollection(p.category))}
                 accessibilityRole="button"
                 accessibilityLabel={p.title}
@@ -163,15 +167,40 @@ export function BentoProducts({
                 })}
             </Animated.View>
 
-            {pages > 1 && (
-                <View style={styles.dots}>
-                    {Array.from({ length: pages }, (_, i) => (
-                        <Pressable key={i} onPress={() => setPage(i)} hitSlop={8} accessibilityLabel={`Page ${i + 1}`}>
-                            <View style={[styles.dot, i === current && styles.dotActive]} />
+            {/* Pagination: arrows + dots in the middle, the trailing action on the right */}
+            <View style={[styles.footer, !footerWide && styles.footerStacked]}>
+                {footerWide ? <View style={styles.footerSide} /> : null}
+                {pages > 1 ? (
+                    <View style={styles.pager}>
+                        <Pressable
+                            style={[styles.pagerArrow, current === 0 && styles.pagerArrowOff]}
+                            onPress={() => setPage(Math.max(0, current - 1))}
+                            disabled={current === 0}
+                            accessibilityLabel="Previous page"
+                        >
+                            <MaterialCommunityIcons name="chevron-left" size={22} color={palette.forest} />
                         </Pressable>
-                    ))}
-                </View>
-            )}
+                        <View style={styles.dots}>
+                            {Array.from({ length: pages }, (_, i) => (
+                                <Pressable key={i} onPress={() => setPage(i)} hitSlop={8} accessibilityLabel={`Page ${i + 1}`}>
+                                    <View style={[styles.dot, i === current && styles.dotActive]} />
+                                </Pressable>
+                            ))}
+                        </View>
+                        <Pressable
+                            style={[styles.pagerArrow, current === pages - 1 && styles.pagerArrowOff]}
+                            onPress={() => setPage(Math.min(pages - 1, current + 1))}
+                            disabled={current === pages - 1}
+                            accessibilityLabel="Next page"
+                        >
+                            <MaterialCommunityIcons name="chevron-right" size={22} color={palette.forest} />
+                        </Pressable>
+                    </View>
+                ) : (
+                    <View style={styles.footerSide} />
+                )}
+                <View style={[styles.footerSide, styles.footerEnd]}>{trailing}</View>
+            </View>
         </View>
     );
 }
@@ -196,7 +225,7 @@ const styles = themed(() =>
         priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
         price: { fontSize: 18, fontWeight: '800', color: palette.ink },
         original: { fontSize: 12, color: palette.mist, textDecorationLine: 'line-through' },
-        name: { fontSize: 13, color: palette.stone, marginTop: 2 },
+        name: { fontSize: 13, color: palette.ink, marginTop: 2 },
         cartButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: palette.forest, alignItems: 'center', justifyContent: 'center' },
 
         // Feature tiles
@@ -213,7 +242,14 @@ const styles = themed(() =>
         featureButtonText: { fontSize: 12, fontWeight: '700', color: palette.forest },
 
         // Pagination dots
-        dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: spacing.lg },
+        footer: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
+        footerStacked: { flexDirection: 'column', gap: spacing.md },
+        footerSide: { flex: 1 },
+        footerEnd: { alignItems: 'flex-end', alignSelf: 'stretch' },
+        pager: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+        pagerArrow: { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },
+        pagerArrowOff: { opacity: 0.35 },
+        dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
         dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.beige },
         dotActive: { width: 22, backgroundColor: palette.forest },
     })

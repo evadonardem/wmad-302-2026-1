@@ -59,10 +59,7 @@ export const styles = themed(() =>
     logoutButtonContent: { height: 52, paddingHorizontal: spacing.lg },
     logoutButtonText: { fontSize: 14, fontWeight: '700', color: palette.danger },
 
-    // Student guide + version
-    guideContainer: { padding: spacing.md, backgroundColor: palette.accentSoft, borderRadius: radius.lg },
-    guideTitle: { fontSize: 12, fontWeight: '700', color: palette.forest, marginBottom: spacing.sm },
-    guideText: { fontSize: 13, color: palette.stone, lineHeight: 21 },
+    // Version
     version: { alignItems: 'center', paddingVertical: spacing.md },
     versionText: { fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: palette.mist },
 
@@ -73,5 +70,28 @@ export const styles = themed(() =>
     settingsLabel: { fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', color: palette.stone, marginTop: spacing.md, marginBottom: spacing.sm },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
     formGap: { marginTop: spacing.sm },
+
+    // Pop-up card contents
+    logoutNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: palette.accentSoft },
+    logoutNoteText: { flex: 1, fontSize: 13, lineHeight: 19, color: palette.forest },
+    editIdentity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: palette.ivory, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line },
+    editIdentityText: { flex: 1 },
+    editName: { fontSize: 15, fontWeight: '700', color: palette.ink },
+    editHandle: { fontSize: 12, color: palette.stone, marginTop: 2 },
+    dialogInput: { backgroundColor: palette.surface, borderRadius: radius.md },
+    dialogOutline: { borderRadius: 14, borderColor: palette.line },
+    orderSummary: { flexDirection: 'row', padding: spacing.md, borderRadius: radius.lg, backgroundColor: palette.accentSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line },
+    orderStat: { flex: 1, alignItems: 'center', gap: 2 },
+    orderStatLabel: { fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase', fontWeight: '700', color: palette.stone },
+    orderStatValue: { ...serif, fontSize: 18, color: palette.ink },
+    ordersLoading: { alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.sm },
+    ordersLoadingText: { fontSize: 13, color: palette.stone },
+    orderMeta: { gap: 6, padding: spacing.md, borderRadius: radius.lg, backgroundColor: palette.ivory, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line },
+    orderMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    orderMetaText: { flex: 1, fontSize: 12, color: palette.stone },
+    smallLabel: { fontSize: 11, fontWeight: '700' },
+    fillExample: { alignSelf: 'flex-start' },
+    dialogWideButton: { borderRadius: radius.md, marginTop: spacing.xs },
+    dialogWideButtonContent: { height: 44 },
   })
 );

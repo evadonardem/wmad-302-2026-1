@@ -4,13 +4,14 @@
  * - Create / Update: one form dialog (label, name, phone, street, city, region, postal code)
  * - Delete: confirmation dialog; the default moves to another address when needed
  * The parent owns the list (and persists it), so checkout and the profile always agree.
+ * All three views use the shared AppDialog pop-up card.
  */
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { Button, Chip, Dialog, HelperText, IconButton, List, Portal, Switch, TextInput } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { Button, Chip, HelperText, IconButton, TextInput } from 'react-native-paper';
 import { Address, ADDRESS_LABELS, AddressLabel, PHONE_PATTERN, formatAddress } from '@/services/addresses';
-import { palette, spacing, themed } from '@/constants/theme';
-import { StyleSheet } from 'react-native';
+import { palette, radius, spacing, themed } from '@/constants/theme';
+import { AppDialog, DialogEmptyState, DialogRow, DialogToggleRow } from '@/components/AppDialog';
 
 interface AddressManagerProps {
     visible: boolean;
@@ -30,7 +31,7 @@ interface FormErrors {
     postalCode?: string;
 }
 
-const ICONS: Record<AddressLabel, string> = { Home: 'home-outline', Work: 'briefcase-outline', Other: 'map-marker-outline' };
+const ICONS = { Home: 'home-outline', Work: 'briefcase-outline', Other: 'map-marker-outline' } as const;
 
 export function AddressManager({ visible, addresses, defaultName, onChange, onClose, onMessage }: AddressManagerProps) {
     const [formOpen, setFormOpen] = useState(false);
@@ -115,94 +116,203 @@ export function AddressManager({ visible, addresses, defaultName, onChange, onCl
     };
 
     return (
-        <Portal>
+        <>
             {/* Read: saved addresses */}
-            <Dialog visible={visible && !formOpen && !removeTarget} onDismiss={onClose}>
-                <Dialog.Title>Delivery Addresses</Dialog.Title>
-                <Dialog.ScrollArea>
-                    <ScrollView style={{ maxHeight: 400 }}>
-                        {addresses.length === 0 ? (
-                            <Text style={styles.empty}>No addresses yet. Add one and checkout will fill it in for you.</Text>
-                        ) : (
-                            addresses.map((a) => (
-                                <List.Item
-                                    key={a.id}
-                                    title={`${a.label} · ${a.fullName}`}
-                                    description={`${formatAddress(a)}\n${a.phone}`}
-                                    descriptionNumberOfLines={3}
-                                    left={(props) => <List.Icon {...props} icon={ICONS[a.label]} />}
-                                    right={() => (
-                                        <View style={styles.actions}>
-                                            {a.isDefault ? <Chip compact>Default</Chip> : <Button compact onPress={() => setDefault(a.id)}>Default</Button>}
-                                            <IconButton icon="pencil-outline" size={20} onPress={() => openForm(a)} accessibilityLabel="Edit address" />
-                                            <IconButton icon="delete-outline" size={20} onPress={() => setRemoveTarget(a)} accessibilityLabel="Delete address" />
-                                        </View>
-                                    )}
-                                />
-                            ))
-                        )}
-                    </ScrollView>
-                </Dialog.ScrollArea>
-                <Dialog.Actions>
-                    <Button onPress={() => openForm()}>Add new</Button>
-                    <Button onPress={onClose}>Close</Button>
-                </Dialog.Actions>
-            </Dialog>
+            <AppDialog
+                visible={visible && !formOpen && !removeTarget}
+                onDismiss={onClose}
+                icon="map-marker-outline"
+                eyebrow="Delivery"
+                title="Addresses"
+                subtitle={
+                    addresses.length === 0
+                        ? 'Save a delivery address for a faster checkout'
+                        : `${addresses.length} saved ${addresses.length === 1 ? 'address' : 'addresses'}`
+                }
+                actions={[
+                    { label: 'Add new', mode: 'outlined', icon: 'plus', onPress: () => openForm() },
+                    { label: 'Done', onPress: onClose },
+                ]}
+                footerNote={addresses.length > 0 ? 'The default address is filled in automatically at checkout.' : undefined}
+            >
+                {addresses.length === 0 ? (
+                    <DialogEmptyState
+                        icon="map-marker-off-outline"
+                        title="No addresses yet"
+                        message="Add your home, work or any delivery spot and checkout will fill it in for you."
+                        action={<Button mode="contained" icon="plus" onPress={() => openForm()}>Add your first address</Button>}
+                    />
+                ) : (
+                    addresses.map((a) => (
+                        <DialogRow
+                            key={a.id}
+                            icon={ICONS[a.label]}
+                            title={a.fullName}
+                            badge={a.isDefault ? 'Default' : a.label}
+                            subtitle={formatAddress(a)}
+                            meta={a.phone}
+                            actions={
+                                <>
+                                    <IconButton icon="pencil-outline" size={20} onPress={() => openForm(a)} accessibilityLabel="Edit address" />
+                                    <IconButton
+                                        icon="delete-outline"
+                                        size={20}
+                                        iconColor={palette.danger}
+                                        onPress={() => setRemoveTarget(a)}
+                                        accessibilityLabel="Delete address"
+                                    />
+                                </>
+                            }
+                            footer={
+                                !a.isDefault ? (
+                                    <Button mode="text" compact icon="star-outline" onPress={() => setDefault(a.id)} labelStyle={styles.smallLabel}>
+                                        Make default
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    ))
+                )}
+            </AppDialog>
 
             {/* Create / Update */}
-            <Dialog visible={visible && formOpen} onDismiss={closeForm}>
-                <Dialog.Title>{editingId ? 'Edit Address' : 'Add Address'}</Dialog.Title>
-                <Dialog.ScrollArea>
-                    <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 420 }}>
-                        <View style={styles.chips}>
-                            {ADDRESS_LABELS.map((l) => (
-                                <Chip key={l} selected={label === l} icon={ICONS[l]} onPress={() => setLabel(l)}>{l}</Chip>
-                            ))}
-                        </View>
-                        <TextInput mode="outlined" label="Full name" value={fullName} onChangeText={setFullName} error={!!errors.fullName} />
-                        <HelperText type="error" visible={!!errors.fullName}>{errors.fullName}</HelperText>
-                        <TextInput mode="outlined" label="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" error={!!errors.phone} />
-                        <HelperText type="error" visible={!!errors.phone}>{errors.phone}</HelperText>
-                        <TextInput mode="outlined" label="Street, building, unit" value={street} onChangeText={setStreet} multiline error={!!errors.street} />
-                        <HelperText type="error" visible={!!errors.street}>{errors.street}</HelperText>
-                        <TextInput mode="outlined" label="City" value={city} onChangeText={setCity} error={!!errors.city} />
-                        <HelperText type="error" visible={!!errors.city}>{errors.city}</HelperText>
-                        <TextInput mode="outlined" label="Province / region" value={region} onChangeText={setRegion} error={!!errors.region} />
-                        <HelperText type="error" visible={!!errors.region}>{errors.region}</HelperText>
-                        <TextInput mode="outlined" label="Postal code" value={postalCode} onChangeText={setPostalCode} error={!!errors.postalCode} />
-                        <HelperText type="error" visible={!!errors.postalCode}>{errors.postalCode}</HelperText>
-                        <List.Item
-                            title="Use as default address"
-                            description="Checkout fills this one in"
-                            right={() => <Switch value={makeDefault} onValueChange={setMakeDefault} />}
+            <AppDialog
+                visible={visible && formOpen}
+                onDismiss={closeForm}
+                icon={editingId ? 'map-marker-check-outline' : 'map-marker-plus-outline'}
+                eyebrow="Delivery"
+                title={editingId ? 'Edit address' : 'New address'}
+                subtitle="Where should we send your orders?"
+                actions={[
+                    { label: 'Cancel', onPress: closeForm },
+                    { label: editingId ? 'Save changes' : 'Add address', onPress: save, icon: 'check' },
+                ]}
+            >
+                <View style={styles.chips}>
+                    {ADDRESS_LABELS.map((l) => (
+                        <Chip key={l} selected={label === l} icon={ICONS[l]} onPress={() => setLabel(l)}>
+                            {l}
+                        </Chip>
+                    ))}
+                </View>
+                <TextInput
+                    mode="outlined"
+                    label="Full name"
+                    value={fullName}
+                    onChangeText={setFullName}
+                    error={!!errors.fullName}
+                    left={<TextInput.Icon icon="account-outline" />}
+                    style={styles.input}
+                    outlineStyle={styles.inputOutline}
+                />
+                <HelperText type="error" visible={!!errors.fullName}>{errors.fullName}</HelperText>
+                <TextInput
+                    mode="outlined"
+                    label="Phone number"
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    error={!!errors.phone}
+                    left={<TextInput.Icon icon="phone-outline" />}
+                    style={styles.input}
+                    outlineStyle={styles.inputOutline}
+                />
+                <HelperText type="error" visible={!!errors.phone}>{errors.phone}</HelperText>
+                <TextInput
+                    mode="outlined"
+                    label="Street, building, unit"
+                    value={street}
+                    onChangeText={setStreet}
+                    multiline
+                    error={!!errors.street}
+                    left={<TextInput.Icon icon="home-outline" />}
+                    style={styles.input}
+                    outlineStyle={styles.inputOutline}
+                />
+                <HelperText type="error" visible={!!errors.street}>{errors.street}</HelperText>
+                <View style={styles.split}>
+                    <View style={styles.splitItem}>
+                        <TextInput
+                            mode="outlined"
+                            label="City"
+                            value={city}
+                            onChangeText={setCity}
+                            error={!!errors.city}
+                            style={styles.input}
+                            outlineStyle={styles.inputOutline}
                         />
-                    </ScrollView>
-                </Dialog.ScrollArea>
-                <Dialog.Actions>
-                    <Button onPress={closeForm}>Cancel</Button>
-                    <Button onPress={save}>Save</Button>
-                </Dialog.Actions>
-            </Dialog>
+                        <HelperText type="error" visible={!!errors.city}>{errors.city}</HelperText>
+                    </View>
+                    <View style={styles.splitItem}>
+                        <TextInput
+                            mode="outlined"
+                            label="Province"
+                            value={region}
+                            onChangeText={setRegion}
+                            error={!!errors.region}
+                            style={styles.input}
+                            outlineStyle={styles.inputOutline}
+                        />
+                        <HelperText type="error" visible={!!errors.region}>{errors.region}</HelperText>
+                    </View>
+                </View>
+                <TextInput
+                    mode="outlined"
+                    label="Postal code"
+                    value={postalCode}
+                    onChangeText={setPostalCode}
+                    keyboardType="number-pad"
+                    error={!!errors.postalCode}
+                    left={<TextInput.Icon icon="mailbox-outline" />}
+                    style={styles.input}
+                    outlineStyle={styles.inputOutline}
+                />
+                <HelperText type="error" visible={!!errors.postalCode}>{errors.postalCode}</HelperText>
+                <DialogToggleRow
+                    icon="map-marker-check-outline"
+                    title="Use as default address"
+                    description="Checkout fills this one in"
+                    value={makeDefault}
+                    onValueChange={setMakeDefault}
+                />
+            </AppDialog>
 
             {/* Delete */}
-            <Dialog visible={!!removeTarget} onDismiss={() => setRemoveTarget(null)}>
-                <Dialog.Title>Delete address</Dialog.Title>
-                <Dialog.Content>
-                    <Text>Delete your {removeTarget?.label.toLowerCase()} address?</Text>
-                </Dialog.Content>
-                <Dialog.Actions>
-                    <Button onPress={() => setRemoveTarget(null)}>Cancel</Button>
-                    <Button textColor={palette.danger} onPress={confirmRemove}>Delete</Button>
-                </Dialog.Actions>
-            </Dialog>
-        </Portal>
+            <AppDialog
+                visible={!!removeTarget}
+                onDismiss={() => setRemoveTarget(null)}
+                icon="trash-can-outline"
+                eyebrow="Careful"
+                title="Delete address?"
+                subtitle="This cannot be undone."
+                tone="danger"
+                scroll={false}
+                actions={[
+                    { label: 'Keep it', onPress: () => setRemoveTarget(null) },
+                    { label: 'Delete', tone: 'danger', icon: 'trash-can-outline', onPress: confirmRemove },
+                ]}
+            >
+                {removeTarget ? (
+                    <DialogRow
+                        icon={ICONS[removeTarget.label]}
+                        title={removeTarget.fullName}
+                        badge={removeTarget.label}
+                        subtitle={formatAddress(removeTarget)}
+                        meta={removeTarget.phone}
+                    />
+                ) : null}
+            </AppDialog>
+        </>
     );
 }
 
 const styles = themed(() =>
     StyleSheet.create({
-        empty: { paddingVertical: spacing.lg, textAlign: 'center', color: palette.stone },
-        actions: { flexDirection: 'row', alignItems: 'center' },
-        chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginVertical: spacing.sm },
+        chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.xs },
+        input: { backgroundColor: palette.surface, borderRadius: radius.md },
+        inputOutline: { borderRadius: 14, borderColor: palette.line },
+        split: { flexDirection: 'row', gap: spacing.sm },
+        splitItem: { flex: 1 },
+        smallLabel: { fontSize: 11, fontWeight: '700' },
     })
 );

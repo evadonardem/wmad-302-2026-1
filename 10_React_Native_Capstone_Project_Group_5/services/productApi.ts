@@ -64,7 +64,7 @@ class ProductApiService {
    * DummyJSON returns objects ({ slug, name, url }) in newer versions, strings in older ones
    */
   async getCategories(): Promise<string[]> {
-    const response = await this.client.get<Array<string | { slug: string }>>('/products/categories');
+    const response = await this.client.get<(string | { slug: string })[]>('/products/categories');
     return response.data.map((c) => (typeof c === 'string' ? c : c.slug));
   }
 

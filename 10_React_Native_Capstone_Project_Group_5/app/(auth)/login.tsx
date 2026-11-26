@@ -1,7 +1,6 @@
 /**
  * Login Screen - React Native + React Native Paper, responsive (no fixed widths)
  * - Sign in with username/email + password (POST /auth/login through AuthContext)
- * - One tap demo account (emilys / emilyspass)
  */
 import React, { useState } from 'react';
 import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
@@ -12,9 +11,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Screen } from '@/components/ScreenBackground';
 import { palette } from '@/constants/theme';
 import { styles } from './styles';
-
-const DEMO_USER = 'emilys';
-const DEMO_PASS = 'emilyspass';
 
 const friendly = (message: string): string =>
   /400|401|invalid/i.test(message) ? 'Incorrect username or password' : message || 'Could not sign in. Try again.';
@@ -43,12 +39,6 @@ export default function LoginScreen() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const useDemo = () => {
-    setUsername(DEMO_USER);
-    setPassword(DEMO_PASS);
-    submit(DEMO_USER, DEMO_PASS);
   };
 
   return (
@@ -99,14 +89,8 @@ export default function LoginScreen() {
               Sign In
             </Button>
 
-            <View style={styles.divider} />
-
-            <Button mode="outlined" icon="account-star-outline" onPress={useDemo} disabled={submitting} style={styles.demo}>
-              Try Demo Account ({DEMO_USER} / {DEMO_PASS})
-            </Button>
-
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
+              <Text style={styles.footerText}>Don&apos;t have an account? </Text>
               <Button compact onPress={() => router.push('/(auth)/register')}>Sign Up</Button>
             </View>
           </View>

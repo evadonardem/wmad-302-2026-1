@@ -1,13 +1,16 @@
 /**
  * WishlistDialog - the saved-items list opened from the profile
- * Shows each saved product with its price, lets you add it to the cart, open it, or remove it.
+ * Each saved product is a soft card with its price, a discount tag, an add-to-cart
+ * shortcut and a remove button. Wrapped in the shared AppDialog shell.
  */
-import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Dialog, IconButton, List, Portal } from 'react-native-paper';
+import React, { useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { Button, IconButton } from 'react-native-paper';
 import { useCart } from '@/context/CartContext';
 import { WishItem, useWishlist } from '@/context/WishlistContext';
-import { palette, radius, spacing, themed } from '@/constants/theme';
+import { palette, radius, themed } from '@/constants/theme';
+import { AppDialog, DialogEmptyState, DialogRow } from '@/components/AppDialog';
+import { LuckySpinWheel } from '@/components/LuckySpinWheel';
 
 interface WishlistDialogProps {
     visible: boolean;
@@ -21,6 +24,7 @@ const salePrice = (i: WishItem): number => i.price * (1 - i.discountPercentage /
 export function WishlistDialog({ visible, onClose, onOpenProduct, onMessage }: WishlistDialogProps) {
     const { items, remove, clear } = useWishlist();
     const { addItem, items: cartItems } = useCart();
+    const [spinOpen, setSpinOpen] = useState(false);
 
     const addToCart = (item: WishItem) => {
         const inCart = cartItems.find((c) => c.productId === item.productId)?.quantity ?? 0;
@@ -40,55 +44,94 @@ export function WishlistDialog({ visible, onClose, onOpenProduct, onMessage }: W
         onMessage('Added to cart');
     };
 
+    const openProduct = (item: WishItem) => {
+        onClose();
+        onOpenProduct(item.productId);
+    };
+
     return (
-        <Portal>
-            <Dialog visible={visible} onDismiss={onClose}>
-                <Dialog.Title>Wishlist ({items.length})</Dialog.Title>
-                <Dialog.ScrollArea>
-                    <ScrollView style={{ maxHeight: 420 }}>
-                        {items.length === 0 ? (
-                            <Text style={styles.empty}>Nothing saved yet. Tap the heart on a product to keep it here.</Text>
-                        ) : (
-                            items.map((item) => (
-                                <List.Item
-                                    key={item.productId}
-                                    title={item.title}
-                                    titleNumberOfLines={2}
-                                    description={`$${salePrice(item).toFixed(2)}${item.discountPercentage > 0 ? `  ·  was $${item.price.toFixed(2)}` : ''}`}
-                                    left={() => (
-                                        <View style={styles.thumb}>
-                                            <Image source={{ uri: item.thumbnail }} style={styles.thumbImage} resizeMode="contain" />
-                                        </View>
-                                    )}
-                                    right={() => (
-                                        <View style={styles.actions}>
-                                            <IconButton icon="cart-plus" size={20} onPress={() => addToCart(item)} accessibilityLabel="Add to cart" />
-                                            <IconButton icon="heart-remove-outline" size={20} onPress={() => remove(item.productId)} accessibilityLabel="Remove from wishlist" />
-                                        </View>
-                                    )}
+        <>
+        <AppDialog
+            visible={visible}
+            onDismiss={onClose}
+            icon="heart-outline"
+            eyebrow="Saved for later"
+            title="Wishlist"
+            subtitle={
+                items.length === 0
+                    ? 'Keep an eye on the pieces you love'
+                    : `${items.length} ${items.length === 1 ? 'piece' : 'pieces'} waiting for you`
+            }
+            actions={[
+                ...(items.length > 1 ? [{ label: 'Spin Pick', icon: 'ferris-wheel' as const, mode: 'contained' as const, onPress: () => setSpinOpen(true) }] : []),
+                ...(items.length > 0 ? [{ label: 'Clear all', onPress: clear, tone: 'danger' as const }] : []),
+                { label: 'Done', onPress: onClose },
+            ]}
+            footerNote={items.length > 0 ? 'Tap a product to open it, or add it straight to your cart.' : undefined}
+        >
+            {items.length === 0 ? (
+                <DialogEmptyState
+                    icon="heart-outline"
+                    title="Nothing saved yet"
+                    message="Tap the heart on any product and it will be kept here for later."
+                />
+            ) : (
+                items.map((item) => {
+                    const price = salePrice(item);
+                    const outOfStock = item.stock <= 0;
+                    return (
+                        <DialogRow
+                            key={item.productId}
+                            image={item.thumbnail}
+                            title={item.title}
+                            subtitle={outOfStock ? 'Out of stock' : `${item.stock} in stock`}
+                            meta={`$${price.toFixed(2)}${item.discountPercentage > 0 ? `  ·  was $${item.price.toFixed(2)}` : ''}`}
+                            badge={item.discountPercentage > 0 ? `-${Math.round(item.discountPercentage)}%` : undefined}
+                            onPress={() => openProduct(item)}
+                            actions={
+                                <IconButton
+                                    icon="heart-remove-outline"
+                                    size={20}
+                                    iconColor={palette.danger}
                                     onPress={() => {
-                                        onClose();
-                                        onOpenProduct(item.productId);
+                                        remove(item.productId);
+                                        onMessage('Removed from wishlist');
                                     }}
+                                    accessibilityLabel="Remove from wishlist"
                                 />
-                            ))
-                        )}
-                    </ScrollView>
-                </Dialog.ScrollArea>
-                <Dialog.Actions>
-                    {items.length > 0 && <Button onPress={clear}>Clear all</Button>}
-                    <Button onPress={onClose}>Close</Button>
-                </Dialog.Actions>
-            </Dialog>
-        </Portal>
+                            }
+                            footer={
+                                <Button
+                                    mode="contained-tonal"
+                                    icon="cart-plus"
+                                    compact
+                                    disabled={outOfStock}
+                                    onPress={() => addToCart(item)}
+                                    style={styles.addButton}
+                                    labelStyle={styles.addButtonLabel}
+                                >
+                                    {outOfStock ? 'Out of stock' : 'Add to cart'}
+                                </Button>
+                            }
+                        />
+                    );
+                })
+            )}
+        </AppDialog>
+        <LuckySpinWheel
+            visible={spinOpen}
+            title="Spin Your Wishlist!"
+            items={items.map((i) => ({ id: i.productId, label: i.title, image: i.thumbnail, subtitle: `$${salePrice(i).toFixed(2)}` }))}
+            onClose={() => setSpinOpen(false)}
+            onPick={(picked) => onMessage(`Lucky pick: ${picked.label}`)}
+        />
+        </>
     );
 }
 
 const styles = themed(() =>
     StyleSheet.create({
-        empty: { paddingVertical: spacing.lg, textAlign: 'center', color: palette.stone },
-        actions: { flexDirection: 'row', alignItems: 'center' },
-        thumb: { width: 52, height: 52, borderRadius: radius.md, backgroundColor: palette.sand, alignItems: 'center', justifyContent: 'center', marginLeft: 8, marginRight: 4 },
-        thumbImage: { width: '80%', height: '80%' },
+        addButton: { borderRadius: radius.pill, alignSelf: 'flex-start' },
+        addButtonLabel: { fontSize: 11, fontWeight: '700' },
     })
 );

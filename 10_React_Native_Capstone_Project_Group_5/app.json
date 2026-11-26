@@ -5,13 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.wmad302.marketplace"
@@ -37,9 +39,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "marketplace-capstone"
+        "projectId": "37dd877b-a0df-4fd7-a323-bb0b96c5f9f0"
       }
     },
-    "owner": "wmad302"
+    "owner": "moonrivernight"
   }
 }

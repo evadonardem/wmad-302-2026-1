@@ -120,7 +120,7 @@ export default function ProductDetailScreen() {
             <View style={styles.center}>
                 <Text style={styles.errorText}>{error ?? 'Product not found'}</Text>
                 <Button mode="contained" onPress={load}>Retry</Button>
-                <Button onPress={() => router.back()} style={{ marginTop: 8 }}>Go back</Button>
+                <Button onPress={() => (router.canGoBack() ? router.back() : router.push('/(app)/(tabs)/home'))} style={{ marginTop: 8 }}>Go back</Button>
             </View>
         );
     }
@@ -203,13 +203,13 @@ export default function ProductDetailScreen() {
         </View>
     );
 
-    const features: Array<{ icon: IconName; title: string; text: string }> = [
+    const features: { icon: IconName; title: string; text: string }[] = [
         { icon: 'truck-delivery-outline', title: 'Shipping', text: product.shippingInformation },
         { icon: 'shield-check-outline', title: 'Secure Payment', text: '100% secure' },
         { icon: 'cached', title: 'Easy Returns', text: product.returnPolicy },
     ];
 
-    const specs: Array<[string, string]> = [
+    const specs: [string, string][] = [
         ['SKU', product.sku],
         ['Weight', `${product.weight} g`],
         ['Dimensions', `${product.dimensions.width} × ${product.dimensions.height} × ${product.dimensions.depth}`],
@@ -218,14 +218,14 @@ export default function ProductDetailScreen() {
         ['Min. order', String(product.minimumOrderQuantity)],
     ];
 
-    const shippingInfo: Array<[string, string]> = [
+    const shippingInfo: [string, string][] = [
         ['Shipping', product.shippingInformation],
         ['Returns', product.returnPolicy],
         ['Availability', product.availabilityStatus],
         ['In stock', String(product.stock)],
     ];
 
-    const tableRows = (rows: Array<[string, string]>) =>
+    const tableRows = (rows: [string, string][]) =>
         rows.map(([label, value], i) => (
             <View key={label} style={[styles.specRow, i === rows.length - 1 && styles.specRowLast]}>
                 <Text style={styles.specLabel}>{label}</Text>
@@ -255,7 +255,7 @@ export default function ProductDetailScreen() {
                 {/* Top bar */}
                 {wide ? (
                     <View style={styles.navBar}>
-                        <Pressable style={styles.roundButton} onPress={() => router.back()} accessibilityLabel="Go back">
+                        <Pressable style={styles.roundButton} onPress={() => (router.canGoBack() ? router.back() : router.push('/(app)/(tabs)/home'))} accessibilityLabel="Go back">
                             <MaterialCommunityIcons name="arrow-left" size={20} color={palette.ink} />
                         </Pressable>
                         <View style={styles.brand}>
@@ -281,7 +281,7 @@ export default function ProductDetailScreen() {
                     </View>
                 ) : (
                     <View style={styles.topBar}>
-                        <Pressable style={styles.roundButton} onPress={() => router.back()} accessibilityLabel="Go back">
+                        <Pressable style={styles.roundButton} onPress={() => (router.canGoBack() ? router.back() : router.push('/(app)/(tabs)/home'))} accessibilityLabel="Go back">
                             <MaterialCommunityIcons name="arrow-left" size={20} color={palette.ink} />
                         </Pressable>
                         <Text style={styles.topTitle}>Product Details</Text>
@@ -399,7 +399,7 @@ export default function ProductDetailScreen() {
 
                         {/* Specifications / reviews / shipping tabs */}
                         <View style={styles.tabs}>
-                            {([['specs', 'Specifications'], ['reviews', `Reviews (${product.reviews.length})`], ['shipping', 'Shipping Info']] as Array<[Tab, string]>).map(([key, label]) => (
+                            {([['specs', 'Specifications'], ['reviews', `Reviews (${product.reviews.length})`], ['shipping', 'Shipping Info']] as [Tab, string][]).map(([key, label]) => (
                                 <Pressable key={key} style={[styles.tab, tab === key && styles.tabActive]} onPress={() => setTab(key)} accessibilityRole="tab">
                                     <Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text>
                                 </Pressable>
