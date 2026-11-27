@@ -4,7 +4,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { StyleSheet } from 'react-native';
 import { useAppTheme } from '@/constants/theme';
 import { useCart } from '@/context/CartContext';
 
@@ -36,16 +35,31 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: theme.colors.background }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
+        tabBarActiveBackgroundColor: 'transparent',
+        tabBarInactiveBackgroundColor: 'transparent',
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.outlineVariant,
-          borderTopWidth: StyleSheet.hairlineWidth,
+          backgroundColor: theme.dark ? '#202526' : theme.colors.surface,
+          borderColor: theme.dark ? '#465254' : theme.colors.outlineVariant,
+          borderWidth: 1,
+          borderTopWidth: 1,
+          borderRadius: 36,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          height: 68,
+          paddingTop: 6,
+          paddingBottom: 8,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.18,
+          shadowRadius: 14,
+          elevation: 8,
         },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
       <Tabs.Screen name="home" options={{ title: 'Shop', tabBarIcon: ShopIcon }} />

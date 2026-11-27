@@ -20,8 +20,8 @@ import {
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { GRID_PADDING, ProductGrid, useGridLayout } from '@/components/ProductGrid';
+import { ProductCardSkeleton } from '@/components/ProductCard';
 import { Screen } from '@/components/Screen';
-import { ProductCardSkeleton } from '@/components/Skeleton';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useDebounce } from '@/hooks/useDebounce';
 import { productApi } from '@/services/productApi';

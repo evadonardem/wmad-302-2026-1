@@ -1,5 +1,5 @@
 /**
- * Register Screen - creates a local demo account on this browser/device.
+ * Register Screen - creates a local account on this browser/device.
  */
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -78,7 +78,7 @@ export default function RegisterScreen() {
               Create your account
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              Local demo account saved on this browser or device. Do not use a password you use elsewhere.
+              Account saved on this browser or device. Do not reuse a password from another account.
             </Text>
 
             <View style={styles.row}>

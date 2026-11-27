@@ -87,17 +87,17 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
-  demoContainer: {
+  quickLoginContainer: {
     marginTop: 8,
   },
   divider: {
     marginVertical: 16,
   },
-  demoButton: {
+  quickLoginButton: {
     paddingVertical: 12,
     alignItems: 'center',
   },
-  demoButtonText: {
+  quickLoginButtonText: {
     fontSize: 14,
     color: '#1A73E8',
     fontWeight: '500',

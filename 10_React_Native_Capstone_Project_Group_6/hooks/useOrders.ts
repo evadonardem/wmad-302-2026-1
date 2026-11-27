@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { getLocalOrders } from '@/services/orderStorage';
 import { productApi } from '@/services/productApi';
 import type { Cart } from '@/types/product';
 
@@ -12,7 +13,7 @@ export function useOrders() {
 
   const reload = useCallback(async () => {
     const requestId = ++requestIdRef.current;
-    if (!user || user.isLocal) {
+    if (!user) {
       setOrders([]);
       setLoading(false);
       setError(null);
@@ -22,8 +23,11 @@ export function useOrders() {
     setLoading(true);
     setError(null);
     try {
-      const response = await productApi.getUserCart(user.id);
-      if (requestId === requestIdRef.current) setOrders(response.carts);
+      const [localOrders, remoteOrders] = await Promise.all([
+        getLocalOrders(user.id),
+        user.isLocal ? Promise.resolve([]) : productApi.getUserCart(user.id).then((response) => response.carts),
+      ]);
+      if (requestId === requestIdRef.current) setOrders([...localOrders, ...remoteOrders]);
     } catch (caught) {
       if (requestId === requestIdRef.current) {
         setError(caught instanceof Error ? caught.message : 'Could not load orders.');

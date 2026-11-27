@@ -88,6 +88,24 @@ const CategoryCard = React.memo(function CategoryCard({ category, count, onPress
   );
 });
 
+function CategoryCardSkeleton() {
+  const theme = useAppTheme();
+  return (
+    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]} mode="elevated">
+      <Card.Content style={styles.cardContent}>
+        <View style={styles.iconWrap}>
+          <Skeleton height={60} width={60} borderRadius={30} />
+        </View>
+        <View style={styles.nameSkeleton}>
+          <Skeleton height={16} width="75%" borderRadius={4} />
+          <Skeleton height={16} width="50%" borderRadius={4} />
+        </View>
+        <Skeleton height={16} width="45%" borderRadius={4} />
+      </Card.Content>
+    </Card>
+  );
+}
+
 export default function CategoriesScreen() {
   const theme = useAppTheme();
   const router = useRouter();
@@ -158,9 +176,13 @@ export default function CategoriesScreen() {
     return (
       <Screen>
         {header}
-        <View style={styles.skeletons}>
-          {Array.from({ length: 8 }, (_, index) => (
-            <Skeleton key={index} height={130} borderRadius={12} width={`${100 / columns - 4}%`} />
+        <View>
+          {Array.from({ length: Math.ceil(8 / columns) }, (_, rowIndex) => (
+            <View key={rowIndex} style={styles.row}>
+              {Array.from({ length: columns }, (_, columnIndex) => (
+                <CategoryCardSkeleton key={`${rowIndex}-${columnIndex}`} />
+              ))}
+            </View>
           ))}
         </View>
       </Screen>
@@ -196,7 +218,6 @@ export default function CategoriesScreen() {
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md },
-  skeletons: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, paddingHorizontal: spacing.lg },
   content: { paddingBottom: spacing.xxl },
   row: { gap: spacing.md, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   card: { flex: 1 },
@@ -209,5 +230,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.xs,
   },
+  nameSkeleton: { height: 40, alignItems: 'center', justifyContent: 'space-between' },
   name: { textAlign: 'center', minHeight: 40 },
 });

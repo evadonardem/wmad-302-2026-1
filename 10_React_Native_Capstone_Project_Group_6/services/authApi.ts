@@ -34,6 +34,7 @@ function isLocalAccount(value: unknown): value is LocalAccount {
     typeof user.lastName === 'string' &&
     typeof user.gender === 'string' &&
     typeof user.image === 'string' &&
+    (user.phone === undefined || typeof user.phone === 'string') &&
     typeof account.salt === 'string' &&
     typeof account.passwordHash === 'string'
   );
@@ -139,6 +140,44 @@ class AuthApiService {
     this.storedUser = user;
   }
 
+  async updateProfile(
+    user: AuthUser,
+    profile: Pick<AuthUser, 'firstName' | 'lastName' | 'email' | 'phone'>,
+  ): Promise<AuthUser> {
+    const updatedProfile = {
+      firstName: profile.firstName.trim(),
+      lastName: profile.lastName.trim(),
+      email: profile.email.trim().toLowerCase(),
+      phone: profile.phone?.trim() ?? '',
+    };
+
+    if (user.isLocal) {
+      const accounts = await this.getLocalAccounts();
+      if (!accounts.some((account) => account.user.id === user.id)) {
+        throw new Error('This account is no longer available on this device.');
+      }
+      if (
+        accounts.some(
+          (account) =>
+            account.user.id !== user.id &&
+            account.user.email.toLowerCase() === updatedProfile.email.toLowerCase(),
+        )
+      ) {
+        throw new Error('That email is already used by another account on this device.');
+      }
+      const updatedAccounts = accounts.map((account) =>
+        account.user.id === user.id
+          ? { ...account, user: { ...account.user, ...updatedProfile } }
+          : account,
+      );
+      await AsyncStorage.setItem(LOCAL_ACCOUNTS_STORAGE_KEY, JSON.stringify(updatedAccounts));
+    }
+
+    const updatedUser = { ...user, ...updatedProfile };
+    await this.setTokens(updatedUser);
+    return updatedUser;
+  }
+
   private async clearTokens(): Promise<void> {
     this.storedUser = null;
     await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
@@ -187,7 +226,7 @@ class AuthApiService {
   }
 
   /**
-   * Create a local demo account. These credentials are only valid on this device/browser.
+   * Create a local account. These credentials are only valid on this device/browser.
    */
   async register(data: RegisterData): Promise<AuthUser> {
     const accounts = await this.getLocalAccounts();
@@ -233,7 +272,18 @@ class AuthApiService {
   async getMe(): Promise<AuthUser> {
     if (this.storedUser?.isLocal) return this.storedUser;
     const response = await this.client.get<AuthUser>('/me');
-    return response.data;
+    const cachedUser = this.storedUser;
+    if (!cachedUser) return response.data;
+    return {
+      ...response.data,
+      username: cachedUser.username,
+      email: cachedUser.email,
+      firstName: cachedUser.firstName,
+      lastName: cachedUser.lastName,
+      gender: cachedUser.gender,
+      image: cachedUser.image,
+      phone: cachedUser.phone ?? response.data.phone,
+    };
   }
 
   /**

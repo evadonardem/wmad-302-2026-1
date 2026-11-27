@@ -5,13 +5,13 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Avatar, Button, Searchbar, Text } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ActivityIndicator, Avatar, Button, Text } from 'react-native-paper';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
-import { ProductCard } from '@/components/ProductCard';
+import { ProductCard, ProductCardSkeleton } from '@/components/ProductCard';
 import { GRID_GAP, GRID_PADDING, ProductGrid, useGridLayout } from '@/components/ProductGrid';
 import { Screen } from '@/components/Screen';
-import { ProductCardSkeleton } from '@/components/Skeleton';
 import { useSnackbar } from '@/components/SnackbarProvider';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -59,6 +59,8 @@ export default function HomeScreen() {
   const wishlist = useWishlist();
   const { show } = useSnackbar();
   const { columns, cardWidth } = useGridLayout();
+  const headerBackground = theme.dark ? theme.colors.primaryContainer : theme.colors.primary;
+  const headerTextColor = theme.dark ? theme.colors.onPrimaryContainer : theme.colors.onPrimary;
 
   const fetchPage = useCallback(async (skip: number, limit: number) => {
     const response = await productApi.getProducts({ skip, limit });
@@ -94,28 +96,40 @@ export default function HomeScreen() {
   const header = useMemo(
     () => (
       <View>
-        <View style={[styles.welcome, { backgroundColor: theme.colors.primaryContainer }]}>
+        <View style={[styles.welcome, { backgroundColor: headerBackground }]}>
           <View style={styles.welcomeText}>
-            <Text variant="headlineSmall" numberOfLines={1}>
+            <Text variant="headlineSmall" numberOfLines={1} style={{ color: headerTextColor }}>
               {user ? `Hi, ${user.firstName}` : 'Welcome to Marketplace'}
             </Text>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            <Text variant="bodyMedium" style={{ color: headerTextColor, opacity: 0.82 }}>
               Find something you will love today
             </Text>
           </View>
-          <Avatar.Icon size={48} icon="storefront" />
-        </View>
+          <Avatar.Icon
+            size={48}
+            icon="storefront"
+            color={theme.colors.primary}
+            style={{ backgroundColor: theme.colors.primaryContainer }}
+          />
 
-        <Pressable
-          onPress={() => router.navigate(routes.search())}
-          style={styles.searchWrap}
-          accessibilityRole="button"
-          accessibilityLabel="Search products"
-        >
-          <View style={styles.noPointerEvents}>
-            <Searchbar placeholder="Search products" value="" editable={false} />
-          </View>
-        </Pressable>
+          <Pressable
+            onPress={() => router.navigate(routes.search())}
+            style={styles.searchWrap}
+            accessibilityRole="button"
+            accessibilityLabel="Search products"
+          >
+            <View style={[styles.searchPlaceholder, { backgroundColor: theme.colors.surface }]}>
+              <MaterialCommunityIcons
+                name="magnify"
+                size={20}
+                color={theme.colors.onSurfaceVariant}
+              />
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                Search products
+              </Text>
+            </View>
+          </Pressable>
+        </View>
 
         {categories.length > 0 ? (
           <View style={styles.section}>
@@ -169,7 +183,7 @@ export default function HomeScreen() {
         </Text>
       </View>
     ),
-    [theme, user, router, categories, deals, addItem, wishlist, show],
+    [theme, headerBackground, headerTextColor, user, router, categories, deals, addItem, wishlist, show],
   );
 
   if (list.status === 'loading') {
@@ -230,15 +244,26 @@ const DEAL_CARD_WIDTH = 160;
 const styles = StyleSheet.create({
   welcome: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.lg,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingHorizontal: GRID_PADDING,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    marginHorizontal: -GRID_PADDING,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
   },
   welcomeText: { flex: 1, marginRight: spacing.md },
-  searchWrap: { paddingHorizontal: GRID_PADDING, paddingTop: spacing.lg },
-  noPointerEvents: { pointerEvents: 'none' },
+  searchWrap: { width: '100%', paddingTop: spacing.md },
+  searchPlaceholder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 44,
+    borderRadius: 28,
+    paddingHorizontal: spacing.md,
+  },
   section: { marginTop: spacing.lg },
   sectionTitle: { paddingHorizontal: GRID_PADDING, marginBottom: spacing.sm },
   recommended: { marginTop: spacing.xl },

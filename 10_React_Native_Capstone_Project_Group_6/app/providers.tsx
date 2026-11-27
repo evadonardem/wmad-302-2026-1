@@ -4,14 +4,13 @@
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
+import { AppThemeProvider } from '@/context/ThemeContext';
 import { WishlistProvider } from '@/context/WishlistContext';
-import { PaperProvider } from 'react-native-paper';
 import { SnackbarProvider } from '@/components/SnackbarProvider';
-import { theme } from '@/constants/theme';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <PaperProvider theme={theme}>
+    <AppThemeProvider>
       <AuthProvider>
         <CartProvider>
           <WishlistProvider>
@@ -19,6 +18,6 @@ export function Providers({ children }: { children: ReactNode }) {
           </WishlistProvider>
         </CartProvider>
       </AuthProvider>
-    </PaperProvider>
+    </AppThemeProvider>
   );
 }

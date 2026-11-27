@@ -11,6 +11,7 @@ export interface AuthUser {
   lastName: string;
   gender: 'male' | 'female';
   image: string;
+  phone?: string;
   token: string;
   refreshToken: string;
   isLocal?: boolean;

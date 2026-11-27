@@ -102,6 +102,7 @@ interface AuthContextType extends AuthState {
     gender?: 'male' | 'female';
   }) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (profile: Pick<AuthUser, 'firstName' | 'lastName' | 'email' | 'phone'>) => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -138,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Token expired, try refresh
             try {
               await authApi.refreshAccessToken();
-              const freshUser = await authApi.getMe();
+              await authApi.getMe();
               const storedAgain = authApi.getStoredUser();
               if (storedAgain) {
                 dispatch({ type: 'AUTH_HYDRATE', payload: storedAgain });
@@ -205,6 +206,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateProfile = useCallback(
+    async (profile: Pick<AuthUser, 'firstName' | 'lastName' | 'email' | 'phone'>) => {
+      if (!state.user) throw new Error('You must be signed in to update your profile.');
+      const updatedUser = await authApi.updateProfile(state.user, profile);
+      dispatch({ type: 'AUTH_UPDATE_USER', payload: updatedUser });
+    },
+    [state.user],
+  );
+
   const clearError = useCallback(() => {
     dispatch({ type: 'AUTH_CLEAR_ERROR' });
   }, []);
@@ -235,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        updateProfile,
         clearError,
         refreshUser,
       }}

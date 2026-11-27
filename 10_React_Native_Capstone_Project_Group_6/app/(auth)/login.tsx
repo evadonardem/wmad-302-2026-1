@@ -8,7 +8,7 @@ import React, { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Button, Card, Divider, Text } from 'react-native-paper';
 import { FormField } from '@/components/FormField';
-import { DEMO_CREDENTIALS } from '@/constants/config';
+import { QUICK_LOGIN_CREDENTIALS } from '@/constants/config';
 import { useAppTheme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { createAuthStyles } from '@/styles/authStyles';
@@ -39,11 +39,11 @@ export default function LoginScreen() {
     if (!hasErrors(errors)) void submit(username, password);
   };
 
-  const handleDemoLogin = () => {
-    setUsername(DEMO_CREDENTIALS.username);
-    setPassword(DEMO_CREDENTIALS.password);
+  const handleQuickLogin = () => {
+    setUsername(QUICK_LOGIN_CREDENTIALS.username);
+    setPassword(QUICK_LOGIN_CREDENTIALS.password);
     setFieldErrors({});
-    void submit(DEMO_CREDENTIALS.username, DEMO_CREDENTIALS.password);
+    void submit(QUICK_LOGIN_CREDENTIALS.username, QUICK_LOGIN_CREDENTIALS.password);
   };
 
   const onChange = (setter: (value: string) => void) => (value: string) => {
@@ -111,8 +111,8 @@ export default function LoginScreen() {
             </Button>
 
             <Divider style={styles.divider} />
-            <Button mode="text" onPress={handleDemoLogin} disabled={isLoading}>
-              Use demo account ({DEMO_CREDENTIALS.username})
+            <Button mode="text" onPress={handleQuickLogin} disabled={isLoading}>
+              Quick sign in ({QUICK_LOGIN_CREDENTIALS.username})
             </Button>
 
             <View style={styles.footerRow}>
