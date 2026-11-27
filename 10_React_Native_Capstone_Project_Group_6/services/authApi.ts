@@ -5,13 +5,44 @@
  */
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
+import type { LoginCredentials, RegisterData, AuthUser, RefreshTokenResponse } from '@/types/auth';
 
 const API_BASE_URL = 'https://dummyjson.com/auth';
+const AUTH_STORAGE_KEY = 'auth_user';
+const LOCAL_ACCOUNTS_STORAGE_KEY = 'local_auth_accounts';
+
+interface LocalAccount {
+  user: Omit<AuthUser, 'token' | 'refreshToken'>;
+  salt: string;
+  passwordHash: string;
+}
+
+function isLocalAccount(value: unknown): value is LocalAccount {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const account = value as Record<string, unknown>;
+  if (typeof account.user !== 'object' || account.user === null) return false;
+  const user = account.user as Record<string, unknown>;
+
+  return (
+    typeof user.id === 'number' &&
+    typeof user.username === 'string' &&
+    typeof user.email === 'string' &&
+    typeof user.firstName === 'string' &&
+    typeof user.lastName === 'string' &&
+    typeof user.gender === 'string' &&
+    typeof user.image === 'string' &&
+    typeof account.salt === 'string' &&
+    typeof account.passwordHash === 'string'
+  );
+}
 
 class AuthApiService {
   private client: AxiosInstance;
   private refreshTokenPromise: Promise<RefreshTokenResponse> | null = null;
+  private storedUser: AuthUser | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -39,9 +70,16 @@ class AuthApiService {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
+        if (!originalRequest) {
+          return Promise.reject(error);
+        }
+        const isAuthRequest =
+          originalRequest?.url?.includes('/login') ||
+          originalRequest?.url?.includes('/register') ||
+          originalRequest?.url?.includes('/refresh');
 
         // If error is 401 and we haven't retried yet
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
           originalRequest._retry = true;
 
           try {
@@ -50,8 +88,7 @@ class AuthApiService {
             return this.client(originalRequest);
           } catch (refreshError) {
             // Refresh failed, redirect to login
-            this.clearTokens();
-            // TODO: Student to implement navigation redirect to login
+            await this.clearTokens();
             console.warn('Token refresh failed, user logged out');
             return Promise.reject(refreshError);
           }
@@ -63,37 +100,58 @@ class AuthApiService {
   }
 
   private getAccessToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.token || user.accessToken || null;
-      }
-    } catch {
-      return null
-    }
-    return null;
+    return this.storedUser?.token ?? null;
   }
 
   private getRefreshToken(): string | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.refreshToken || null;
-      }
-    } catch {
-      return null;
+    return this.storedUser?.refreshToken ?? null;
+  }
+
+  private async getLocalAccounts(): Promise<LocalAccount[]> {
+    const stored = await AsyncStorage.getItem(LOCAL_ACCOUNTS_STORAGE_KEY);
+    if (!stored) return [];
+    const accounts: unknown = JSON.parse(stored);
+    if (!Array.isArray(accounts) || !accounts.every(isLocalAccount)) {
+      throw new Error('Stored local account data is invalid.');
     }
-    return null;
+    return accounts;
   }
 
-  setTokens(user: AuthUser): void {
-    localStorage.setItem('auth_user', JSON.stringify(user));
+  private async hashPassword(password: string, salt: string): Promise<string> {
+    return Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      `${salt}:${password}`,
+    );
   }
 
-  private clearTokens(): void {
-    localStorage.removeItem('auth_user');
+  private createLocalSession(user: LocalAccount['user']): AuthUser {
+    const sessionId = Crypto.randomUUID();
+    return {
+      ...user,
+      token: `local:${sessionId}`,
+      refreshToken: `local-refresh:${sessionId}`,
+      isLocal: true,
+    };
+  }
+
+  async setTokens(user: AuthUser): Promise<void> {
+    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+    this.storedUser = user;
+  }
+
+  private async clearTokens(): Promise<void> {
+    this.storedUser = null;
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+
+  async hydrateStorage(): Promise<AuthUser | null> {
+    try {
+      const value = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+      this.storedUser = value ? (JSON.parse(value) as AuthUser) : null;
+    } catch {
+      this.storedUser = null;
+    }
+    return this.storedUser;
   }
 
   /**
@@ -101,26 +159,71 @@ class AuthApiService {
    * POST /auth/login
    */
   async login(credentials: LoginCredentials): Promise<AuthUser> {
+    const loginIdentifier = credentials.username.trim().toLowerCase();
+    const localAccount = (await this.getLocalAccounts()).find(
+      (account) =>
+        account.user.username.toLowerCase() === loginIdentifier ||
+        account.user.email.toLowerCase() === loginIdentifier,
+    );
+
+    if (localAccount) {
+      const passwordHash = await this.hashPassword(credentials.password, localAccount.salt);
+      if (passwordHash !== localAccount.passwordHash) {
+        throw new Error('Invalid username or password.');
+      }
+
+      const user = this.createLocalSession(localAccount.user);
+      await this.setTokens(user);
+      return user;
+    }
+
     const response = await this.client.post<AuthUser>('/login', {
       username: credentials.username,
       password: credentials.password,
       expiresInMins: credentials.expiresInMins || 60,
     });
-    this.setTokens(response.data);
+    await this.setTokens(response.data);
     return response.data;
   }
 
   /**
-   * Register new user
-   * POST /auth/register
-   * TODO: Students to complete this implementation
+   * Create a local demo account. These credentials are only valid on this device/browser.
    */
   async register(data: RegisterData): Promise<AuthUser> {
-    // TODO: Student implementation
-    // 1. Call POST /auth/register with data
-    // 2. On success, call login() to get tokens
-    // 3. Return user with tokens
-    throw new Error('TODO: Implement register - call /auth/register then login');
+    const accounts = await this.getLocalAccounts();
+    const username = data.username.trim();
+    const email = data.email.trim().toLowerCase();
+    if (accounts.some((account) => account.user.username.toLowerCase() === username.toLowerCase())) {
+      throw new Error('That username is already registered on this device.');
+    }
+    if (accounts.some((account) => account.user.email.toLowerCase() === email.toLowerCase())) {
+      throw new Error('That email is already registered on this device.');
+    }
+
+    const salt = Crypto.randomUUID();
+    const passwordHash = await this.hashPassword(data.password, salt);
+    const account: LocalAccount = {
+      user: {
+        id: -Date.now(),
+        username,
+        email,
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        gender: data.gender ?? 'female',
+        image: data.image ?? '',
+        isLocal: true,
+      },
+      salt,
+      passwordHash,
+    };
+    await AsyncStorage.setItem(
+      LOCAL_ACCOUNTS_STORAGE_KEY,
+      JSON.stringify([...accounts, account]),
+    );
+
+    const user = this.createLocalSession(account.user);
+    await this.setTokens(user);
+    return user;
   }
 
   /**
@@ -128,6 +231,7 @@ class AuthApiService {
    * GET /auth/me
    */
   async getMe(): Promise<AuthUser> {
+    if (this.storedUser?.isLocal) return this.storedUser;
     const response = await this.client.get<AuthUser>('/me');
     return response.data;
   }
@@ -152,7 +256,7 @@ class AuthApiService {
         refreshToken,
         expiresInMins: 60,
       })
-      .then((response) => {
+      .then(async (response) => {
         // Update stored tokens with new ones
         const currentUser = this.getStoredUser();
         if (currentUser) {
@@ -161,12 +265,12 @@ class AuthApiService {
             token: response.data.accessToken,
             refreshToken: response.data.refreshToken,
           };
-          this.setTokens(updatedUser);
+          await this.setTokens(updatedUser);
         }
         return response.data;
       })
-      .catch((error) => {
-        this.clearTokens();
+      .catch(async (error) => {
+        await this.clearTokens();
         throw error;
       })
       .finally(() => {
@@ -180,20 +284,15 @@ class AuthApiService {
    * Get stored user data
    */
   getStoredUser(): AuthUser | null {
-    try {
-      const userData = localStorage.getItem('auth_user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
+    return this.storedUser;
   }
 
   /**
    * Logout - clear local tokens
    * Note: DummyJSON doesn't have a logout endpoint, so this is client-side only
    */
-  logout(): void {
-    this.clearTokens();
+  async logout(): Promise<void> {
+    await this.clearTokens();
   }
 
   /**

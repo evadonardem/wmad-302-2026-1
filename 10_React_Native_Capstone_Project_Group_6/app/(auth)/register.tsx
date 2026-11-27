@@ -1,7 +1,5 @@
 /**
- * Register Screen
- * DummyJSON has no /auth/register, so sign-up uses POST /users/add and then signs in
- * (see services/authApi.ts). Navigation after success is handled by the (auth) layout guard.
+ * Register Screen - creates a local demo account on this browser/device.
  */
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -80,7 +78,7 @@ export default function RegisterScreen() {
               Create your account
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              It takes less than a minute
+              Local demo account saved on this browser or device. Do not use a password you use elsewhere.
             </Text>
 
             <View style={styles.row}>

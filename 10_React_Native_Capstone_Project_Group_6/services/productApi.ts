@@ -4,7 +4,16 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
-import { Product, ProductsResponse, ProductSearchParams, Cart, CartAddRequest, CartItem } from '@/types/product';
+import {
+  Product,
+  ProductsResponse,
+  ProductSearchParams,
+  Cart,
+  CartAddRequest,
+  CartItem,
+  CategoryInfo,
+  ProductSummary,
+} from '@/types/product';
 
 const API_BASE_URL = 'https://dummyjson.com';
 
@@ -29,6 +38,28 @@ class ProductApiService {
   async getProducts(params: ProductSearchParams = {}): Promise<ProductsResponse> {
     const response = await this.client.get<ProductsResponse>('/products', { params });
     return response.data;
+  }
+
+  async getCatalog(params: { q?: string; category?: string }): Promise<ProductSummary[]> {
+    const response = await this.getProducts({ limit: 0 });
+    const query = params.q?.trim().toLowerCase();
+    return response.products
+      .filter((product) => !query || `${product.title} ${product.description}`.toLowerCase().includes(query))
+      .filter((product) => !params.category || product.category === params.category)
+      .map(({ id, title, description, category, thumbnail, price, discountPercentage, rating, stock, brand }) => ({
+        id, title, description, category, thumbnail, price, discountPercentage, rating, stock, brand,
+      }));
+  }
+
+  async getFlashDeals(): Promise<ProductSummary[]> {
+    const response = await this.getProducts({ limit: 0 });
+    return response.products
+      .filter((product) => product.discountPercentage > 0)
+      .sort((a, b) => b.discountPercentage - a.discountPercentage)
+      .slice(0, 10)
+      .map(({ id, title, description, category, thumbnail, price, discountPercentage, rating, stock, brand }) => ({
+        id, title, description, category, thumbnail, price, discountPercentage, rating, stock, brand,
+      }));
   }
 
   /**
@@ -62,9 +93,46 @@ class ProductApiService {
   /**
    * Get all categories
    */
-  async getCategories(): Promise<string[]> {
-    const response = await this.client.get<string[]>('/products/categories');
-    return response.data;
+  async getCategories(): Promise<CategoryInfo[]> {
+    const response = await this.client.get<unknown>('/products/categories');
+    const raw = response.data;
+    if (!Array.isArray(raw)) return [];
+
+    return raw.map((item) => {
+      if (typeof item === 'string') {
+        return {
+          name: item.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
+          slug: item,
+        };
+      }
+      if (typeof item === 'object' && item !== null) {
+        const category = item as { name?: string; slug?: string };
+        if (category.slug) {
+          return {
+            name: category.name ?? category.slug,
+            slug: category.slug,
+          };
+        }
+      }
+      throw new Error('Invalid category response');
+    });
+  }
+
+  async getCategoryCounts(): Promise<Record<string, number>> {
+    const categories = await this.getCategories();
+    const results = await Promise.all(
+      categories.map(async (category) => {
+        try {
+          const response = await this.client.get<{ total: number }>(
+            `/products/category/${encodeURIComponent(category.slug)}?limit=1`
+          );
+          return [category.slug, response.data.total] as const;
+        } catch {
+          return [category.slug, 0] as const;
+        }
+      })
+    );
+    return Object.fromEntries(results);
   }
 
   /**
@@ -82,8 +150,8 @@ class ProductApiService {
   /**
    * Get user's cart
    */
-  async getUserCart(userId: number): Promise<Cart> {
-    const response = await this.client.get<Cart>(`/carts/user/${userId}`);
+  async getUserCart(userId: number): Promise<{ carts: Cart[]; total: number; skip: number; limit: number }> {
+    const response = await this.client.get<{ carts: Cart[]; total: number; skip: number; limit: number }>(`/carts/user/${userId}`);
     return response.data;
   }
 

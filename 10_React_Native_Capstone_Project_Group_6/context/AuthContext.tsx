@@ -19,6 +19,7 @@ const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
   isLoading: true, // Start with true for hydration
+  isHydrated: false,
   error: null,
 };
 
@@ -38,6 +39,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload,
         isAuthenticated: true,
         isLoading: false,
+        isHydrated: true,
         error: null,
       };
 
@@ -47,6 +49,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        isHydrated: true,
         error: action.payload,
       };
 
@@ -56,6 +59,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        isHydrated: true,
         error: null,
       };
 
@@ -65,6 +69,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload,
         isAuthenticated: !!action.payload,
         isLoading: false,
+        isHydrated: true,
       };
 
     case 'AUTH_UPDATE_USER':
@@ -96,7 +101,7 @@ interface AuthContextType extends AuthState {
     age?: number;
     gender?: 'male' | 'female';
   }) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -111,8 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const hydrateAuth = async () => {
       try {
+        await authApi.hydrateStorage();
         const storedUser = authApi.getStoredUser();
         if (storedUser?.token && storedUser?.refreshToken) {
+          if (storedUser.isLocal) {
+            dispatch({ type: 'AUTH_HYDRATE', payload: storedUser });
+            return;
+          }
           // Verify token still works by fetching user profile
           try {
             const freshUser = await authApi.getMe();
@@ -122,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               token: storedUser.token,
               refreshToken: storedUser.refreshToken,
             };
-            authApi.setTokens(mergedUser); // Update with fresh data
+            await authApi.setTokens(mergedUser); // Update with fresh data
             dispatch({ type: 'AUTH_HYDRATE', payload: mergedUser });
           } catch {
             // Token expired, try refresh
@@ -137,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             } catch {
               // Refresh failed, clear storage
-              authApi.logout();
+              await authApi.logout();
               dispatch({ type: 'AUTH_HYDRATE', payload: null });
             }
           }
@@ -176,11 +186,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }) => {
       dispatch({ type: 'AUTH_START' });
       try {
-        // TODO: Student implementation
-        // 1. Call authApi.register(data) - implement in services/authApi.ts
-        // 2. On success, dispatch AUTH_SUCCESS
-        // 3. On failure, dispatch AUTH_FAILURE
-        throw new Error('TODO: Implement register in AuthContext - call authApi.register');
+        const user = await authApi.register(data);
+        dispatch({ type: 'AUTH_SUCCESS', payload: user });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Registration failed';
         dispatch({ type: 'AUTH_FAILURE', payload: message });
@@ -190,9 +197,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const logout = useCallback(() => {
-    authApi.logout();
-    dispatch({ type: 'AUTH_LOGOUT' });
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      dispatch({ type: 'AUTH_LOGOUT' });
+    }
   }, []);
 
   const clearError = useCallback(() => {
@@ -210,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           token: storedUser.token,
           refreshToken: storedUser.refreshToken,
         };
-        authApi.setTokens(mergedUser);
+        await authApi.setTokens(mergedUser);
         dispatch({ type: 'AUTH_SUCCESS', payload: mergedUser });
       }
     } catch {

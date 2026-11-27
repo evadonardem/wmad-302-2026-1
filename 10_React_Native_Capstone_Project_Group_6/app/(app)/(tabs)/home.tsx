@@ -22,7 +22,34 @@ import { productApi } from '@/services/productApi';
 import { CategoryInfo, ProductSummary } from '@/types/product';
 import { routes } from '@/utils/routes';
 
-const DEAL_CARD_WIDTH = 160;
+const MAX_CATEGORY_CHIPS = 12;
+
+// A null entry means that request failed; the screen keeps whatever it already has for that section.
+interface HomeExtras {
+  categories: CategoryInfo[] | null;
+  deals: ProductSummary[] | null;
+}
+
+// Categories and deals are decorative: each one loads (or fails) independently of the other
+// and of the product grid.
+async function fetchHomeExtras(): Promise<HomeExtras> {
+  const [categoryResult, dealResult] = await Promise.allSettled([
+    productApi.getCategories(),
+    productApi.getFlashDeals(),
+  ]);
+
+  if (categoryResult.status === 'rejected') {
+    console.warn('Could not load categories:', categoryResult.reason);
+  }
+  if (dealResult.status === 'rejected') {
+    console.warn('Could not load flash deals:', dealResult.reason);
+  }
+
+  return {
+    categories: categoryResult.status === 'fulfilled' ? categoryResult.value : null,
+    deals: dealResult.status === 'fulfilled' ? dealResult.value : null,
+  };
+}
 
 export default function HomeScreen() {
   const theme = useAppTheme();
@@ -33,32 +60,36 @@ export default function HomeScreen() {
   const { show } = useSnackbar();
   const { columns, cardWidth } = useGridLayout();
 
-  const fetchPage = useCallback(
-    async (skip: number, limit: number) => {
-      const response = await productApi.getProducts({ skip, limit });
-      return { items: response.products, total: response.total };
-    },
-    [],
-  );
+  const fetchPage = useCallback(async (skip: number, limit: number) => {
+    const response = await productApi.getProducts({ skip, limit });
+    return { items: response.products, total: response.total };
+  }, []);
   const list = useInfiniteList(fetchPage);
 
   const [categories, setCategories] = useState<CategoryInfo[]>([]);
   const [deals, setDeals] = useState<ProductSummary[]>([]);
 
-  // Categories and deals are decorative: if they fail, the product grid still works.
+  const applyExtras = useCallback((extras: HomeExtras) => {
+    if (extras.categories) setCategories(extras.categories);
+    if (extras.deals) setDeals(extras.deals);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    Promise.all([productApi.getCategories(), productApi.getFlashDeals()])
-      .then(([categoryList, dealList]) => {
-        if (cancelled) return;
-        setCategories(categoryList);
-        setDeals(dealList);
-      })
-      .catch((error) => console.warn('Could not load home extras:', error));
+    fetchHomeExtras().then((extras) => {
+      if (!cancelled) applyExtras(extras);
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applyExtras]);
+
+  // Pull-to-refresh reloads the product grid and the header sections together
+  const refreshAll = list.refresh;
+  const handleRefresh = useCallback(() => {
+    fetchHomeExtras().then(applyExtras);
+    return refreshAll();
+  }, [applyExtras, refreshAll]);
 
   const header = useMemo(
     () => (
@@ -75,8 +106,13 @@ export default function HomeScreen() {
           <Avatar.Icon size={48} icon="storefront" />
         </View>
 
-        <Pressable onPress={() => router.push(routes.search())} style={styles.searchWrap} accessibilityRole="search" accessibilityLabel="Search products">
-          <View pointerEvents="none">
+        <Pressable
+          onPress={() => router.navigate(routes.search())}
+          style={styles.searchWrap}
+          accessibilityRole="button"
+          accessibilityLabel="Search products"
+        >
+          <View style={styles.noPointerEvents}>
             <Searchbar placeholder="Search products" value="" editable={false} />
           </View>
         </Pressable>
@@ -88,12 +124,12 @@ export default function HomeScreen() {
             </Text>
             <FlatList
               horizontal
-              data={categories.slice(0, 12)}
+              data={categories.slice(0, MAX_CATEGORY_CHIPS)}
               keyExtractor={(item) => item.slug}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.chipRow}
               renderItem={({ item }) => (
-                <Button mode="outlined" compact onPress={() => router.push(routes.search({ category: item.slug }))}>
+                <Button mode="outlined" compact onPress={() => router.navigate(routes.search({ category: item.slug }))}>
                   {item.name}
                 </Button>
               )}
@@ -115,11 +151,13 @@ export default function HomeScreen() {
               renderItem={({ item }) => (
                 <ProductCard
                   product={item}
-                  style={{ width: DEAL_CARD_WIDTH }}
+                  style={styles.dealCard}
                   onPress={(product) => router.push(routes.product(product.id))}
                   onAddToCart={(product) => show(addItem(product).message)}
                   wishlisted={wishlist.isWishlisted(item.id)}
-                  onToggleWishlist={(product) => show(wishlist.toggle(product) ? 'Saved to your wishlist.' : 'Removed from your wishlist.')}
+                  onToggleWishlist={(product) =>
+                    show(wishlist.toggle(product) ? 'Saved to your wishlist.' : 'Removed from your wishlist.')
+                  }
                 />
               )}
             />
@@ -172,14 +210,22 @@ export default function HomeScreen() {
         data={list.items}
         header={header}
         footer={footer}
-        empty={<EmptyState icon="package-variant-closed" title="No products yet" message="Pull down to refresh and check again." />}
+        empty={
+          <EmptyState
+            icon="package-variant-closed"
+            title="No products yet"
+            message="Pull down to refresh and check again."
+          />
+        }
         refreshing={list.status === 'refreshing'}
-        onRefresh={list.refresh}
+        onRefresh={handleRefresh}
         onEndReached={list.hasMore ? list.loadMore : undefined}
       />
     </Screen>
   );
 }
+
+const DEAL_CARD_WIDTH = 160;
 
 const styles = StyleSheet.create({
   welcome: {
@@ -192,10 +238,12 @@ const styles = StyleSheet.create({
   },
   welcomeText: { flex: 1, marginRight: spacing.md },
   searchWrap: { paddingHorizontal: GRID_PADDING, paddingTop: spacing.lg },
+  noPointerEvents: { pointerEvents: 'none' },
   section: { marginTop: spacing.lg },
   sectionTitle: { paddingHorizontal: GRID_PADDING, marginBottom: spacing.sm },
   recommended: { marginTop: spacing.xl },
   chipRow: { paddingHorizontal: GRID_PADDING, gap: spacing.sm },
+  dealCard: { width: DEAL_CARD_WIDTH },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP, padding: GRID_PADDING },
   footer: { padding: spacing.lg, alignItems: 'center' },
 });

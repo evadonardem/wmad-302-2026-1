@@ -3,18 +3,34 @@
  * once the saved session has been checked.
  */
 import { Stack } from 'expo-router';
-import React from 'react';
-import { Providers } from '@/components/Providers';
-import { SplashGate } from '@/components/SplashGate';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { ReactNode, useEffect } from 'react';
+import { Providers } from './providers';
+import { useAuth } from '@/context/AuthContext';
+
+SplashScreen.preventAutoHideAsync();
+
+function SplashGate({ children }: { children: ReactNode }) {
+  const { isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
+
+  return isLoading ? null : <>{children}</>;
+}
 
 export default function RootLayout() {
   return (
     <Providers>
-      <SplashGate />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(app)" />
-      </Stack>
+      <SplashGate>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(app)" />
+        </Stack>
+      </SplashGate>
     </Providers>
   );
 }

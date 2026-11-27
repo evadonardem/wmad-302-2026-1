@@ -17,6 +17,7 @@ import { getErrorMessage } from '@/utils/errors';
 import { routes } from '@/utils/routes';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type Status = 'loading' | 'ready' | 'error';
 
 const CATEGORY_ICONS: Record<string, IconName> = {
   beauty: 'face-woman-shimmer',
@@ -47,7 +48,45 @@ const CATEGORY_ICONS: Record<string, IconName> = {
 
 const getCategoryIcon = (slug: string): IconName => CATEGORY_ICONS[slug] ?? 'tag-outline';
 
-type Status = 'loading' | 'ready' | 'error';
+const formatProductCount = (count: number): string => `${count} ${count === 1 ? 'product' : 'products'}`;
+
+// Single source of truth for the category list + per-category product counts
+function fetchCategoryData(): Promise<[CategoryInfo[], Record<string, number>]> {
+  return Promise.all([productApi.getCategories(), productApi.getCategoryCounts()]);
+}
+
+interface CategoryCardProps {
+  category: CategoryInfo;
+  count: number;
+  onPress: (slug: string) => void;
+}
+
+const CategoryCard = React.memo(function CategoryCard({ category, count, onPress }: CategoryCardProps) {
+  const theme = useAppTheme();
+  const countLabel = formatProductCount(count);
+
+  return (
+    <Card
+      style={[styles.card, { backgroundColor: theme.colors.surface }]}
+      mode="elevated"
+      onPress={() => onPress(category.slug)}
+      accessibilityRole="button"
+      accessibilityLabel={`${category.name}, ${countLabel}`}
+    >
+      <Card.Content style={styles.cardContent}>
+        <View style={[styles.iconWrap, { backgroundColor: theme.colors.primaryContainer }]}>
+          <MaterialCommunityIcons name={getCategoryIcon(category.slug)} size={30} color={theme.colors.primary} />
+        </View>
+        <Text variant="titleSmall" style={styles.name} numberOfLines={2}>
+          {category.name}
+        </Text>
+        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          {countLabel}
+        </Text>
+      </Card.Content>
+    </Card>
+  );
+});
 
 export default function CategoriesScreen() {
   const theme = useAppTheme();
@@ -65,7 +104,7 @@ export default function CategoriesScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([productApi.getCategories(), productApi.getCategoryCounts()])
+    fetchCategoryData()
       .then(([categoryList, countMap]) => {
         if (cancelled) return;
         setCategories(categoryList);
@@ -73,7 +112,7 @@ export default function CategoriesScreen() {
         setError(null);
         setStatus('ready');
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (cancelled) return;
         setError(getErrorMessage(err, 'Could not load categories.'));
         setStatus('error');
@@ -91,7 +130,7 @@ export default function CategoriesScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [categoryList, countMap] = await Promise.all([productApi.getCategories(), productApi.getCategoryCounts()]);
+      const [categoryList, countMap] = await fetchCategoryData();
       setCategories(categoryList);
       setCounts(countMap);
     } catch {
@@ -100,6 +139,11 @@ export default function CategoriesScreen() {
       setRefreshing(false);
     }
   }, [show]);
+
+  const openCategory = useCallback(
+    (slug: string) => router.navigate(routes.search({ category: slug })),
+    [router],
+  );
 
   const header = (
     <View style={styles.header}>
@@ -143,24 +187,7 @@ export default function CategoriesScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
-          <Card
-            style={[styles.card, { backgroundColor: theme.colors.surface }]}
-            mode="elevated"
-            onPress={() => router.push(routes.search({ category: item.slug }))}
-            accessibilityLabel={`${item.name}, ${counts[item.slug] ?? 0} products`}
-          >
-            <Card.Content style={styles.cardContent}>
-              <View style={[styles.iconWrap, { backgroundColor: theme.colors.primaryContainer }]}>
-                <MaterialCommunityIcons name={getCategoryIcon(item.slug)} size={30} color={theme.colors.primary} />
-              </View>
-              <Text variant="titleSmall" style={styles.name} numberOfLines={2}>
-                {item.name}
-              </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                {counts[item.slug] ?? 0} products
-              </Text>
-            </Card.Content>
-          </Card>
+          <CategoryCard category={item} count={counts[item.slug] ?? 0} onPress={openCategory} />
         )}
       />
     </Screen>
@@ -174,6 +201,13 @@ const styles = StyleSheet.create({
   row: { gap: spacing.md, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   card: { flex: 1 },
   cardContent: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.lg },
-  iconWrap: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
+  iconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
   name: { textAlign: 'center', minHeight: 40 },
 });

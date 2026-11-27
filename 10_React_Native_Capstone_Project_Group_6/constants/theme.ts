@@ -2,7 +2,7 @@
  * React Native Paper Theme - Marketplace App
  * Clean, commerce-friendly color palette
  */
-import { MD3LightTheme } from 'react-native-paper';
+import { MD3LightTheme, useTheme } from 'react-native-paper';
 
 export const theme = {
   ...MD3LightTheme,
@@ -27,6 +27,9 @@ export const theme = {
     onBackground: '#202124',
     outline: '#DADCE0',
     outlineVariant: '#E8EAED',
+    warning: '#F9AB00',
+    onError: '#FFFFFF',
+    success: '#34A853',
   },
   roundness: 8,
   fonts: {
@@ -46,3 +49,16 @@ export const theme = {
     labelSmall: { fontFamily: 'System', fontWeight: '500' as const, fontSize: 11, lineHeight: 16, letterSpacing: 0.5 },
   },
 };
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+};
+
+export function useAppTheme() {
+  return useTheme<typeof theme>();
+}

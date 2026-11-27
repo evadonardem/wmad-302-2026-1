@@ -50,6 +50,35 @@ export interface ProductsResponse {
   limit: number;
 }
 
+export interface ProductSummary {
+  id: number;
+  title: string;
+  description?: string;
+  category: string;
+  thumbnail: string;
+  price: number;
+  discountPercentage: number;
+  rating: number;
+  stock: number;
+  brand?: string;
+}
+
+export interface CategoryInfo {
+  name: string;
+  slug: string;
+  url?: string;
+  count?: number;
+}
+
+export interface ProductFilters {
+  brands: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  sort: SortOption;
+}
+
+export type SortOption = 'featured' | 'priceAsc' | 'priceDesc' | 'rating' | 'discount';
+
 export interface ProductSearchParams {
   q?: string;
   category?: string;

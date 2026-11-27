@@ -13,6 +13,7 @@ export interface AuthUser {
   image: string;
   token: string;
   refreshToken: string;
+  isLocal?: boolean;
 }
 
 export interface LoginCredentials {
@@ -31,6 +32,8 @@ export interface RegisterData {
   gender?: 'male' | 'female';
   image?: string;
 }
+
+export type Gender = 'male' | 'female';
 
 export interface AuthResponse extends AuthUser {
   // DummyJSON returns the user object with tokens on login/register
@@ -52,6 +55,7 @@ export interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isHydrated: boolean;
   error: string | null;
 }
 

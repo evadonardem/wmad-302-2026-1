@@ -5,7 +5,18 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Badge, Button, Chip, IconButton, Modal, Portal, Searchbar, Text, TextInput } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Badge,
+  Button,
+  Chip,
+  IconButton,
+  Modal,
+  Portal,
+  Searchbar,
+  Text,
+  TextInput,
+} from 'react-native-paper';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { GRID_PADDING, ProductGrid, useGridLayout } from '@/components/ProductGrid';
@@ -70,7 +81,10 @@ export default function SearchScreen() {
   const [response, setResponse] = useState<CatalogResponse | null>(null);
 
   useEffect(() => {
-    productApi.getCategories().then(setCategories).catch(() => setCategories([]));
+    productApi
+      .getCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
@@ -80,8 +94,10 @@ export default function SearchScreen() {
       .then((products) => {
         if (!cancelled) setResponse({ key: requestKey, products, error: null });
       })
-      .catch((err) => {
-        if (!cancelled) setResponse({ key: requestKey, products: [], error: getErrorMessage(err, 'Could not load products.') });
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setResponse({ key: requestKey, products: [], error: getErrorMessage(err, 'Could not load products.') });
+        }
       });
     return () => {
       cancelled = true;
@@ -101,7 +117,10 @@ export default function SearchScreen() {
   const results = useMemo(() => applyFilters(source, filters), [source, filters]);
   const brands = useMemo(() => extractBrands(source), [source]);
   const visible = useMemo(() => results.slice(0, visibleCount), [results, visibleCount]);
+  const hasMore = visible.length < results.length;
   const activeFilters = countActiveFilters(filters);
+
+  const loadMore = () => setPaging({ key: filterKey, count: visibleCount + PAGE_SIZE });
 
   const openFilters = () => {
     setDraft(filters);
@@ -111,7 +130,11 @@ export default function SearchScreen() {
   };
 
   const applyDraft = () => {
-    setFilters({ ...draft, minPrice: parsePrice(minText), maxPrice: parsePrice(maxText) });
+    const min = parsePrice(minText);
+    const max = parsePrice(maxText);
+    // A reversed range (e.g. 500 to 100) would match nothing, so put the bounds in order.
+    const reversed = min !== undefined && max !== undefined && min > max;
+    setFilters({ ...draft, minPrice: reversed ? max : min, maxPrice: reversed ? min : max });
     setFilterOpen(false);
   };
 
@@ -122,17 +145,30 @@ export default function SearchScreen() {
   };
 
   const toggleBrand = (brand: string) =>
-    setDraft((current) => ({
-      ...current,
-      brands: current.brands.includes(brand) ? current.brands.filter((b) => b !== brand) : [...current.brands, brand],
+    setDraft((prev) => ({
+      ...prev,
+      brands: prev.brands.includes(brand) ? prev.brands.filter((b) => b !== brand) : [...prev.brands, brand],
     }));
 
-  const header = (
+  // Search row, chips and count stay mounted across loading / error / ready,
+  // so the Searchbar keeps focus (and the keyboard) while results reload.
+  const controls = (
     <View>
       <View style={styles.searchRow}>
-        <Searchbar placeholder="Search products" value={query} onChangeText={setQuery} style={styles.searchbar} returnKeyType="search" />
+        <Searchbar
+          placeholder="Search products"
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchbar}
+          returnKeyType="search"
+        />
         <View>
-          <IconButton icon="tune-variant" mode="contained-tonal" onPress={openFilters} accessibilityLabel="Filters and sorting" />
+          <IconButton
+            icon="tune-variant"
+            mode="contained-tonal"
+            onPress={openFilters}
+            accessibilityLabel="Filters and sorting"
+          />
           {activeFilters > 0 ? <Badge style={styles.badge}>{activeFilters}</Badge> : null}
         </View>
       </View>
@@ -144,7 +180,11 @@ export default function SearchScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipRow}
         renderItem={({ item }) => (
-          <Chip selected={category === item.slug} showSelectedOverlay onPress={() => setCategory(category === item.slug ? null : item.slug)}>
+          <Chip
+            selected={category === item.slug}
+            showSelectedOverlay
+            onPress={() => setCategory(category === item.slug ? null : item.slug)}
+          >
             {item.name}
           </Chip>
         )}
@@ -152,7 +192,9 @@ export default function SearchScreen() {
 
       <Text variant="bodyMedium" style={[styles.count, { color: theme.colors.onSurfaceVariant }]}>
         {status === 'ready'
-          ? `${results.length} ${results.length === 1 ? 'result' : 'results'}${category ? ` in ${formatCategoryName(category)}` : ''}`
+          ? `${results.length} ${results.length === 1 ? 'result' : 'results'}${
+              category ? ` in ${formatCategoryName(category)}` : ''
+            }`
           : ' '}
       </Text>
     </View>
@@ -161,54 +203,60 @@ export default function SearchScreen() {
   let body: React.ReactElement;
   if (status === 'loading') {
     body = (
-      <View>
-        {header}
-        <View style={styles.skeletonGrid}>
-          {Array.from({ length: columns * 2 }, (_, index) => (
-            <ProductCardSkeleton key={index} width={cardWidth} />
-          ))}
-        </View>
+      <View style={styles.skeletonGrid}>
+        {Array.from({ length: columns * 2 }, (_, index) => (
+          <ProductCardSkeleton key={index} width={cardWidth} />
+        ))}
       </View>
     );
   } else if (status === 'error') {
-    body = (
-      <View style={styles.flex}>
-        {header}
-        <ErrorState message={error ?? 'Could not load products.'} onRetry={() => setReloadKey((key) => key + 1)} />
-      </View>
-    );
+    body = <ErrorState message={error ?? 'Could not load products.'} onRetry={() => setReloadKey((key) => key + 1)} />;
   } else {
     body = (
       <ProductGrid
         data={visible}
-        header={header}
-        footer={visible.length < results.length ? <ActivityIndicator style={styles.footer} /> : null}
+        footer={hasMore ? <ActivityIndicator style={styles.footer} /> : null}
         empty={
           <EmptyState
             icon="magnify-close"
             title="No products found"
-            message={activeFilters > 0 ? 'Try removing a filter or searching for something else.' : 'Try a different search term or category.'}
+            message={
+              activeFilters > 0
+                ? 'Try removing a filter or searching for something else.'
+                : 'Try a different search term or category.'
+            }
             actionLabel={activeFilters > 0 ? 'Clear filters' : undefined}
             onAction={activeFilters > 0 ? () => setFilters(DEFAULT_FILTERS) : undefined}
           />
         }
-        onEndReached={() => setPaging({ key: filterKey, count: visibleCount + PAGE_SIZE })}
+        onEndReached={hasMore ? loadMore : undefined}
       />
     );
   }
 
   return (
     <Screen>
-      {body}
+      {controls}
+      <View style={styles.flex}>{body}</View>
+
       <Portal>
-        <Modal visible={filterOpen} onDismiss={() => setFilterOpen(false)} contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}>
+        <Modal
+          visible={filterOpen}
+          onDismiss={() => setFilterOpen(false)}
+          contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
+        >
           <ScrollView keyboardShouldPersistTaps="handled">
             <Text variant="titleMedium" style={styles.modalTitle}>
               Sort by
             </Text>
             <View style={styles.wrap}>
               {SORT_OPTIONS.map((option) => (
-                <Chip key={option} selected={draft.sort === option} showSelectedOverlay onPress={() => setDraft((current) => ({ ...current, sort: option }))}>
+                <Chip
+                  key={option}
+                  selected={draft.sort === option}
+                  showSelectedOverlay
+                  onPress={() => setDraft((prev) => ({ ...prev, sort: option }))}
+                >
                   {SORT_LABELS[option]}
                 </Chip>
               ))}
@@ -218,8 +266,24 @@ export default function SearchScreen() {
               Price range (USD)
             </Text>
             <View style={styles.priceRow}>
-              <TextInput mode="outlined" label="Min" value={minText} onChangeText={setMinText} keyboardType="decimal-pad" style={styles.priceInput} dense />
-              <TextInput mode="outlined" label="Max" value={maxText} onChangeText={setMaxText} keyboardType="decimal-pad" style={styles.priceInput} dense />
+              <TextInput
+                mode="outlined"
+                label="Min"
+                value={minText}
+                onChangeText={setMinText}
+                keyboardType="decimal-pad"
+                style={styles.priceInput}
+                dense
+              />
+              <TextInput
+                mode="outlined"
+                label="Max"
+                value={maxText}
+                onChangeText={setMaxText}
+                keyboardType="decimal-pad"
+                style={styles.priceInput}
+                dense
+              />
             </View>
 
             {brands.length > 0 ? (
@@ -229,7 +293,12 @@ export default function SearchScreen() {
                 </Text>
                 <View style={styles.wrap}>
                   {brands.map((brand) => (
-                    <Chip key={brand} selected={draft.brands.includes(brand)} showSelectedOverlay onPress={() => toggleBrand(brand)}>
+                    <Chip
+                      key={brand}
+                      selected={draft.brands.includes(brand)}
+                      showSelectedOverlay
+                      onPress={() => toggleBrand(brand)}
+                    >
                       {brand}
                     </Chip>
                   ))}
@@ -253,7 +322,13 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  searchRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: GRID_PADDING, paddingTop: spacing.md, gap: spacing.sm },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: GRID_PADDING,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
   searchbar: { flex: 1 },
   badge: { position: 'absolute', top: 4, right: 4 },
   chipRow: { paddingHorizontal: GRID_PADDING, paddingVertical: spacing.md, gap: spacing.sm },
