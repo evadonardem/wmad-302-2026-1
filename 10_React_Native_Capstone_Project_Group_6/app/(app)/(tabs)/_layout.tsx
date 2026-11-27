@@ -4,6 +4,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/constants/theme';
 import { useCart } from '@/context/CartContext';
 
@@ -42,22 +43,38 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarActiveBackgroundColor: 'transparent',
         tabBarInactiveBackgroundColor: 'transparent',
+        tabBarBackground: () => (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: theme.dark ? '#202526' : theme.colors.surface,
+                borderColor: theme.dark ? '#465254' : theme.colors.outlineVariant,
+                borderWidth: 1,
+                borderRadius: 36,
+                shadowColor: '#000000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.18,
+                shadowRadius: 14,
+                elevation: 8,
+              },
+            ]}
+          />
+        ),
         tabBarStyle: {
-          backgroundColor: theme.dark ? '#202526' : theme.colors.surface,
-          borderColor: theme.dark ? '#465254' : theme.colors.outlineVariant,
-          borderWidth: 1,
-          borderTopWidth: 1,
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 12,
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          borderWidth: 0,
+          borderTopWidth: 0,
           borderRadius: 36,
-          marginHorizontal: 16,
-          marginBottom: 12,
           height: 68,
           paddingTop: 6,
           paddingBottom: 8,
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.18,
-          shadowRadius: 14,
-          elevation: 8,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}

@@ -19,8 +19,7 @@ export function Screen({ children }: { children: ReactNode }) {
         style={[
           styles.content,
           {
-            backgroundColor: theme.colors.background,
-            marginBottom: hasTabBar ? 84 : 0,
+            backgroundColor: hasTabBar ? 'transparent' : theme.colors.background,
           },
         ]}
       >
