@@ -245,7 +245,7 @@ export default function SearchScreen() {
           onDismiss={() => setFilterOpen(false)}
           contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
         >
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.filterOptions} keyboardShouldPersistTaps="handled">
             <Text variant="titleMedium" style={styles.modalTitle}>
               Sort by
             </Text>
@@ -335,10 +335,20 @@ const styles = StyleSheet.create({
   count: { paddingHorizontal: GRID_PADDING, marginBottom: spacing.md },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, paddingHorizontal: GRID_PADDING },
   footer: { padding: spacing.lg },
-  modal: { margin: spacing.lg, padding: spacing.lg, borderRadius: 16, maxHeight: '85%' },
+  modal: {
+    width: '92%',
+    maxWidth: 560,
+    margin: 0,
+    padding: spacing.lg,
+    borderRadius: 16,
+    maxHeight: '85%',
+    flexShrink: 1,
+    alignSelf: 'center',
+  },
+  filterOptions: { flexShrink: 1 },
   modalTitle: { marginTop: spacing.md, marginBottom: spacing.sm },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   priceRow: { flexDirection: 'row', gap: spacing.md },
   priceInput: { flex: 1 },
-  modalActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  modalActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, flexShrink: 0 },
 });

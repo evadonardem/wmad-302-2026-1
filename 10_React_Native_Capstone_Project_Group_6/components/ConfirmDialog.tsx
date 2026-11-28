@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { Button, Dialog, Portal, Text } from 'react-native-paper';
 import { useAppTheme } from '@/constants/theme';
 
@@ -24,7 +25,7 @@ export function ConfirmDialog({
   const theme = useAppTheme();
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
+      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
         <Dialog.Title>{title}</Dialog.Title>
         <Dialog.Content>
           <Text variant="bodyMedium">{message}</Text>
@@ -42,3 +43,13 @@ export function ConfirmDialog({
     </Portal>
   );
 }
+
+const styles = StyleSheet.create({
+  dialog: {
+    width: '92%',
+    maxWidth: 480,
+    marginHorizontal: 0,
+    alignSelf: 'center',
+    borderRadius: 28,
+  },
+});

@@ -16,7 +16,7 @@ const MAX_BADGE_COUNT = 99;
 // Created once at module level so icon components keep a stable identity across renders
 function createTabIcon(active: IconName, inactive: IconName) {
   function TabBarIcon({ focused, color }: TabIconProps) {
-    return <MaterialCommunityIcons name={focused ? active : inactive} size={24} color={color} />;
+    return <MaterialCommunityIcons name={focused ? active : inactive} size={22} color={color} />;
   }
   return TabBarIcon;
 }
@@ -39,6 +39,7 @@ export default function TabsLayout() {
       sceneContainerStyle={{ backgroundColor: theme.colors.background }}
       screenOptions={{
         headerShown: false,
+        tabBarLabelPosition: 'below-icon',
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarActiveBackgroundColor: 'transparent',
@@ -76,7 +77,8 @@ export default function TabsLayout() {
           paddingTop: 6,
           paddingBottom: 8,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarItemStyle: { flex: 1, minWidth: 0 },
+        tabBarLabelStyle: { fontSize: 10, lineHeight: 12, fontWeight: '600' },
       }}
     >
       <Tabs.Screen name="home" options={{ title: 'Shop', tabBarIcon: ShopIcon }} />
