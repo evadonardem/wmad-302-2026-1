@@ -1,0 +1,49 @@
+# CI for the React Native capstone (Group 3): typecheck, lint, unit/integration tests and a web build.
+# Runs only when files in the Group 3 project folder change.
+name: Capstone Group 3 CI
+
+on:
+  push:
+    paths:
+      - 'StarterKit copy/10_React_Native_Capstone_Project_Group_3/**'
+      - '.github/workflows/capstone-group3.yml'
+  pull_request:
+    paths:
+      - 'StarterKit copy/10_React_Native_Capstone_Project_Group_3/**'
+      - '.github/workflows/capstone-group3.yml'
+
+defaults:
+  run:
+    working-directory: 'StarterKit copy/10_React_Native_Capstone_Project_Group_3'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: 'StarterKit copy/10_React_Native_Capstone_Project_Group_3/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx expo lint
+
+      - name: Tests with coverage
+        run: npx jest --ci --coverage --coverageReporters=text-summary
+        env:
+          CI: true
+
+      - name: Web build
+        run: npx expo export --platform web --output-dir dist-web
+        env:
+          CI: 1

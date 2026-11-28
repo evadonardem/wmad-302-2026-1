@@ -1,0 +1,18 @@
+# UI test (Maestro): switch to the Halloween theme, then check in on the Rewards screen.
+# Assumes the user is signed in (run 01_login_and_add_to_cart.yaml first).
+appId: com.wmad302.marketplace
+---
+- launchApp
+- tapOn: "Profile"
+- scrollUntilVisible:
+    element: "Settings"
+- tapOn: "Settings"
+- tapOn: "Halloween"
+- assertVisible: "Halloween"
+- back
+- tapOn: "Rewards"
+- assertVisible: "Daily surprise"
+- tapOn:
+    text: "Check in.*"
+    optional: true
+- assertVisible: "Badges.*"
