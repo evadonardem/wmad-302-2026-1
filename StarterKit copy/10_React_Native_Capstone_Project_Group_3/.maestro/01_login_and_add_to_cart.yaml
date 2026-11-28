@@ -1,0 +1,24 @@
+# UI test (Maestro): sign in with the DummyJSON demo user and add a product to the cart.
+# Run on a device/emulator with the app installed:  maestro test .maestro/
+appId: com.wmad302.marketplace
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+- tapOn: "Username"
+- inputText: "emilys"
+- tapOn: "Password"
+- inputText: "emilyspass"
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: ".*Recommended for You"
+    timeout: 15000
+- tapOn:
+    text: "Add .* to cart"
+    index: 0
+- tapOn: "Cart"
+- assertVisible: "Checkout"
