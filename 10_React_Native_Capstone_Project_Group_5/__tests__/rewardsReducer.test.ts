@@ -60,6 +60,13 @@ describe('rewardsReducer', () => {
     expect(next.points).toBe(10);
   });
 
+  it('redeems points without going below zero', () => {
+    const next = rewardsReducer(baseState, { type: 'REDEEM_POINTS', payload: 4 });
+    expect(next.points).toBe(6);
+    const clamped = rewardsReducer(baseState, { type: 'REDEEM_POINTS', payload: 999 });
+    expect(clamped.points).toBe(0);
+  });
+
   it('hydrates stored rewards', () => {
     const next = rewardsReducer(
       { ...baseState, hydrated: false },

@@ -8,7 +8,7 @@
  * - Settings (theme, notifications, privacy)                        -> context/SettingsContext.tsx
  * - Address management (CRUD, saved on this device, used by checkout) -> components/AddressManager.tsx
  * - Wishlist (hearts on the product page) -> context/WishlistContext.tsx
- * - Style Passport (levels, completeness, achievements) -> components/StylePassport.tsx
+ * - Loyalty Passport (levels, completeness, achievements) -> components/LoyaltyPassport.tsx
  * - Logout
  */
 import React, { useState, useEffect, useCallback } from 'react';
@@ -39,18 +39,19 @@ import {
   formatExpiry,
   isExpiryValid,
   loadPaymentMethods,
-  luhnValid,
   onlyDigits,
   savePaymentMethods,
 } from '@/services/paymentMethods';
 import { ThemeMode, useSettings } from '@/context/SettingsContext';
 import { Address, loadAddresses, saveAddresses } from '@/services/addresses';
 import { useWishlist } from '@/context/WishlistContext';
+import { useCart } from '@/context/CartContext';
 import { AddressManager } from '@/components/AddressManager';
 import { Screen } from '@/components/ScreenBackground';
 import { WishlistDialog } from '@/components/WishlistDialog';
+import { StylePrint } from '@/components/StylePrint';
 import { AppDialog, DialogEmptyState, DialogRow, DialogSectionLabel, DialogToggleRow } from '@/components/AppDialog';
-import { StylePassport, tierFor } from '@/components/StylePassport';
+import { LoyaltyPassport, tierFor } from '@/components/LoyaltyPassport';
 import { loadLocalOrders, OrderRecord, PAYMENT_LABELS } from '@/services/orders';
 import { palette, useResponsive } from '@/constants/theme';
 import { styles } from '@/styles/profile';
@@ -64,8 +65,7 @@ interface PaymentErrors {
   account?: string;
 }
 
-// Hints shown in the Add Payment Method form
-const EXAMPLE_CARD = '4242 4242 4242 4242';
+// Card length by brand (Amex has 15 digits, others 16)
 const expectedDigits = (brand: string): number => (brand === 'Amex' ? 15 : 16);
 
 const maskEmail = (email: string): string => {
@@ -80,6 +80,7 @@ export default function ProfileScreen() {
   const { refreshUser } = useAuth();
   const { settings, updateSettings, resetSettings } = useSettings();
   const { items: wishItems } = useWishlist();
+  const { items: cartItems } = useCart();
   const { state: rewardsState } = useRewards();
   const { isWide, pad } = useResponsive();
   const userId = user?.id;
@@ -90,6 +91,8 @@ export default function ProfileScreen() {
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [snack, setSnack] = useState<string | null>(null);
+  // Bumped whenever Profile regains focus so STYLEPRINT reloads its activity log
+  const [stylePrintTick, setStylePrintTick] = useState(0);
 
   // Edit profile form
   const [editOpen, setEditOpen] = useState(false);
@@ -146,6 +149,7 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       loadOrders();
+      setStylePrintTick((tick) => tick + 1);
     }, [loadOrders])
   );
 
@@ -250,9 +254,8 @@ export default function ProfileScreen() {
     if (pmType === 'card') {
       const digits = onlyDigits(pmNumber);
       const want = expectedDigits(detectBrand(digits));
-      if (digits.length === 0) next.number = `Enter your card number: ${want} digits, e.g. ${EXAMPLE_CARD}`;
-      else if (digits.length < want) next.number = `Too short: ${digits.length} of ${want} digits. Example: ${EXAMPLE_CARD}`;
-      else if (digits.length > 19 || !luhnValid(digits)) next.number = 'That number does not look right. Check each digit.';
+      if (digits.length === 0) next.number = `Enter your ${want}-digit card number`;
+      else if (digits.length !== want) next.number = `Card number must be ${want} digits (currently ${digits.length})`;
       if (!isExpiryValid(pmExpiry)) next.expiry = 'Use MM/YY and a date that has not passed, e.g. 08/28';
     } else if (pmAccount.trim().length < 4) {
       next.account = 'Enter a mobile number (e.g. 0917 123 4567) or an email';
@@ -386,8 +389,19 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            {/* Style Passport: level, completeness and achievements */}
-            <StylePassport
+            {/* STYLEPRINT: a living style identity built from real shopping activity */}
+            <StylePrint
+              userId={user?.id}
+              wishlist={wishItems}
+              cart={cartItems}
+              orders={orders}
+              quizPersonality={rewardsState.quiz?.key ?? null}
+              refreshKey={stylePrintTick}
+              onExplore={() => router.push('/(app)/(tabs)/home')}
+            />
+
+            {/* Loyalty Passport: level, completeness and achievements */}
+            <LoyaltyPassport
               spent={totalSpent}
               ordersCount={orders.length}
               wishCount={wishItems.length}
@@ -737,7 +751,7 @@ export default function ProfileScreen() {
                 <TextInput
                   mode="outlined"
                   label="Card number"
-                  placeholder={EXAMPLE_CARD}
+                  placeholder={cardLength === 15 ? '1234 567890 12345' : '1234 5678 9012 3456'}
                   value={pmNumber}
                   onChangeText={(t) => setPmNumber(formatCardNumber(t))}
                   keyboardType="number-pad"
@@ -751,12 +765,9 @@ export default function ProfileScreen() {
                 <HelperText type={pmErrors.number ? 'error' : 'info'} visible>
                   {pmErrors.number ??
                     (cardDigits.length === 0
-                      ? `${cardLength} digits, for example ${EXAMPLE_CARD}`
+                      ? `Enter your ${cardLength}-digit ${cardBrand !== 'Card' ? cardBrand : 'card'} number`
                       : `${cardBrand} · ${cardDigits.length} of ${cardLength} digits`)}
                 </HelperText>
-                <Button compact icon="creditcard-edit-outline" onPress={() => setPmNumber(EXAMPLE_CARD)} style={styles.fillExample}>
-                  Fill example card
-                </Button>
                 <TextInput
                   mode="outlined"
                   label="Name on card"

@@ -11,7 +11,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button, Snackbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { productApi } from '@/services/productApi';
+import { trackStyleView } from '@/services/styleprint';
 import { ScreenBackground } from '@/components/ScreenBackground';
+import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { Product } from '@/types/product';
@@ -26,6 +28,7 @@ export default function ProductDetailScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
     const { width, pad } = useResponsive();
+    const { user } = useAuth();
     const { addItem, items, totalQuantity } = useCart();
     const { has: inWishlist, toggle: toggleWishlist } = useWishlist();
     const wide = width >= 900;
@@ -59,6 +62,20 @@ export default function ProductDetailScreen() {
     useEffect(() => {
         load();
     }, [load]);
+
+    // STYLEPRINT learns from the products a shopper opens
+    useEffect(() => {
+        if (!product || user?.id === undefined) return;
+        trackStyleView(user.id, {
+            productId: product.id,
+            title: product.title,
+            category: product.category,
+            brand: product.brand,
+            tags: product.tags,
+            price: product.price,
+            discountPercentage: product.discountPercentage,
+        }).catch(() => undefined);
+    }, [product, user?.id]);
 
     // Other products of the same category feed the "New arrival" banner
     const category = product?.category;
@@ -102,6 +119,9 @@ export default function ProductDetailScreen() {
             discountPercentage: product.discountPercentage,
             quantity,
             stock: product.stock,
+            category: product.category,
+            brand: product.brand,
+            tags: product.tags,
         });
         setSnack(`Added ${quantity} to cart`);
         setQuantity(1);
@@ -136,6 +156,8 @@ export default function ProductDetailScreen() {
             discountPercentage: product.discountPercentage,
             stock: product.stock,
             category: product.category,
+            brand: product.brand,
+            tags: product.tags,
         });
         setSnack(added ? 'Saved to your wishlist' : 'Removed from your wishlist');
     };

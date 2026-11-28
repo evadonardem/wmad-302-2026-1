@@ -96,4 +96,8 @@ export interface CartItem {
   discountPercentage: number;
   quantity: number;
   stock: number;
+  /** Used by STYLEPRINT to understand shopping taste */
+  category?: string;
+  brand?: string;
+  tags?: string[];
 }

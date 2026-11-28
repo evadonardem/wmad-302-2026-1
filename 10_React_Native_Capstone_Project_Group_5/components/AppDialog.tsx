@@ -86,6 +86,10 @@ export function AppDialog({
   const hero = HERO[tone];
   const cardWidth = Math.min(Math.max(0, width - 32), 580);
   const bodyMax = bodyMaxHeight ?? Math.max(220, height * 0.5);
+  // Two side-by-side buttons get too narrow on a phone once they carry icons and
+  // longer labels ("Save method", "Back to orders"), and Paper clips the label to
+  // one line. Stack the footer buttons on narrow screens so every word is visible.
+  const stackActions = actions.length > 1 && width < 420;
 
   const body = <View style={styles.bodyInner}>{children}</View>;
 
@@ -142,7 +146,7 @@ export function AppDialog({
             <View style={styles.footer}>
               {footerNote ? <Text style={styles.footerNote}>{footerNote}</Text> : null}
               {actions.length > 0 ? (
-                <View style={styles.actionsRow}>
+                <View style={[styles.actionsRow, stackActions && styles.actionsColumn]}>
                   {actions.map((action, index) => {
                     const mode = action.mode ?? (index === actions.length - 1 ? 'contained' : 'text');
                     const danger = action.tone === 'danger';
@@ -154,7 +158,11 @@ export function AppDialog({
                         onPress={action.onPress}
                         loading={action.loading}
                         disabled={action.disabled}
-                        style={[styles.actionButton, actions.length > 1 && styles.actionButtonGrow]}
+                        style={[
+                          styles.actionButton,
+                          !stackActions && actions.length > 1 && styles.actionButtonGrow,
+                          stackActions && styles.actionButtonFull,
+                        ]}
                         contentStyle={styles.actionContent}
                         labelStyle={styles.actionLabel}
                         textColor={danger ? (mode === 'contained' ? (theme.dark ? '#2A0A14' : '#FFFFFF') : palette.danger) : undefined}
@@ -335,10 +343,12 @@ const styles = themed(() =>
     },
     footerNote: { fontSize: 11, lineHeight: 16, color: palette.stone, textAlign: 'center' },
     actionsRow: { flexDirection: 'row', gap: spacing.sm },
+    actionsColumn: { flexDirection: 'column' },
     actionButton: { borderRadius: radius.pill },
     actionButtonGrow: { flex: 1 },
-    actionContent: { height: 46, paddingHorizontal: spacing.md, gap: 6 },
-    actionLabel: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
+    actionButtonFull: { width: '100%' },
+    actionContent: { height: 46, paddingHorizontal: spacing.sm, gap: 4 },
+    actionLabel: { fontSize: 13, fontWeight: '700', letterSpacing: 0.1 },
 
     // Rows
     row: {

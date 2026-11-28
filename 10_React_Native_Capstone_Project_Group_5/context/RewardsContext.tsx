@@ -37,7 +37,8 @@ type RewardsAction =
     | { type: 'ENSURE_DEAL_DAY'; payload: { dateKey: string; challengeId: string } }
     | { type: 'DEAL_ATTEMPT' }
     | { type: 'DEAL_SOLVED'; payload: { points: number; coupon: Coupon | null } }
-    | { type: 'REDEEM_COUPON'; payload: string };
+    | { type: 'REDEEM_COUPON'; payload: string }
+    | { type: 'REDEEM_POINTS'; payload: number };
 
 export function rewardsReducer(state: RewardState, action: RewardsAction): RewardState {
     switch (action.type) {
@@ -104,6 +105,10 @@ export function rewardsReducer(state: RewardState, action: RewardsAction): Rewar
         case 'REDEEM_COUPON':
             return { ...state, coupons: state.coupons.filter((coupon) => coupon.id !== action.payload) };
 
+        case 'REDEEM_POINTS':
+            // Points spent at checkout are removed from the shared balance.
+            return { ...state, points: Math.max(0, state.points - Math.max(0, Math.floor(action.payload))) };
+
         default:
             return state;
     }
@@ -118,6 +123,7 @@ interface RewardsContextValue {
     registerDealAttempt: () => void;
     solveDeal: (points: number, coupon: Coupon | null) => void;
     redeemCoupon: (couponId: string) => void;
+    redeemPoints: (points: number) => void;
 }
 
 const RewardsContext = createContext<RewardsContextValue | null>(null);
@@ -187,9 +193,13 @@ export function RewardsProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'REDEEM_COUPON', payload: couponId });
     }, []);
 
+    const redeemPoints = useCallback((points: number) => {
+        dispatch({ type: 'REDEEM_POINTS', payload: points });
+    }, []);
+
     const value = useMemo(
-        () => ({ state, addPoints, recordSpin, saveQuiz, ensureDealDay, registerDealAttempt, solveDeal, redeemCoupon }),
-        [state, addPoints, recordSpin, saveQuiz, ensureDealDay, registerDealAttempt, solveDeal, redeemCoupon]
+        () => ({ state, addPoints, recordSpin, saveQuiz, ensureDealDay, registerDealAttempt, solveDeal, redeemCoupon, redeemPoints }),
+        [state, addPoints, recordSpin, saveQuiz, ensureDealDay, registerDealAttempt, solveDeal, redeemCoupon, redeemPoints]
     );
 
     return <RewardsContext.Provider value={value}>{children}</RewardsContext.Provider>;

@@ -29,6 +29,8 @@ import { AppDialog, DialogRow, DialogSectionLabel } from '@/components/AppDialog
 import { LuckySpinWheel } from '@/components/LuckySpinWheel';
 import { addLocalOrder, OrderRecord, PAYMENT_LABELS, PaymentChoice } from '@/services/orders';
 import { loadAddresses, formatAddress } from '@/services/addresses';
+import { maxRedeemablePoints, pointsToDollars, POINTS_PER_DOLLAR } from '@/services/rewardsService';
+import { trackStylePurchase } from '@/services/styleprint';
 import { CartItem } from '@/types/product';
 import { palette, useResponsive } from '@/constants/theme';
 import { styles } from '@/styles/cart';
@@ -60,7 +62,7 @@ export default function CartScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { isWide } = useResponsive();
-  const { state: rewards, redeemCoupon } = useRewards();
+  const { state: rewards, redeemCoupon, redeemPoints } = useRewards();
   const {
     items,
     isLoading,
@@ -74,6 +76,7 @@ export default function CartScreen() {
   const [removeTarget, setRemoveTarget] = useState<CartItem | null>(null);
   const [couponInput, setCouponInput] = useState('');
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
+  const [usePoints, setUsePoints] = useState(false);
   const [snack, setSnack] = useState<string | null>(null);
 
   // Checkout form state
@@ -102,10 +105,20 @@ export default function CartScreen() {
     ? selectedReward.kind === 'discount'
       ? discountedTotal * (selectedReward.value / 100)
       : selectedReward.kind === 'points'
-        ? Math.min(selectedReward.value, discountedTotal - couponDiscount)
+        ? Math.min(pointsToDollars(selectedReward.value), discountedTotal - couponDiscount)
         : 0
     : 0;
-  const finalTotal = Math.max(0, discountedTotal - couponDiscount - rewardDiscount);
+  const totalBeforePoints = Math.max(0, discountedTotal - couponDiscount - rewardDiscount);
+  // Points work like cash at checkout: 100 pts = $1. Only spend what the order still needs.
+  const pointsBalance = rewards.points;
+  const pointsRedeemed = usePoints ? maxRedeemablePoints(pointsBalance, totalBeforePoints) : 0;
+  const pointsDiscount = pointsToDollars(pointsRedeemed);
+  const finalTotal = Math.max(0, totalBeforePoints - pointsDiscount);
+  const canUsePoints = pointsBalance > 0 && totalBeforePoints > 0;
+  const pointsOptionSub =
+    usePoints && pointsRedeemed > 0
+      ? `Using ${pointsRedeemed} pts for $${pointsDiscount.toFixed(2)} off`
+      : `${pointsBalance} pts available · ${POINTS_PER_DOLLAR} pts = $1`;
   const allSelected = items.length > 0 && selectedItems.length === items.length;
 
   const toggleItem = (productId: number) =>
@@ -212,6 +225,21 @@ export default function CartScreen() {
       };
       await addLocalOrder(userId, record);
 
+      // STYLEPRINT learns from completed purchases too
+      trackStylePurchase(
+        userId,
+        selectedItems.map((i) => ({
+          productId: i.productId,
+          title: i.title,
+          category: i.category,
+          brand: i.brand,
+          tags: i.tags,
+          price: i.price,
+          discountPercentage: i.discountPercentage,
+          quantity: i.quantity,
+        }))
+      ).catch(() => undefined);
+
       // Done: only the ticked items were ordered, so remove just those and keep the rest in the cart
       setOrder({
         id: record.id,
@@ -224,7 +252,9 @@ export default function CartScreen() {
       selectedItems.forEach((i) => removeItem(i.productId));
       setUnchecked([]);
       if (selectedRewardId) redeemCoupon(selectedRewardId);
+      if (pointsRedeemed > 0) redeemPoints(pointsRedeemed);
       setSelectedRewardId(null);
+      setUsePoints(false);
       removeCoupon();
       setPhone('');
       setAddress('');
@@ -381,8 +411,33 @@ export default function CartScreen() {
                 </Pressable>
               ) : null}
             </View>
+
+            {/* Points can be converted to cash at checkout: 100 pts = $1 */}
+            <Pressable
+              style={[styles.rewardOption, usePoints && canUsePoints && styles.rewardOptionActive, !canUsePoints && styles.rewardOptionDisabled]}
+              onPress={() => setUsePoints((v) => !v)}
+              disabled={!canUsePoints}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: usePoints && canUsePoints, disabled: !canUsePoints }}
+              accessibilityLabel="Use points at checkout"
+            >
+              <MaterialCommunityIcons
+                name={usePoints && canUsePoints ? 'check-circle' : 'circle-outline'}
+                size={20}
+                color={usePoints && canUsePoints ? palette.forest : palette.mist}
+              />
+              <View style={styles.rewardOptionText}>
+                <Text style={[styles.rewardOptionTitle, usePoints && canUsePoints && styles.rewardOptionTitleActive]}>
+                  Use points
+                </Text>
+                <Text style={styles.rewardOptionSub} numberOfLines={1}>
+                  {pointsOptionSub}
+                </Text>
+              </View>
+            </Pressable>
+
             {rewards.coupons.length === 0 ? (
-              <Text style={styles.rewardHint}>Play games to earn coupons you can use here.</Text>
+              <Text style={styles.rewardHint}>Play games to earn points and coupons you can use here.</Text>
             ) : (
               <View style={styles.rewardList}>
                 {rewards.coupons.map((reward) => {
@@ -406,7 +461,7 @@ export default function CartScreen() {
                           {reward.title}
                         </Text>
                         <Text style={styles.rewardOptionSub} numberOfLines={1}>
-                          {reward.code} · {reward.kind === 'discount' ? `${reward.value}% off` : reward.kind === 'shipping' ? 'Free shipping' : `${reward.value} pts value`}
+                          {reward.code} · {reward.kind === 'discount' ? `${reward.value}% off` : reward.kind === 'shipping' ? 'Free shipping' : `${reward.value} pts ($${pointsToDollars(reward.value).toFixed(2)})`}
                         </Text>
                       </View>
                     </Pressable>
@@ -443,6 +498,12 @@ export default function CartScreen() {
               <Text style={styles.discountValue}>Applied</Text>
             </View>
           ) : null}
+          {pointsDiscount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Points ({pointsRedeemed} pts)</Text>
+              <Text style={styles.discountValue}>-${pointsDiscount.toFixed(2)}</Text>
+            </View>
+          )}
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
             <Text style={styles.summaryValue}>Free</Text>
@@ -587,6 +648,7 @@ export default function CartScreen() {
                 <Text style={styles.checkoutTotal}>${finalTotal.toFixed(2)}</Text>
                 <Text style={styles.checkoutMeta}>
                   {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} · {selectedItems.length} products · free shipping
+                  {pointsDiscount > 0 ? ` · ${pointsRedeemed} pts used (-$${pointsDiscount.toFixed(2)})` : ''}
                 </Text>
               </View>
 

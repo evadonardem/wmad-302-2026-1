@@ -14,7 +14,7 @@ import { ActivityCard, ActivityStatus } from '@/components/play-earn/ActivityCar
 import { CouponCard } from '@/components/play-earn/RewardCard';
 import { PERSONALITIES } from '@/components/play-earn/quizData';
 import { playStyles as styles } from '@/components/play-earn/playEarnStyles';
-import { formatCountdown, msUntilNextMidnight, msUntilNextSpin, todayKey } from '@/services/rewardsService';
+import { formatCountdown, msUntilNextMidnight, msUntilNextSpin, pointsToDollars, POINTS_PER_DOLLAR, todayKey } from '@/services/rewardsService';
 
 export default function PlayEarnScreen() {
     const router = useRouter();
@@ -87,8 +87,12 @@ export default function PlayEarnScreen() {
                         <Text style={styles.balanceValue}>{state.points}</Text>
                         <Text style={styles.balanceUnit}>POINTS</Text>
                     </View>
-                    <Text style={styles.balanceSub}>Keep playing to earn more!</Text>
+                    <Text style={styles.balanceSub}>Keep playing to earn more! · {POINTS_PER_DOLLAR} pts = $1</Text>
                     <View style={styles.balanceBadges}>
+                        <View style={styles.balanceBadge}>
+                            <MaterialCommunityIcons name="cash-multiple" size={15} color={palette.gold} />
+                            <Text style={styles.balanceBadgeText}>${pointsToDollars(state.points).toFixed(2)} at checkout</Text>
+                        </View>
                         <View style={styles.balanceBadge}>
                             <MaterialCommunityIcons name="ticket-percent-outline" size={15} color={palette.gold} />
                             <Text style={styles.balanceBadgeText}>{state.coupons.length} coupons</Text>

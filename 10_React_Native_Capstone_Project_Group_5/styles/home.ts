@@ -25,7 +25,7 @@ export const styles = themed(() =>
   brandRowMobile: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerIconsRowMobile: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   mobileMenuToggle: { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line, alignItems: 'center', justifyContent: 'center' },
-  mobileMenuOverlay: { position: 'absolute', top: 68, right: 0, zIndex: 30, elevation: 8, backgroundColor: palette.surface, padding: 8, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+  mobileMenuOverlay: { position: 'absolute', top: 68, right: 0, zIndex: 30, backgroundColor: palette.surface, padding: 8, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line, ...softShadow('#000', 0.12, 12, 4, 8) },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 },
   brandText: { ...serif, fontSize: 20, letterSpacing: 1, color: palette.forest, flexShrink: 1 },
   brandTag: { fontSize: 11, color: palette.stone, marginTop: 1, flexShrink: 1 },
@@ -93,7 +93,10 @@ export const styles = themed(() =>
   offerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   offerLabel: { fontSize: 14, color: '#FBF7FF' },
   offerUpTo: { fontSize: 22, color: '#FBF7FF', marginTop: spacing.md },
-  offerBig: { fontSize: 54, lineHeight: 60, fontWeight: '800', color: '#FFFFFF' },
+  // No explicit lineHeight: a lineHeight smaller than the font's natural metrics clips
+  // the top of the glyphs on Android (the "20% OFF" text was being cut off).
+  // 42 keeps the headline inside the card on phones while still being the largest text.
+  offerBig: { fontSize: 42, fontWeight: '800', color: '#FFFFFF' },
   offerSub: { fontSize: 14, color: 'rgba(251,247,255,0.85)', marginTop: 2 },
   offerButton: {
     alignSelf: 'flex-start', marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: 8, height: 42, paddingHorizontal: 18,

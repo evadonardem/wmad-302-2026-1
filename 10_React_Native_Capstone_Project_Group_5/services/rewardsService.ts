@@ -12,6 +12,24 @@ export const DEAL_ATTEMPTS = 3;
 export const QUIZ_REWARD_POINTS = 25;
 export const DEAL_REWARD_POINTS = 100;
 
+/** Points are money at checkout: 100 points = $1.00 (1 point = 1 cent). */
+export const POINTS_PER_DOLLAR = 100;
+
+/** Convert a points balance to its dollar value (100 pts = $1). */
+export function pointsToDollars(points: number): number {
+    return Math.max(0, Math.floor(points)) / POINTS_PER_DOLLAR;
+}
+
+/**
+ * How many points can be spent on an amount due, capped by the balance.
+ * One point covers one cent, so a $10.00 order uses at most 1,000 points.
+ */
+export function maxRedeemablePoints(points: number, amountDue: number): number {
+    const available = Math.max(0, Math.floor(points));
+    const amountInCents = Math.max(0, Math.round(amountDue * 100));
+    return Math.min(available, amountInCents);
+}
+
 const storageKey = (userId: number): string => `play_earn_${userId}`;
 
 export interface StoredRewards {

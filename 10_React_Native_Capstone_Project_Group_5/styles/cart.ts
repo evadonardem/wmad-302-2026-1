@@ -24,7 +24,7 @@ export const styles = themed(() =>
     layoutWide: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xl, paddingHorizontal: spacing.xl },
     list: { flex: 1 },
     listContent: { paddingHorizontal: spacing.md, paddingBottom: 120 },
-    listContentPhone: { paddingBottom: 380 }, // Space for summary
+    listContentPhone: { paddingBottom: 440 }, // Space for summary (includes the points option)
     header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.lg },
     backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { ...serif, flex: 1, fontSize: 26, color: palette.ink },
@@ -71,6 +71,7 @@ export const styles = themed(() =>
     rewardList: { gap: 8 },
     rewardOption: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: 10, borderRadius: radius.md, backgroundColor: palette.ivory, borderWidth: 1, borderColor: 'transparent' },
     rewardOptionActive: { borderColor: palette.forest, backgroundColor: palette.accentSoft },
+    rewardOptionDisabled: { opacity: 0.55 },
     rewardOptionText: { flex: 1, minWidth: 0 },
     rewardOptionTitle: { fontSize: 13, fontWeight: '600', color: palette.ink },
     rewardOptionTitleActive: { color: palette.forest },

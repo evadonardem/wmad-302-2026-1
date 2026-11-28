@@ -40,6 +40,9 @@ export function WishlistDialog({ visible, onClose, onOpenProduct, onMessage }: W
             discountPercentage: item.discountPercentage,
             quantity: 1,
             stock: item.stock,
+            category: item.category,
+            brand: item.brand,
+            tags: item.tags,
         });
         onMessage('Added to cart');
     };

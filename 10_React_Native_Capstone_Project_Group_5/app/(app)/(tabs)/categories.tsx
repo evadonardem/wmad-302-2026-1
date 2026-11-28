@@ -175,7 +175,7 @@ export default function CategoriesScreen() {
         contentContainerStyle={[styles.listContent, { paddingHorizontal: pad }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[palette.forest]} tintColor={palette.forest} />}
       >
-        <View style={styles.bgDecor} pointerEvents="none">
+        <View style={[styles.bgDecor, { pointerEvents: 'none' }]}>
           <View style={styles.bgTopBand} />
           <View style={styles.bgSoftArc} />
           <View style={styles.bgAccentStrip} />

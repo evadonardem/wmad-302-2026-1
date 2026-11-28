@@ -1,6 +1,6 @@
 /**
  * Profile Screen Styles - Shared
- * Soft minimal: a green identity card, stat tiles, the Style Passport, icon-tile menus.
+ * Soft minimal: a green identity card, stat tiles, the Loyalty Passport, icon-tile menus.
  * Wide screens put identity + passport on the left and the menus on the right.
  */
 import { StyleSheet } from 'react-native';
@@ -90,7 +90,6 @@ export const styles = themed(() =>
     orderMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     orderMetaText: { flex: 1, fontSize: 12, color: palette.stone },
     smallLabel: { fontSize: 11, fontWeight: '700' },
-    fillExample: { alignSelf: 'flex-start' },
     dialogWideButton: { borderRadius: radius.md, marginTop: spacing.xs },
     dialogWideButtonContent: { height: 44 },
   })

@@ -1,10 +1,11 @@
 /**
  * Tabs Layout - Marketplace App Navigation
  * Tabs: Home (Shop), Categories, Search, Cart, Profile
- * Restyled: soft cream tab bar, small sentence-case labels, dark active state
+ * Restyled: soft cream tab bar with icon-only tabs (labels hidden so they never clip on phones)
  */
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCart } from '@/context/CartContext';
 import { palette } from '@/constants/theme';
@@ -13,7 +14,7 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const icon = (active: IconName, inactive: IconName) => {
   function TabIcon({ focused, color }: { focused: boolean; color: string }) {
-    return <MaterialCommunityIcons name={focused ? active : inactive} size={24} color={color} />;
+    return <MaterialCommunityIcons name={focused ? active : inactive} size={26} color={color} />;
   }
   TabIcon.displayName = 'TabIcon';
   return TabIcon;
@@ -26,19 +27,22 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        // Labels under the icons on wide screens too, so the cart badge never covers the label
-        tabBarLabelPosition: 'below-icon',
+        // Icon-only tabs: hiding the labels frees vertical space on phones, so the icons
+        // (and the cart badge) are never clipped by the bottom edge / gesture bar.
+        tabBarShowLabel: false,
         tabBarActiveTintColor: palette.ink,
         tabBarInactiveTintColor: palette.stone,
         tabBarStyle: {
           backgroundColor: palette.ivory,
           borderTopWidth: 0,
-          elevation: 0,
-          shadowOpacity: 0,
           paddingTop: 8,
-          paddingBottom: 8,
+          // No paddingBottom override: react-navigation adds the device safe-area inset,
+          // so the icons stay above the Android gesture bar.
+          ...Platform.select({
+            web: { boxShadow: 'none' },
+            default: { elevation: 0, shadowOpacity: 0 },
+          }),
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
         tabBarBadgeStyle: { backgroundColor: palette.sage, color: palette.surface, fontSize: 10 },
       }}
     >

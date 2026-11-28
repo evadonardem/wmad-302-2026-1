@@ -37,7 +37,7 @@ export function Confetti({ active }: { active: boolean }) {
     }, [active, values]);
 
     return (
-        <View style={styles.confettiWrap} pointerEvents="none">
+        <View style={[styles.confettiWrap, { pointerEvents: 'none' }]}>
             {PIECES.map((piece, index) => {
                 const value = values[index];
                 return (

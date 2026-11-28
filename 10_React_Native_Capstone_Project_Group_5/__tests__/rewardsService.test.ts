@@ -3,7 +3,10 @@ import {
   emptyRewards,
   formatCountdown,
   makeCoupon,
+  maxRedeemablePoints,
   msUntilNextSpin,
+  pointsToDollars,
+  POINTS_PER_DOLLAR,
   SPIN_COOLDOWN_MS,
   todayKey,
 } from '@/services/rewardsService';
@@ -58,5 +61,19 @@ describe('rewardsService', () => {
     expect(coupon.code.startsWith('SPIN10-')).toBe(true);
     expect(coupon.id).toBeTruthy();
     expect(new Date(coupon.earnedAt).toString()).not.toBe('Invalid Date');
+  });
+
+  it('converts points to dollars at 100 points = $1', () => {
+    expect(POINTS_PER_DOLLAR).toBe(100);
+    expect(pointsToDollars(100)).toBe(1);
+    expect(pointsToDollars(250)).toBe(2.5);
+    expect(pointsToDollars(0)).toBe(0);
+  });
+
+  it('caps redeemable points at the amount due', () => {
+    expect(maxRedeemablePoints(250, 10)).toBe(250);
+    expect(maxRedeemablePoints(2500, 10)).toBe(1000);
+    expect(maxRedeemablePoints(0, 10)).toBe(0);
+    expect(maxRedeemablePoints(500, 0)).toBe(0);
   });
 });

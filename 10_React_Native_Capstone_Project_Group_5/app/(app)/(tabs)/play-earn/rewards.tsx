@@ -13,6 +13,7 @@ import { PlayEarnHeader } from '@/components/play-earn/PlayEarnHeader';
 import { CouponCard } from '@/components/play-earn/RewardCard';
 import { playStyles as styles } from '@/components/play-earn/playEarnStyles';
 import { CouponKind } from '@/types/rewards';
+import { pointsToDollars, POINTS_PER_DOLLAR } from '@/services/rewardsService';
 
 type Filter = 'all' | 'discount' | 'shipping';
 
@@ -71,7 +72,9 @@ export default function RewardsScreen() {
                         <Text style={styles.balanceValue}>{state.points}</Text>
                         <Text style={styles.balanceUnit}>POINTS</Text>
                     </View>
-                    <Text style={styles.balanceSub}>Keep playing to earn more!</Text>
+                    <Text style={styles.balanceSub}>
+                        Worth ${pointsToDollars(state.points).toFixed(2)} at checkout · {POINTS_PER_DOLLAR} pts = $1
+                    </Text>
                 </View>
 
                 <View style={styles.section}>

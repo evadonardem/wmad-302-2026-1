@@ -14,6 +14,9 @@ export interface WishItem {
     discountPercentage: number;
     stock: number;
     category: string;
+    /** Used by STYLEPRINT to understand shopping taste */
+    brand?: string;
+    tags?: string[];
 }
 
 interface WishlistContextType {

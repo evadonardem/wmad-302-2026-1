@@ -193,7 +193,7 @@ function AnimatedTile({ index, box, tone, onPress, accessibilityLabel, variant =
                     ]}
                 >
                     {variant === 'footer' ? (
-                        <View style={styles.footerBackdrop} pointerEvents="none">
+                        <View style={[styles.footerBackdrop, { pointerEvents: 'none' }]}>
                             {!compact ? (
                                 <>
                                     <View style={styles.footerGlow} />
@@ -204,7 +204,7 @@ function AnimatedTile({ index, box, tone, onPress, accessibilityLabel, variant =
                             <MaterialCommunityIcons name="star-four-points" size={16} color="rgba(42,21,80,0.4)" style={styles.footerSpark} />
                         </View>
                     ) : (
-                        <View style={styles.backdrop} pointerEvents="none">
+                        <View style={[styles.backdrop, { pointerEvents: 'none' }]}>
                             <View style={styles.bgBlob} />
                             <View style={[styles.bgBlob2, accent]} />
                             <View style={styles.bgRing} />

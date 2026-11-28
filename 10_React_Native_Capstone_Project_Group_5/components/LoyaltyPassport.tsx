@@ -1,13 +1,14 @@
 /**
- * StylePassport - the profile's loyalty card (a unique extra feature)
+ * LoyaltyPassport - the profile's loyalty card (a unique extra feature)
  * - Level: 1 point per $1 spent, four tiers (Explorer, Insider, VIP, Elite) with a progress bar
  * - Completeness: four steps (first order, address, payment method, wishlist) with a percentage
- * - Achievements: six badges that unlock as you use the app
+ * - Achievements: badges that unlock as you use the app
+ * - Collapsible: the header stays visible and taps to show/hide the full card
  */
-import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { palette, radius, spacing, themed, typeface } from '@/constants/theme';
+import { palette, radius, softShadow, spacing, themed, typeface } from '@/constants/theme';
 import { PERSONALITIES } from '@/components/play-earn/quizData';
 import { PersonalityKey } from '@/types/rewards';
 
@@ -31,7 +32,7 @@ export function tierFor(points: number): Tier {
     return [...TIERS].reverse().find((t) => points >= t.min) ?? TIERS[0];
 }
 
-interface StylePassportProps {
+interface LoyaltyPassportProps {
     spent: number;
     ordersCount: number;
     wishCount: number;
@@ -48,7 +49,8 @@ interface Badge {
     earned: boolean;
 }
 
-export function StylePassport({ spent, ordersCount, wishCount, addressCount, methodCount, darkMode, quizPersonality }: StylePassportProps) {
+export function LoyaltyPassport({ spent, ordersCount, wishCount, addressCount, methodCount, darkMode, quizPersonality }: LoyaltyPassportProps) {
+    const [open, setOpen] = useState(false);
     const points = Math.round(spent);
     const tier = tierFor(points);
     const next = TIERS.find((t) => t.min > points) ?? null;
@@ -77,20 +79,29 @@ export function StylePassport({ spent, ordersCount, wishCount, addressCount, met
 
     return (
         <View style={styles.card}>
-            <View style={styles.headRow}>
+            <Pressable
+                style={styles.headRow}
+                onPress={() => setOpen((value) => !value)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                accessibilityLabel={`Loyalty Passport, ${tier.name}, ${points.toLocaleString()} points. ${open ? 'Collapse details' : 'Expand details'}`}
+            >
                 <View style={styles.tierIcon}>
                     <MaterialCommunityIcons name={tier.icon} size={22} color={palette.surface} />
                 </View>
                 <View style={styles.headText}>
-                    <Text style={styles.kicker}>Style Passport</Text>
+                    <Text style={styles.kicker}>Loyalty Passport</Text>
                     <Text style={styles.tierName}>{tier.name}</Text>
                 </View>
                 <View style={styles.pointsBox}>
                     <Text style={styles.points}>{points.toLocaleString()}</Text>
                     <Text style={styles.pointsLabel}>points</Text>
                 </View>
-            </View>
+                <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={palette.stone} />
+            </Pressable>
 
+            {open ? (
+                <>
             <View style={styles.track}>
                 <View style={[styles.fillBar, { width: `${Math.max(4, Math.round(progress * 100))}%` }]} />
             </View>
@@ -174,6 +185,10 @@ export function StylePassport({ spent, ordersCount, wishCount, addressCount, met
                     </View>
                 ))}
             </View>
+                </>
+            ) : (
+                <Text style={styles.collapsedHint}>Tap the header to see completeness and achievements</Text>
+            )}
         </View>
     );
 }
@@ -193,6 +208,7 @@ const styles = themed(() =>
         fillBar: { height: '100%', borderRadius: 4, backgroundColor: palette.forest },
         fillAlt: { backgroundColor: palette.gold },
         note: { fontSize: 12, color: palette.stone, marginTop: 8 },
+        collapsedHint: { fontSize: 12, color: palette.stone, marginTop: spacing.sm },
         tierRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.md },
         tierStep: { alignItems: 'center', gap: 4, flex: 1 },
         tierDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: palette.beige },
@@ -226,7 +242,7 @@ const styles = themed(() =>
         badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.md, rowGap: spacing.md },
         badge: { width: '33.33%', alignItems: 'center', gap: 6 },
         badgeCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: palette.sand, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 1, borderColor: palette.line },
-        badgeCircleOn: { backgroundColor: palette.forest, borderColor: palette.gold, shadowColor: palette.gold, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+        badgeCircleOn: { backgroundColor: palette.forest, borderColor: palette.gold, ...softShadow(palette.gold, 0.35, 8, 2, 4) },
         badgeShine: { position: 'absolute', top: -8, left: -4, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)' },
         badgeLabel: { fontSize: 11, fontWeight: '700', color: palette.ink },
         badgeLabelOff: { color: palette.mist, fontWeight: '500' },
